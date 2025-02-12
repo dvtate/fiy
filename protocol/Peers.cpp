@@ -69,7 +69,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
             }
 
             // TODO FIXME Race condition! another token could form between when we checked earlier and now
-            auto p = std::make_shared<Peer>(domain, PeerAuth("fff", std::string(resp->body()), token));
+            auto p = std::make_shared<Peer>(domain, PeerAuth("symkey", std::string(resp->body()), token));
             this->add_peer(domain, p);
             cb(p);
         }
@@ -97,7 +97,7 @@ void Peers::request_peer(
         std::cout <<"peer not in cache\n";
         new_peer(
             domain,
-            [this, appid, user, req, cb = std::move(callback)]
+            [appid, user, req, cb = std::move(callback)]
             (const std::shared_ptr<Peer>& p) mutable
             {
                 if (p != nullptr) {
@@ -121,14 +121,14 @@ void Peers::request_peer(
     drogon::HttpRequestPtr& req,
     std::function<void(const drogon::HttpResponsePtr&)> callback
 ) {
-    auto client = drogon::HttpClient::newHttpClient(std::string("http://")+ peer->m_domain);
+    auto client = drogon::HttpClient::newHttpClient(std::string("http://") + peer->m_domain);
     req->addHeader("Fediy-Peer", peer->m_auth.m_bearer_token_we_send);
     req->addHeader("Fediy-User", user);
     req->addHeader("Fediy-Path", req->getPath());
     req->setPath("/mods/" + appid + "/msg");
     client->sendRequest(
         req,
-        [this, cb = std::move(callback)]
+        [cb = std::move(callback)]
         (
             drogon::ReqResult status,
             const drogon::HttpResponsePtr& resp

@@ -75,6 +75,19 @@ public:
         return m_mods; // copy
     }
 
+    /// Get json list of installed apps for the user portal
+    [[nodiscard]] inline std::string get_mods_json() {
+        std::string ret = "[";
+        RWMutex::LockForRead lock{m_mtx};
+        for (auto& m : m_mods) {
+            ret += m->user_json();
+            ret += ',';
+        }
+        if (ret[ret.size() - 1] == ',')
+            ret[ret.size() - 1] = ']';
+        return ret;
+    }
+
     bool remove_mod(const std::string& id) {
         RWMutex::LockForWrite lock{m_mtx};
         auto m = get_mod_by_id(id);

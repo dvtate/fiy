@@ -4,6 +4,8 @@
 
 #include <fstream>
 
+#include "nlohmann/json.hpp"
+
 #include "App.hpp"
 
 #include "Pages.hpp"
@@ -34,7 +36,7 @@ Pages::Pages() {
 
     // Load templates with global data already filled in
     auto template_dir = g_app->m_config.m_data_dir + "/page_templates/";
-    m_portal_apps_template = open_mustache_file(template_dir + "apps.html");//.render(global_data);
+    m_portal_apps_template = open_mustache_file(template_dir + "home.html");//.render(global_data);
     m_portal_settings_template = open_mustache_file(template_dir + "settings.html");//.render(global_data);
     m_login_template = open_mustache_file(template_dir + "login.html");//.render(global_data);
     m_signup_template = open_mustache_file(template_dir + "signup.html");//.render(global_data);
@@ -43,16 +45,20 @@ Pages::Pages() {
 std::string Pages::login_page(const std::string& fail_reason) {
     return m_login_template.render({ "fail_reason", fail_reason });
 }
+
 std::string Pages::signup_page(const std::string& fail_reason) {
     return m_signup_template.render({ "fail_reason", fail_reason });
 }
 
-
 std::string Pages::portal_apps(const LocalUser& user) {
-    auto mods = g_app->m_mods.get_mods();
-    user.m_is_admin;
-    return m_portal_apps_template.render({});
+    mustache::data d;
+    d.set("user_data", user.json());
+    d.set("installed_apps", g_app->m_mods.get_mods_json());
+    return m_portal_apps_template.render(d);
 }
+
 std::string Pages::portal_settings(const LocalUser& user) {
+    mustache::data d;
+    d.set("user_data", user.json());
     return m_portal_settings_template.render({});
 }

@@ -152,8 +152,8 @@ public:
         return IPCType::NETWORK;
     }
 
-    virtual bool start() override ;
-    virtual bool stop() override ;
+    virtual bool start() override;
+    virtual bool stop() override;
         // Invalidate credentials both ways
 
     virtual void handle_request(

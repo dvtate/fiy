@@ -81,6 +81,8 @@ public:
 
     bool write_changes_to_db();
 
+    [[nodiscard]] std::string json() const;
+
 //    static std::string login(const std::string& username, const std::string& password);
 
     class AuthToken {

@@ -87,7 +87,7 @@ void PeerRoutes::handshake(
     // Add peer with unique auth token
     std::shared_ptr<Peer> p;
     do {
-        p = std::make_shared<Peer>(domain, PeerAuth{"fff", token});
+        p = std::make_shared<Peer>(domain, PeerAuth{"symkey", token});
     } while (!g_app->m_peers.add_peer(domain, p));
 
     // Respond with token

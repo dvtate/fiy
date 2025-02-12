@@ -29,7 +29,6 @@ public:
         ADD_METHOD_TO(ModuleRoutes::app_redirect, "/mods/{mod_id}", drogon::Get, "ModSdCheckMiddleware");
         ADD_METHOD_TO(ModuleRoutes::app_remote_msg, "/mods/{mod_id}/msg", "ModSdCheckMiddleware");
         ADD_METHOD_VIA_REGEX(ModuleRoutes::app_send_msg, ".*");
-
     METHOD_LIST_END
 };
 
@@ -38,7 +37,7 @@ public:
 class ModSdCheckMiddleware : public drogon::HttpMiddleware<ModSdCheckMiddleware>
 {
 public:
-    ModSdCheckMiddleware(){};  // do not omit constructor
+    ModSdCheckMiddleware(){}  // do not omit constructor
 
     void invoke(const drogon::HttpRequestPtr &req,
                 drogon::MiddlewareNextCallback &&nextCb,

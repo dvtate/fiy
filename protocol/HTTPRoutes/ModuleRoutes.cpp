@@ -62,15 +62,15 @@ void ModuleRoutes::app_send_msg(
             // Subdomain app  app.example.com/uri/path
             app = hostname.substr(0, hostname.size() - hhn.size() - 1);
             uri = req->path();
-        } else if (hostname != hhn) {
-            // Invalid request to different host?
-            auto r = drogon::HttpResponse::newHttpResponse(
-                drogon::HttpStatusCode::k400BadRequest,
-                drogon::ContentType::CT_TEXT_HTML
-            );
-            r->setBody(std::string("Wrong host? Expected host to be ") + hhn.data() + " but host was " + hostname);
-            callback(r);
-            return;
+//        } else if (hostname != hhn) {
+//            // Invalid request to different host?
+//            auto r = drogon::HttpResponse::newHttpResponse(
+//                drogon::HttpStatusCode::k400BadRequest,
+//                drogon::ContentType::CT_TEXT_HTML
+//            );
+//            r->setBody(std::string("Wrong host? Expected host to be ") + hhn.data() + " but host was " + hostname);
+//            callback(r);
+//            return;
         } else {
             // Not a subdomain app  example.com/app/uri/path
             const auto slash_idx = req->path().find('/', 1);

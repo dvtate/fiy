@@ -51,7 +51,7 @@ public:
 
     void new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb);
 
-    void request_peer(
+    static void request_peer(
         const std::shared_ptr<Peer>& peer,
         const std::string& appid,
         const std::string& user,

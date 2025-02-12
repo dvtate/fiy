@@ -4,12 +4,14 @@
 
 sudo rm -rf /opt/fediy
 sudo mkdir /opt/fediy
-sudo mkdir /opt/fediy/data
-sudo mkdir /opt/fediy/data/apps
-sudo ln -s "`realpath portal_frontend`" /opt/fediy/data/page_templates
+sudo mkdir /opt/fediy/apps
+sudo mkdir /opt/fediy/page_templates
 sudo chmod -R 777 /opt/fediy/
 
 touch /opt/fediy/config.ini
+# Prompt user for relevant info and populate the file
 
-cat protocol/db.sql | sqlite3 /opt/fediy/data/db.db3
+cp -R portal_frontend/* /opt/fediy/page_templates/
+
+cat protocol/db.sql | sqlite3 /opt/fediy/db.db3
 
