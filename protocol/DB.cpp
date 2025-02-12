@@ -64,7 +64,7 @@ std::shared_ptr<LocalUser> DB::get_user(const std::string& username, std::string
     auto db_hp = (unsigned char*) pw_col.getBlob();
     for (int i = 0; i < SHA512_DIGEST_LENGTH; i++)
         if (hp[i] != db_hp[i]) {
-            DEBUG_LOG(i << ":  '" << hp[i] << "' != '" << db_hp[i] << "'")
+            DEBUG_LOG(i << ":  '" << hp[i] << "' != '" << db_hp[i] << "'");
             return nullptr; // wrong pw
         }
 
