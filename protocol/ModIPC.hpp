@@ -8,6 +8,8 @@
 #include <functional>
 #include <dlfcn.h>
 
+#include <boost/beast.hpp>
+
 #include "drogon/HttpController.h"
 #include "drogon/HttpClient.h"
 
@@ -15,7 +17,7 @@
 
 #include "../modlib/fediymod.h"
 
-#include "HTTPRoutes/ModuleRoutes.hpp"
+#include "Server/Connection.hpp"
 
 class Mod;
 
@@ -29,12 +31,7 @@ public:
 
     virtual bool start() = 0;
     virtual bool stop() = 0;
-    virtual void handle_request(
-            const drogon::HttpRequestPtr& req,
-            ModuleRoutes::User&& user,
-            std::function<void(const drogon::HttpResponsePtr&)>&& callback
-    ) = 0;
-
+    virtual void handle_request(std::shared_ptr<Connection> conn) = 0;
 
     // IPC interface
     enum class IPCType {
@@ -49,18 +46,14 @@ public:
 // Message passed to shared library
 class ModDllIpcRequest : public fediy::fiy_request_t {
 public:
-    ModuleRoutes::User m_user;
-    std::function<void(const drogon::HttpResponsePtr&)> m_callback;
+    std::shared_ptr<Connection> m_conn;
 
-    ModDllIpcRequest(
-        const drogon::HttpRequestPtr& req,
-        ModuleRoutes::User&& user,
-        std::function<void(const drogon::HttpResponsePtr&)>&& callback
-    );
+    explicit ModDllIpcRequest(std::shared_ptr<Connection> conn);
 
     virtual ~ModDllIpcRequest() {
         delete[] this->body;
         delete[] this->path;
+        delete[] this->user;
     }
 
     void remove_from_task_queue() {
@@ -68,16 +61,7 @@ public:
         delete this;
     }
 
-    void callback(const fediy::fiy_response_t* r) {
-        auto resp = drogon::HttpResponse::newHttpResponse();
-        resp->setBody(r->body);
-        resp->setStatusCode((drogon::HttpStatusCode)r->status);
-        // TODO add headers
-//        resp->addHeader()
-        m_callback(resp);
-
-        this->remove_from_task_queue();
-    }
+    void callback(const fediy::fiy_response_t* r);
 };
 
 // Communicates with the module by dynamically linking
@@ -135,11 +119,7 @@ public:
         return IPCType::SHARED_LIBRARY;
     }
 
-    void handle_request(
-        const drogon::HttpRequestPtr& req,
-        ModuleRoutes::User&& user,
-        std::function<void(const drogon::HttpResponsePtr&)>&& callback
-    ) override;
+    void handle_request(std::shared_ptr<Connection> conn) override;
 };
 
 // IPC over the network
@@ -156,44 +136,48 @@ public:
     virtual bool stop() override;
         // Invalidate credentials both ways
 
-    virtual void handle_request(
-            const drogon::HttpRequestPtr& req,
-            ModuleRoutes::User&& user,
-            std::function<void(const drogon::HttpResponsePtr&)>&& callback
-    ) override {
-        auto client = drogon::HttpClient::newHttpClient(m_ipc_uri);
-        req->addHeader("fediy-user", user.user + '@' + user.domain);
-        client->sendRequest(
-            req,
-            [
-                this,
-                cb = std::move(callback)
-            ](
-                drogon::ReqResult status,
-                const drogon::HttpResponsePtr& resp
-            ) {
-//                if (status == drogon::ReqResult::Ok) {
-                if (resp != nullptr) {
-                    resp->setPassThrough(true);
-                    cb(resp);
-                } else {
-                    auto r = drogon::HttpResponse::newHttpResponse();
-                    r->setStatusCode(drogon::k500InternalServerError);
-                    cb(r);
-                }
-            }
-        );
-    };
+//    virtual void handle_request(
+//            const drogon::HttpRequestPtr& req,
+//            User&& user,
+//            std::function<void(const drogon::HttpResponsePtr&)>&& callback
+//    ) override {
+//        auto client = drogon::HttpClient::newHttpClient(m_ipc_uri);
+//        req->addHeader("fediy-user", user.user + '@' + user.domain);
+//        client->sendRequest(
+//            req,
+//            [
+//                this,
+//                cb = std::move(callback)
+//            ](
+//                drogon::ReqResult status,
+//                const drogon::HttpResponsePtr& resp
+//            ) {
+////                if (status == drogon::ReqResult::Ok) {
+//                if (resp != nullptr) {
+//                    resp->setPassThrough(true);
+//                    cb(resp);
+//                } else {
+//                    auto r = drogon::HttpResponse::newHttpResponse();
+//                    r->setStatusCode(drogon::k500InternalServerError);
+//                    cb(r);
+//                }
+//            }
+//        );
+//    }
+
+    void handle_request(std::shared_ptr<Connection>) override;
 };
 
 // IPC over unix socket
-class ModSockIPC : public ModIPC {
-public:
-    ModSockIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
-
-    IPCType ipc_type() final {
-        return IPCType::SOCKET;
-    }
-
-    // TODO
-};
+// there's no reason to use this as it's worse performance than dll
+// and can't be done over network (right?)
+//class ModSockIPC : public ModIPC {
+//public:
+//    ModSockIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
+//
+//    IPCType ipc_type() final {
+//        return IPCType::SOCKET;
+//    }
+//
+//    // TODO
+//};

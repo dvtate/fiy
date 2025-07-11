@@ -25,11 +25,11 @@ public:
     static void app_send_msg(const drogon::HttpRequestPtr& req, std::function<void(const drogon::HttpResponsePtr&)>&& callback);
     static void app_remote_msg(const drogon::HttpRequestPtr& req, std::function<void(const drogon::HttpResponsePtr&)>&& callback);
 
-    METHOD_LIST_BEGIN
-        ADD_METHOD_TO(ModuleRoutes::app_redirect, "/mods/{mod_id}", drogon::Get, "ModSdCheckMiddleware");
-        ADD_METHOD_TO(ModuleRoutes::app_remote_msg, "/mods/{mod_id}/msg", "ModSdCheckMiddleware");
-        ADD_METHOD_VIA_REGEX(ModuleRoutes::app_send_msg, ".*");
-    METHOD_LIST_END
+//    METHOD_LIST_BEGIN
+//        ADD_METHOD_TO(ModuleRoutes::app_redirect, "/mods/{mod_id}", drogon::Get, "ModSdCheckMiddleware");
+//        ADD_METHOD_TO(ModuleRoutes::app_remote_msg, "/mods/{mod_id}/msg", "ModSdCheckMiddleware");
+//        ADD_METHOD_VIA_REGEX(ModuleRoutes::app_send_msg, ".*");
+//    METHOD_LIST_END
 };
 
 // Check for subdomains since they can be used for apps

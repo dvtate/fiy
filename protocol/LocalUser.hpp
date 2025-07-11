@@ -95,6 +95,7 @@ public:
         time_t m_expiration;
         // TODO maybe track sessionId too?
 
+
         static std::string get_token_string() {
             // Create random generator that picks indices charset
             // https://en.cppreference.com/w/cpp/numeric/random/uniform_int_distribution
@@ -125,5 +126,32 @@ public:
         [[nodiscard]] bool is_expired(const time_t now = std::time(nullptr)) const {
             return now > m_expiration;
         }
+
+        struct Hash {
+            std::size_t operator()(const AuthToken& token) const {
+                return std::hash<std::string>{}(token.m_token);
+            }
+            std::size_t operator()(const AuthToken* token) const {
+                return std::hash<std::string>{}(token->m_token);
+            }
+        };
+
+        struct TokenEquals {
+            inline bool operator()(const AuthToken& a, const AuthToken& b) const {
+                return a.m_token == b.m_token;
+            };
+            inline bool operator()(const AuthToken* a, const AuthToken* b) const {
+                return a->m_token == b->m_token;
+            };
+        };
+
+        struct Compare {
+            inline bool operator()(const AuthToken& a, const AuthToken& b) const {
+                return a.m_token < b.m_token;
+            };
+            inline bool operator()(const AuthToken* a, const AuthToken* b) const {
+                return a->m_token < b->m_token;
+            };
+        };
     };
 };

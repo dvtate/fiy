@@ -15,13 +15,55 @@
 namespace fediy {
 #endif
 
+/// String versions of http verbs
+// from boost::beast::http::verb
+const char* fiy_http_verb_strings[] = {
+    "<unknown>",
+    "DELETE",
+    "GET",
+    "HEAD",
+    "POST",
+    "PUT",
+    "CONNECT",
+    "OPTIONS",
+    "TRACE",
+    "COPY",
+    "LOCK",
+    "MKCOL",
+    "MOVE",
+    "PROPFIND",
+    "PROPPATCH",
+    "SEARCH",
+    "UNLOCK",
+    "BIND",
+    "REBIND",
+    "UNBIND",
+    "ACL",
+    "REPORT",
+    "MKACTIVITY",
+    "CHECKOUT",
+    "MERGE",
+    "M-SEARCH",
+    "NOTIFY",
+    "SUBSCRIBE",
+    "UNSUBSCRIBE",
+    "PATCH",
+    "PURGE",
+    "MKCALENDAR",
+    "LINK",
+    "UNLINK"
+};
+
+/**
+ * IPC request from a user
+ */
 struct fiy_request_t {
-    const char* method;     // http method
     const char* path;
-    const char* domain;     // null = local
+    const char* domain;     // null = local user
     const char* user;       // null = unauthenticated
-    const char* headers;
+    const char* headers;    // 
     const char* body;       // null = get request
+    unsigned char method;   // http method (from boost::beast::http::verb)
 };
 
 struct fiy_response_t {

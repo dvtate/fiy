@@ -14,18 +14,27 @@ static char* new_cstr_from_string(const std::string_view& s) {
     return ret;
 }
 
-ModDllIpcRequest::ModDllIpcRequest(
-        const drogon::HttpRequestPtr& req,
-        ModuleRoutes::User&& user,
-        std::function<void(const drogon::HttpResponsePtr&)>&& callback
-): m_user(user), m_callback(callback) {
+ModDllIpcRequest::ModDllIpcRequest(std::shared_ptr<Connection> conn):
+    m_conn(std::move(conn))
+{
+    auto user = conn->find_user();
     // Initialize fiy_request_t
-    this->method = req->methodString();
-    this->path = new_cstr_from_string(req->path());
-    this->body = new_cstr_from_string(req->body());
-    this->domain = m_user.domain;
-    this->user = m_user.user == " " ? nullptr : m_user.user.c_str();
+    this->method = (uint8_t) m_conn->req().method();
+    this->path = new_cstr_from_string(m_conn->req().target());
+    this->body = new_cstr_from_string(m_conn->req().body());
+    this->domain = user.domain;
+    this->user = (user.user.empty() || user.user == " ")
+        ? nullptr
+        : new_cstr_from_string(user.user);
     this->headers = nullptr;
+}
+
+void ModDllIpcRequest::callback(const fediy::fiy_response_t* r) {
+    Connection::StringResponse res;
+    res.body() = r->body;
+    res.result(r->status);
+    m_conn->respond(res);
+    this->remove_from_task_queue();
 }
 
 drogon::HttpMethod drogon_http_method(const std::string& method) {
@@ -56,7 +65,7 @@ void send_request_to_app(
     auto req = drogon::HttpRequest::newHttpRequest();
     req->setPath(request->path);
     req->setBody(request->body);
-    req->setMethod(drogon_http_method(request->method));
+//    req->setMethod(drogon_http_method(request->method));
 
     // Send request to peer
     g_app->m_peers.request_peer(
@@ -82,7 +91,7 @@ void ModDLLIPC::gen_host_info() {
 
     m_host_info = new fediy::fiy_host_info_t;
     m_host_info->log = [](int n, const char* s){
-        std::cout <<s <<std::endl;
+        std::cout <<"Mod: " <<s <<std::endl;
     };
     std::string base_uri = std::string(g_app->m_config.m_ssl ? "https://" : "http://")
             + g_app->m_config.m_hostname + '/' + m_mod->m_path;
@@ -94,13 +103,8 @@ void ModDLLIPC::gen_host_info() {
     m_host_info->domain = g_app->m_config.m_hostname;
 }
 
-void ModDLLIPC::handle_request(
-    const drogon::HttpRequestPtr& req,
-    ModuleRoutes::User&& user,
-    std::function<void(const drogon::HttpResponsePtr&)>&& callback
-) {
-    fediy::fiy_request_t* r = new ModDllIpcRequest(req, std::move(user), std::move(callback));
-    // everything good up to here
+void ModDLLIPC::handle_request(std::shared_ptr<Connection> conn) {
+    fediy::fiy_request_t* r = new ModDllIpcRequest(conn);
     m_mod_info->on_request(
         r,
         [](

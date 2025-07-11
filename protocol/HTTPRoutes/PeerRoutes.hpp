@@ -33,8 +33,8 @@ public:
     // Establish peer relationship with peer that made request
     static void handshake(const drogon::HttpRequestPtr& req, std::function<void(const drogon::HttpResponsePtr&)>&& callback);
 
-    METHOD_LIST_BEGIN
-        ADD_METHOD_TO(PeerRoutes::pubkey, "/peer/key", drogon::HttpMethod::Get, "ModSdCheckMiddleware");
-        ADD_METHOD_TO(PeerRoutes::handshake, "/peer/handshake", drogon::HttpMethod::Post, "ModSdCheckMiddleware");
-    METHOD_LIST_END
+//    METHOD_LIST_BEGIN
+//        ADD_METHOD_TO(PeerRoutes::pubkey, "/peer/key", drogon::HttpMethod::Get, "ModSdCheckMiddleware");
+//        ADD_METHOD_TO(PeerRoutes::handshake, "/peer/handshake", drogon::HttpMethod::Post, "ModSdCheckMiddleware");
+//    METHOD_LIST_END
 };

@@ -1,3 +1,5 @@
+#include <thread>
+
 #include "../third_party/inih/ini.h"
 
 #include "Config.hpp"
@@ -50,9 +52,19 @@ bool AppConfig::set_key(const char* section, const char* key, const char* value)
     } else if (strcmp(key, "port") == 0) {
         int port = strtol(value, nullptr, 10);
         if (port == 0 || port < 0 || port >= 65536) {
-            LOG_ERR("Config file: port should be a valid port number, not " <<value);
+            LOG_ERR("Config file: port should be a valid port number, not " << value);
         } else {
             m_port = port;
+        }
+    } else if (strcmp(key, "concurrency") == 0) {
+        int threads = strtol(value, nullptr, 10);
+        if (threads <= 0) {
+            m_concurrency = std::thread::hardware_concurrency();
+            if (-threads >= m_concurrency)
+                m_concurrency = 1;
+            m_concurrency -= threads;
+        } else {
+            m_concurrency = threads;
         }
     } else {
         LOG_ERR("Config file: invalid key: " <<key);
