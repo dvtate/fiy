@@ -15,7 +15,7 @@ public:
     std::string m_subject;
     std::string m_body;
     time_t m_date;
-    int m_index;
+    size_t m_index;
 
     Mail(std::string from, std::vector<std::string> to, std::string subject, std::string body, time_t ts = std::time(nullptr)):
         m_from_user(std::move(from)),
@@ -102,15 +102,15 @@ public:
         return ret;
     }
 
-    int push(Mail&& mail) {
-        int ret = m_mail.size();
+    size_t push(Mail&& mail) {
+        size_t ret = m_mail.size();
         mail.m_index = ret;
         m_mail.emplace_back(mail);
         return ret;
     }
 
-    Mail* get(int index) {
-        if (m_mail.size() <= index || index < 0)
+    Mail* get(size_t index) {
+        if (index >= m_mail.size())
             return nullptr;
         else
             return &m_mail[index];

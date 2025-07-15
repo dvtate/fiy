@@ -7,24 +7,27 @@
 // Exports
 ////////////////////////
 
-static void handle_request(const struct fiy_request_t* request, fiy_callback_t callback) {
+static void handle_request(struct fiy_request_t* request, fiy_callback_t callback) {
     // Allocate a body string to send to the user
     size_t body_len = 50
         + (request->user != NULL ? strlen(request->user) : 4)
         + (request->domain != NULL ? strlen(request->domain) : 4)
-        + (request->method != NULL ? strlen(request->method) : 4)
+        + (10)
         + (request->path != NULL ? strlen(request->path) : 4);
     char* body = (char*) malloc(sizeof(char) * body_len);
+
+    // Construct body string
     snprintf(
         body,
         body_len,
         "Hello, @%s@%s! <br/>Action: %s %s",
         request->user == NULL ? "null" : request->user,
         request->domain == NULL ? "null" : request->domain,
-        request->method == NULL ? "null" : request->method,
+        fiy_http_verb_strings[request->method],
         request->path == NULL ? "null" : request->path
     );
 
+    // Pass response to callback
     struct fiy_response_t resp = {
             .status=200,
             .headers=NULL,

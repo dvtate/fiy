@@ -351,6 +351,7 @@ void route_request(std::shared_ptr<Connection> conn) {
                 } else if (path.starts_with("/main.js")) {
                     // Open the file
                     // TODO would probably be better to use string body instead
+                    // TODO enable cache
                     beast::error_code ec;
                     boost::beast::http::file_body::value_type body;
                     auto file_path = g_app->m_config.m_data_dir + "/page_templates/main.js";
@@ -377,6 +378,11 @@ void route_request(std::shared_ptr<Connection> conn) {
                         conn->respond(res);
                         return;
                     }
+                    Connection::StringResponse res;
+                    res.result(200);
+                    res.body() = g_app->m_pages->portal_apps(*user);
+                    conn->respond(res);
+                    return;
                 } else {
                     std::cerr <<"404 -- GET /portal : " <<path <<std::endl;
                     Connection::StringResponse res;
@@ -388,6 +394,7 @@ void route_request(std::shared_ptr<Connection> conn) {
             } else if (path == "/peer/key") {
                 // Open the file
                 // TODO would probably be better to use string body instead
+                // TODO enable cache
                 beast::error_code ec;
                 boost::beast::http::file_body::value_type body;
                 auto file_path = g_app->m_config.m_data_dir + "/auth/pubkey";

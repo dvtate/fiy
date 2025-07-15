@@ -6,20 +6,6 @@
 - Single Sign On (SSO)
 - Sever app management
 
-## App Ideas
-- Git-IY: GitLab killer
-- Blog-IY: Wordpress killer
-- Chat-IY: Matrix competitor
-    - text, vc, teams, etc.
-- Social-IY: Mastodon competitor
-- Contacts: Rolodex
-- Wiki-IY: mediawiki killer
-- Edit-IY: Google docs killer
-- Vid-IY: peertube competitor (integrate with grayjay?)
-- Calendar-IY: Google Calendar killer
-- Cloud-IY: Nextcloud competitor
-- Kanban-IY: jira/trello/etc. killer
-
 ## Components
 Eventually these will all get moved to separate repos
 - Protocol Server:

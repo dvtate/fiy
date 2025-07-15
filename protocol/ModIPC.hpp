@@ -44,7 +44,7 @@ public:
 };
 
 // Message passed to shared library
-class ModDllIpcRequest : public fediy::fiy_request_t {
+class ModDllIpcRequest : public fiy_request_t {
 public:
     std::shared_ptr<Connection> m_conn;
 
@@ -61,14 +61,14 @@ public:
         delete this;
     }
 
-    void callback(const fediy::fiy_response_t* r);
+    void callback(const fiy_response_t* r);
 };
 
 // Communicates with the module by dynamically linking
 class ModDLLIPC : public ModIPC {
     void* m_dl_handle{nullptr};
-    fediy::fiy_mod_info_t* m_mod_info{nullptr};
-    fediy::fiy_host_info_t* m_host_info{nullptr};
+    fiy_mod_info_t* m_mod_info{nullptr};
+    fiy_host_info_t* m_host_info{nullptr};
 
     void gen_host_info();
     void free_host_info() {
@@ -110,7 +110,7 @@ public:
         if (m_dl_handle == nullptr)
             return false;
 
-        auto start_fn = (fediy::fiy_mod_start_function_t) dlsym(m_dl_handle, "start");
+        auto start_fn = (fiy_mod_start_function_t) dlsym(m_dl_handle, "start");
         m_mod_info = start_fn(m_host_info);
         return m_mod_info != nullptr;
     }

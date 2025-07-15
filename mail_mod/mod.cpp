@@ -2,7 +2,8 @@
 // Created by tate on 8/6/24.
 //
 
-#include "../modlib/fediymod.h"
+#include "../modlib/fediymodpp.hpp"
+
 #include "MailBox.hpp"
 
 #include <iostream>
@@ -11,7 +12,7 @@
 #include <vector>
 #include <set>
 
-const fediy::fiy_host_info_t* g_host_info;
+const fiy_host_info_t* g_host_info;
 
 MailBox g_mailbox;
 
@@ -34,37 +35,36 @@ std::vector<std::string> split_string(const std::string& str,
     return strings;
 }
 
-std::string user_str(const fediy::fiy_request_t* request) {
+std::string user_str(const fiy_request_t* request) {
     std::string ret = request->user;
     ret += '@';
     ret += request->domain != nullptr ? request->domain : g_host_info->domain;
     return ret;
 }
 
-void send_mail(fediy::fiy_request_t* request, fediy::fiy_callback_t callback) {
-    if (request->user == nullptr) {
+void send_mail(fiy::Request& req, fiy_callback_t cb) {
+    if (req.user == nullptr) {
         // Unauthenticated
-        fediy::fiy_response_t resp { .status=401, .body="Unauthenticated" };
-        callback(request, &resp);
+        req.respond(cb, fiy::Response(401, "Unauthenticated"));
         return;
     }
 
-    std::string body = request->body;
+    std::string body = req.body;
     auto i = body.find('\n');
     if (i == std::string::npos) {
-        fediy::fiy_response_t resp { .status=400 };
-        callback(request, &resp);
+        req.respond(cb, fiy::Response(400));
         return;
     }
+
     std::string to_str = body.substr(0, i);
     auto to = split_string(to_str, ",");
     auto old_i = i + 1;
     i = body.find('\n', old_i);
     if (i == std::string::npos) {
-        fediy::fiy_response_t resp { .status=400 };
-        callback(request, &resp);
+        req.respond(cb, fiy::Response(400));
         return;
     }
+
     std::string subject = body.substr(old_i, i - old_i);
     std::string local_dom = "@";
     local_dom += g_host_info->domain;
@@ -73,11 +73,11 @@ void send_mail(fediy::fiy_request_t* request, fediy::fiy_callback_t callback) {
             recip += local_dom;
 
     std::string content = body.substr(i);
-    std::cout <<"new mail: " <<user_str(request) <<" : " <<to[0] <<" : " <<subject <<" : " <<content<<std::endl;
-    g_mailbox.push(Mail(user_str(request), to, subject, content));
+    std::cout <<"new mail: " <<req.user_str() <<" : " <<to[0] <<" : " <<subject <<" : " <<content<<std::endl;
+    g_mailbox.push(Mail(req.user_str(), to, subject, content));
 
     // Distribute to peers
-    if (request->domain == nullptr) {
+    if (req.domain == nullptr) {
         // Get unique remote destinations
         std::set<std::string> doms;
         for (const auto& user : to) {
@@ -90,13 +90,12 @@ void send_mail(fediy::fiy_request_t* request, fediy::fiy_callback_t callback) {
 
         // Send to destination servers
         for (const auto& dom : doms) {
-            request->domain = dom.c_str();
+            req.domain = dom.c_str();
             std::cout <<"sending to: " <<dom <<std::endl;
-            g_host_info->request("mail", request, nullptr);
+            g_host_info->request("mail", &req, nullptr);
         }
     }
-    fediy::fiy_response_t resp = {.status=200, .body="sent"};
-    callback(request, &resp);
+    req.respond(cb, fiy::Response(200, "sent"));
 }
 
 const char* compose_html = "<!doctype html><html><body>\n"
@@ -119,83 +118,72 @@ const char* compose_html = "<!doctype html><html><body>\n"
                            "</script>\n"
                            "</body></html>";
 
-static void handle_request(fediy::fiy_request_t* request, fediy::fiy_callback_t callback) {
-    std::cout <<"Path: "<<request->path <<std::endl;
-    if (strcmp(request->path, "/send") == 0) {
-        send_mail(request, callback);
+static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
+    auto& req = *(fiy::Request*) request;
+
+    std::cout <<"Path: "<<req.path <<std::endl;
+    if (strcmp(req.path, "/send") == 0) {
+        send_mail(req, cb);
         return;
-    } else if (strcmp(request->path, "/") == 0) {
+    } else if (strcmp(req.path, "/") == 0) {
         static const std::string root = g_host_info->base_uri;
         static const std::string body = "<ul>"
                            "<li><a href='" + root + "/inbox'>Inbox</a></li>"
                            "<li><a href='" + root + "/outbox'>Outbox</a></li>"
                            "<li><a href='" + root + "/compose'>Compose</a></li>"
                            "</ul>";
-        fediy::fiy_response_t resp = {
-            .status=200,
-            .body=body.c_str()
-        };
-        callback(request, &resp);
+        req.respond(cb, fiy::Response(200, body.c_str()));
         return;
-    } else if (strcmp(request->path, "/inbox") == 0) {
-        if (request->domain == nullptr && request->user != nullptr) {
-            auto inbox_str = g_mailbox.get_inbox_str(user_str(request));
-            fediy::fiy_response_t resp = { .status=200, .body=inbox_str.c_str() };
-            callback(request, &resp);
+    } else if (strcmp(req.path, "/inbox") == 0) {
+        // Authenticated local user
+        if (req.domain == nullptr && req.user != nullptr) {
+            auto inbox_str = g_mailbox.get_inbox_str(req.user_str());
+            req.respond(cb, fiy::Response(200, inbox_str.c_str()));
+            return;
+        }
+
+        // Unauthenticated
+        req.respond(cb, fiy::Response(401, "Unauthenticated"));
+        return;
+    } else if (strcmp(req.path, "/outbox") == 0) {
+        if (req.domain == nullptr && req.user != nullptr) {
+            auto outbox_str = g_mailbox.get_outbox_str(req.user_str());
+            req.respond(cb, fiy::Response(200, outbox_str.c_str()));
             return;
         }
         // Unauthenticated
-        fediy::fiy_response_t resp { .status=401, .body="Unauthenticated" };
-        callback(request, &resp);
-        return;
-    } else if (strcmp(request->path, "/outbox") == 0) {
-        if (request->domain == nullptr && request->user != nullptr) {
-            auto outbox_str = g_mailbox.get_outbox_str(user_str(request));
-            fediy::fiy_response_t resp = { .status=200, .body=outbox_str.c_str() };
-            callback(request, &resp);
-            return;
-        }
-        // Unauthenticated
-        fediy::fiy_response_t resp { .status=401, .body="Unauthenticated" };
-        callback(request, &resp);
+        req.respond(cb, fiy::Response(401, "Unauthenticated"));
         return;
 
-    } else if (strcmp(request->path, "/compose") == 0) {
-        fediy::fiy_response_t resp {.status=200, .body=compose_html };
-        callback(request, &resp);
+    } else if (strcmp(req.path, "/compose") == 0) {
+        req.respond(cb, fiy::Response(200, compose_html));
         return;
-    } else if (strncmp(request->path, "/view/", strlen("/view/")) == 0) {
-        auto idx = strtoul(request->path + strlen("/view/"), nullptr, 10);
+    } else if (strncmp(req.path, "/view/", strlen("/view/")) == 0) {
+        auto idx = strtoul(req.path + strlen("/view/"), nullptr, 10);
         // TODO verify that the user has access to the email
         auto* m = g_mailbox.get(idx);
         if (m == nullptr) {
-            fediy::fiy_response_t resp = {.status=404, .body="not found"};
-            callback(request, &resp);
+            req.respond(cb, fiy::Response(404, "Not found"));
             return;
         }
         auto view = m->long_view();
-        fediy::fiy_response_t resp = {.status=200, .body=view.c_str()};
-        callback(request, &resp);
+        req.respond(cb, fiy::Response(200, view.c_str()));
         return;
     }
 
     std::string body = "Hello, @";
-    if (request->user != nullptr)
-        body += request->user;
+    if (req.user != nullptr)
+        body += req.user;
     body += "@";
-    if (request->domain != nullptr)
-        body += request->domain;
+    if (req.domain != nullptr)
+        body += req.domain;
     body += "! <br/>Path: ";
-//    body += request->method;
+//    body += req.method;
     body += " ";
-    if (request->path != nullptr)
-        body += request->path;
+    if (req.path != nullptr)
+        body += req.path;
 
-    fediy::fiy_response_t r={
-            .status=404,
-            .body=body.c_str()
-    };
-    callback(request, &r);
+    req.respond(cb, fiy::Response(404, "Not found"));
 }
 
 //
@@ -206,8 +194,8 @@ static void handle_request(fediy::fiy_request_t* request, fediy::fiy_callback_t 
 //void (* peer_domain_change_handler)(const char* old_domain, const char* new_domain);
 //
 
-extern "C" fediy::fiy_mod_info_t* start(const fediy::fiy_host_info_t* host_info) {
-    static fediy::fiy_mod_info_t mod_info = {
+extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
+    static fiy_mod_info_t mod_info = {
             .on_request=handle_request,
             .on_peer_domain_changed=nullptr,
             .on_username_changed=nullptr,

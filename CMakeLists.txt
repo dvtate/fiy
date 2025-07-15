@@ -71,15 +71,18 @@ add_library(demo_mod SHARED
     modlib/example_mod.c
         util/Cookie.cpp
         util/Cookie.hpp
+        modlib/fediymodpp.hpp
 )
 
 
 add_library(demo_mod_cpp SHARED
     modlib/example_mod.cpp
+        modlib/fediymodpp.hpp
 )
 
 add_library(demo_mod_mail SHARED
     mail_mod/mod.cpp
     mail_mod/MailBox.hpp
     modlib/fediymod.h
+        modlib/fediymodpp.hpp
 )

@@ -5,14 +5,14 @@
 #ifndef FEDIY_FEDIYMOD_H
 #define FEDIY_FEDIYMOD_H
 
+
 #ifndef __cplusplus
 #include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
 #else
+#include <cstdint>
 #include <string>
-#endif
-
-#ifdef __cplusplus
-namespace fediy {
 #endif
 
 /// String versions of http verbs
@@ -58,24 +58,52 @@ const char* fiy_http_verb_strings[] = {
  * IPC request from a user
  */
 struct fiy_request_t {
-    const char* path;
+    /**
+     * Relevant fediy instance
+     */
     const char* domain;     // null = local user
+
+    /**
+     * User that made the request
+     */
     const char* user;       // null = unauthenticated
-    const char* headers;    // 
+
+    /**
+     * Request path
+     *
+     * ie - "/post/create"
+     */
+    const char* path;
+
+    /**
+     * Selected headers in the user's request
+     */
+    const char* headers;
+    /*
+     * Headers we should probably include:
+     * - Content-Type ?
+     * - Content-Encoding ?
+     * - Accept ?
+     * - Accept-Encoding
+     * - Cookie ?
+     */
+
+    /**
+     * Request body
+     */
     const char* body;       // null = get request
-    unsigned char method;   // http method (from boost::beast::http::verb)
+
+    /**
+     * Enum value corresponding to the HTTP verb sent
+     */
+    uint8_t method;   // http method (from boost::beast::http::verb)
+
 };
 
 struct fiy_response_t {
-#ifndef __cplusplus
     int status;                     // exit status
     const char* body;               // body
     const char* headers;            // updated headers or null
-#else
-    int status{200};                // exit status
-    const char* body{nullptr};      // body
-    const char* headers{nullptr};   // updated headers or null
-#endif
 };
 
 typedef void (* fiy_callback_t)(const struct fiy_request_t* request, const struct fiy_response_t*);
@@ -118,43 +146,69 @@ typedef void (*fiy_send_request_t)(
 );
 
 struct fiy_host_info_t {
+    /**
+     * Fediy instance domain
+     */
     const char* domain;
-    const char* base_uri; // <protocol>://<host>/<appid> ie - https://bodge.dev/git
+
+    /**
+     * unique app id for this app
+     */
+    const char* app_id;
+
+    /**
+     * Base uri for this app
+     * - format: <protocol>://<host>/<appid>
+     * - ie - https://bodge.dev/git
+     */
+    const char* base_uri;
+
+    /**
+     * Write a debug message
+     * @param level
+     * @param message
+     */
     void (*log)(int level, const char* message);
-    fiy_send_request_t request;
+
+    /**
+     * Send a request to another app
+     * @param app_id app to send the request to
+     * @param request request to send to the other app
+     *      method   - http method
+     *      path     - uri path
+     *      domain   - remote server to send request to or nullptr if local inter-app request
+     *      user     - local user or nullptr if unauthenticated
+     * @param callback
+     * @notes
+     * - local apps can send requests to each other without restrictions
+     * - an app on server a can only send requests to apps on server b on behalf of users residing on server a
+     *    - this prevents false impersonation
+     */
+    void (*request)(
+//    const struct fiy_host_info_t* host,
+            const char* app_id,
+            const struct fiy_request_t* request,
+            void (*callback)(const struct fiy_response_t*)
+    );
+
+    /**
+     * Authenticate an instance-local user
+     * @param username user's username
+     * @param password user's password
+     * @return true if valid credentials
+     */
+    bool (*local_login)(const char* username, const char* password);
+
+    /**
+     * Is the given user an admin on this fediy instance?
+     * @param local_user_name
+     * @return true if the user is an admin
+     */
+    bool (*is_admin)(const char* local_user_name);
 };
 
 typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host_info_t*);
 
-#ifdef __cplusplus
-    struct ModInfo : public fiy_mod_info_t {};
-//    struct Request : public fiy_request_t {};
-//    struct HostInfo : public fiy_host_info_t {};
-//    struct Response : public fiy_response_t {
-//        std::string body;
-//        std::string headers;
-//        int status;
-//        explicit Response(std::string body, int status = 200):
-//            body(std::move(body)),
-//            status(status)
-//        {}
-//
-//        ~Response() {}
-//
-//        operator struct fiy_response_t() {
-//            return (struct fiy_response_t){
-//                .status=status,
-//                .body=body.c_str(),
-//                .headers=headers.c_str()
-//            };
-//        }
-//    };
-#endif
-
-
-#ifdef __cplusplus
-} // namespace fediy
-#endif
 
 
 #endif //FEDIY_FEDIYMOD_H

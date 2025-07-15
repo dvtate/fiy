@@ -29,7 +29,7 @@ ModDllIpcRequest::ModDllIpcRequest(std::shared_ptr<Connection> conn):
     this->headers = nullptr;
 }
 
-void ModDllIpcRequest::callback(const fediy::fiy_response_t* r) {
+void ModDllIpcRequest::callback(const fiy_response_t* r) {
     Connection::StringResponse res;
     res.body() = r->body;
     res.result(r->status);
@@ -58,8 +58,8 @@ drogon::HttpMethod drogon_http_method(const std::string& method) {
 void send_request_to_app(
 //    const struct fiy_host_info_t* host,
     const char* app_id,
-    const fediy::fiy_request_t* request,
-    void (*callback)(const fediy::fiy_response_t*)
+    const fiy_request_t* request,
+    void (*callback)(const fiy_response_t*)
 ) {
     // Convert request to drogon request
     auto req = drogon::HttpRequest::newHttpRequest();
@@ -76,7 +76,7 @@ void send_request_to_app(
             // Convert response and send it back to mod
             if (callback == nullptr)
                 return;
-            fediy::fiy_response_t r {
+            fiy_response_t r {
                 .status = resp->getStatusCode(),
                 .body = resp->body().data()
             };
@@ -89,7 +89,7 @@ void ModDLLIPC::gen_host_info() {
     if (m_host_info != nullptr)
         free_host_info();
 
-    m_host_info = new fediy::fiy_host_info_t;
+    m_host_info = new fiy_host_info_t;
     m_host_info->log = [](int n, const char* s){
         std::cout <<"Mod: " <<s <<std::endl;
     };
@@ -104,12 +104,12 @@ void ModDLLIPC::gen_host_info() {
 }
 
 void ModDLLIPC::handle_request(std::shared_ptr<Connection> conn) {
-    fediy::fiy_request_t* r = new ModDllIpcRequest(conn);
+    fiy_request_t* r = new ModDllIpcRequest(conn);
     m_mod_info->on_request(
         r,
         [](
-            const fediy::fiy_request_t* req,
-            const fediy::fiy_response_t* resp
+            const fiy_request_t* req,
+            const fiy_response_t* resp
         ){
             ((ModDllIpcRequest*) req)->callback(resp);
         }
