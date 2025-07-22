@@ -76,13 +76,15 @@ public:
         response.prepare_payload();
 
         boost::beast::http::async_write(
-                m_socket,
-                response,
-                [self](boost::beast::error_code ec, std::size_t)
-                {
-                    self->m_socket.shutdown(tcp::socket::shutdown_send, ec);
-                    self->m_deadline.cancel();
-                }
+            m_socket,
+            response,
+            [self](boost::beast::error_code ec, std::size_t)
+            {
+//                std::cout <<"ending connection..." <<std::endl;
+                self->m_socket.shutdown(tcp::socket::shutdown_send, ec);
+                self->m_deadline.cancel();
+//                std::cout <<"ended connection..." <<std::endl;
+            }
         );
     }
 
@@ -92,18 +94,19 @@ public:
     template<class T>
     void respond(boost::beast::http::response<T>&& response) {
         auto self = shared_from_this();
-
-        response.content_length(response.body().size());
         response.keep_alive(false);
+        response.prepare_payload();
 
         boost::beast::http::async_write(
-                m_socket,
-                response,
-                [self](boost::beast::error_code ec, std::size_t)
-                {
-                    self->m_socket.shutdown(tcp::socket::shutdown_send, ec);
-                    self->m_deadline.cancel();
-                }
+            m_socket,
+            std::move(response),
+            [self](boost::beast::error_code ec, std::size_t)
+            {
+//                std::cout <<"ending connection..." <<std::endl;
+                self->m_socket.shutdown(tcp::socket::shutdown_send, ec);
+                self->m_deadline.cancel();
+//                std::cout <<"ended connection..." <<std::endl;
+            }
         );
     }
 

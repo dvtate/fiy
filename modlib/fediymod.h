@@ -17,42 +17,45 @@
 
 /// String versions of http verbs
 // from boost::beast::http::verb
-const char* fiy_http_verb_strings[] = {
-    "<unknown>",
-    "DELETE",
-    "GET",
-    "HEAD",
-    "POST",
-    "PUT",
-    "CONNECT",
-    "OPTIONS",
-    "TRACE",
-    "COPY",
-    "LOCK",
-    "MKCOL",
-    "MOVE",
-    "PROPFIND",
-    "PROPPATCH",
-    "SEARCH",
-    "UNLOCK",
-    "BIND",
-    "REBIND",
-    "UNBIND",
-    "ACL",
-    "REPORT",
-    "MKACTIVITY",
-    "CHECKOUT",
-    "MERGE",
-    "M-SEARCH",
-    "NOTIFY",
-    "SUBSCRIBE",
-    "UNSUBSCRIBE",
-    "PATCH",
-    "PURGE",
-    "MKCALENDAR",
-    "LINK",
-    "UNLINK"
-};
+//const char* fiy_http_verb_string(uint8_t verb) {
+//    static const char* verb_strings[] = {
+//            "<unknown>",
+//            "DELETE",
+//            "GET",
+//            "HEAD",
+//            "POST",
+//            "PUT",
+//            "CONNECT",
+//            "OPTIONS",
+//            "TRACE",
+//            "COPY",
+//            "LOCK",
+//            "MKCOL",
+//            "MOVE",
+//            "PROPFIND",
+//            "PROPPATCH",
+//            "SEARCH",
+//            "UNLOCK",
+//            "BIND",
+//            "REBIND",
+//            "UNBIND",
+//            "ACL",
+//            "REPORT",
+//            "MKACTIVITY",
+//            "CHECKOUT",
+//            "MERGE",
+//            "M-SEARCH",
+//            "NOTIFY",
+//            "SUBSCRIBE",
+//            "UNSUBSCRIBE",
+//            "PATCH",
+//            "PURGE",
+//            "MKCALENDAR",
+//            "LINK",
+//            "UNLINK"
+//    };
+//    return verb_strings[(verb >= 34) ? 0 : verb];
+//}
 
 /**
  * IPC request from a user
@@ -142,7 +145,8 @@ typedef void (*fiy_send_request_t)(
 //    const struct fiy_host_info_t* host,
     const char* app_id,
     const struct fiy_request_t* request,
-    void (*callback)(const struct fiy_response_t*)
+    void* context,
+    void (*callback)(const struct fiy_response_t*, void* context)
 );
 
 struct fiy_host_info_t {
@@ -178,7 +182,8 @@ struct fiy_host_info_t {
      *      path     - uri path
      *      domain   - remote server to send request to or nullptr if local inter-app request
      *      user     - local user or nullptr if unauthenticated
-     * @param callback
+     * @param context this pointer is passed back to the callback at the end
+     * @param callback called with response
      * @notes
      * - local apps can send requests to each other without restrictions
      * - an app on server a can only send requests to apps on server b on behalf of users residing on server a
@@ -188,7 +193,8 @@ struct fiy_host_info_t {
 //    const struct fiy_host_info_t* host,
             const char* app_id,
             const struct fiy_request_t* request,
-            void (*callback)(const struct fiy_response_t*)
+            void* context,
+            void (*callback)(const struct fiy_response_t*, void*)
     );
 
     /**

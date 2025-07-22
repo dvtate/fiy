@@ -59,30 +59,11 @@ void send_request_to_app(
 //    const struct fiy_host_info_t* host,
     const char* app_id,
     const fiy_request_t* request,
-    void (*callback)(const fiy_response_t*)
+    void* context,
+    void (*callback)(const struct fiy_response_t*, void*)
 ) {
-    // Convert request to drogon request
-    auto req = drogon::HttpRequest::newHttpRequest();
-    req->setPath(request->path);
-    req->setBody(request->body);
-//    req->setMethod(drogon_http_method(request->method));
-
     // Send request to peer
-    g_app->m_peers.request_peer(
-        request->domain, app_id, request->user, req,
-        [callback](const drogon::HttpResponsePtr& resp) {
-            std::cout <<"request_peer gave" <<resp->statusCode() <<std::endl;
-
-            // Convert response and send it back to mod
-            if (callback == nullptr)
-                return;
-            fiy_response_t r {
-                .status = resp->getStatusCode(),
-                .body = resp->body().data()
-            };
-            callback(&r);
-        }
-    );
+    g_app->m_peers.request_peer(request->domain, app_id, request->user, request, context, callback);
 }
 
 void ModDLLIPC::gen_host_info() {
@@ -115,6 +96,41 @@ void ModDLLIPC::handle_request(std::shared_ptr<Connection> conn) {
         }
     );
 }
+
+void ModDLLIPC::handle_request(
+    const fiy_request_t* req,
+    void* context,
+    void (*callback)(const struct fiy_response_t*, void*)
+) {
+    struct ModDllIpcRequestWrapper : public fiy_request_t {
+        ModDllIpcRequestWrapper(
+            const fiy_request_t& req,
+            void (*callback)(const fiy_response_t*, void* context),
+            void* context
+        ): fiy_request_t(req), m_callback(callback), m_context(context)
+        {}
+
+        void callback(const fiy_response_t* res) {
+            m_callback(res, m_context);
+            delete this;
+        }
+    private:
+        void (*m_callback)(const fiy_response_t*, void* context);
+        void* m_context;
+    };
+
+    fiy_request_t* r = new ModDllIpcRequestWrapper(*req, callback, context);
+    m_mod_info->on_request(
+        r,
+        [](
+            const fiy_request_t* req,
+            const fiy_response_t* resp
+        ){
+            ((ModDllIpcRequestWrapper*) req)->callback(resp);
+        }
+    );
+}
+
 
 bool ModNetIPC::start() {
 

@@ -49,51 +49,59 @@ bool parse_form_url_encoded(const std::string_view& s, std::deque<std::pair<std:
     return true;
 }
 
+std::pair<std::string, std::string> parse_app_request_get(std::shared_ptr<Connection> conn) {
+    auto path = conn->req().target();
+    if (path.starts_with("/mods")) {
+        path.remove_prefix(5);
+        return { path, conn->req().at("Fiy-Path") };
+    }
 
-inline static void app_send_msg(std::shared_ptr<Connection> conn) {
-    // Check to see if it's using a subdomain
-    std::string app, uri;
+
     auto hostname = conn->req()["Host"];
     if (!hostname.empty()) {
         std::string_view hhn = g_app->m_config.m_hostname;
         if (hostname.ends_with(hhn) && hhn.size() != hostname.size()) {
             // Subdomain app  app.example.com/uri/path
-            app = hostname.substr(0, hostname.size() - hhn.size() - 1);
-            uri = conn->req().target();
+            return {
+                hostname.substr(0, hostname.size() - hhn.size() - 1),
+                path
+            };
         } else if (hostname != hhn) {
             // Invalid request to different host?
-            Connection::DynamicResponse res;
-            res.result(400);
-            boost::beast::ostream(res.body())
-                << "Wrong host? Expected host to be "
-                << hhn.data()
-                << " but host was "
-                << hostname
-                << '\n';
-            conn->respond(res);
-            std::cerr <<"Received request for invalid hostname: expected "
+//            Connection::DynamicResponse res;
+//            res.result(400);
+//            boost::beast::ostream(res.body())
+//                    << "Wrong host? Expected host to be "
+//                    << hhn.data()
+//                    << " but host was "
+//                    << hostname
+//                    << '\n';
+//            conn->respond(res);
+            std::cerr << "Received request for invalid hostname: expected "
                       << hhn.data()
                       << " but host was "
                       << hostname
                       << '\n';
-            return;
-        } else {
-            // Not a subdomain app  example.com/app/uri/path
-            const auto slash_idx = conn->req().target().find('/', 1);
-            std::cout <<"slash_idx = " <<slash_idx <<std::endl;
-            if (slash_idx == -1) {
-                app = conn->req().target().data() + 1;
-                uri = "/";
-            } else {
-                app = conn->req().target().substr(1, slash_idx - 1);
-                uri = conn->req().target().data() + slash_idx;
-            }
         }
     }
 
+    // Not a subdomain app  example.com/app/uri/path
+    const auto slash_idx = path.find('/', 1);
+    std::cout <<"slash_idx = " <<slash_idx <<std::endl;
+    if (slash_idx == -1)
+        return { path.data() + 1, "/" };
+    else
+        return { path.substr(1, slash_idx - 1), path.data() + slash_idx };
+}
+
+inline static void app_send_msg(std::shared_ptr<Connection> conn) {
+    std::cout <<"calling app: " <<conn->req().target() <<std::endl;
+    // Get app
+    auto [ app, uri ] = parse_app_request_get(conn);
+
     // Forward to app
     DEBUG_LOG("Calling " <<app <<" : " << uri);
-    Mod* m = g_app->m_mods.get_mod_by_path(app);
+    Mod* m = g_app->m_mods.get_mod(app);
     if (m == nullptr) {
         Connection::DynamicResponse res;
         res.result(404);
@@ -440,7 +448,6 @@ void route_request(std::shared_ptr<Connection> conn) {
                 app_send_msg(std::move(conn));
                 return;
             }
-
 
         default:
             app_send_msg(std::move(conn));

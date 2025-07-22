@@ -20,12 +20,6 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/LocalUser.cpp
     protocol/Pages.cpp
     protocol/Pages.hpp
-#    protocol/HTTPRoutes/PortalRoutes.cpp
-#    protocol/HTTPRoutes/PortalRoutes.hpp
-#    protocol/HTTPRoutes/ModuleRoutes.cpp
-#    protocol/HTTPRoutes/ModuleRoutes.hpp
-#    protocol/HTTPRoutes/PeerRoutes.cpp
-#    protocol/HTTPRoutes/PeerRoutes.hpp
     modlib/fediymod.h
     protocol/ModIPC.cpp
     protocol/ModIPC.hpp
@@ -33,10 +27,12 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/Server/Server.hpp
     protocol/Server/Router.hpp
     protocol/Server/Router.cpp
-        protocol/LocalUsers.cpp
-        protocol/LocalUsers.hpp
-        protocol/Server/Connection.cpp
-        protocol/Server/Connection.hpp
+    protocol/LocalUsers.hpp
+    protocol/LocalUsers.cpp
+    protocol/Server/Connection.hpp
+    protocol/Server/Connection.cpp
+    util/Cookie.hpp
+    util/Cookie.cpp
 )
 
 # Debug/vs release
@@ -69,20 +65,18 @@ target_link_libraries(protocol_server
 
 add_library(demo_mod SHARED
     modlib/example_mod.c
-        util/Cookie.cpp
-        util/Cookie.hpp
-        modlib/fediymodpp.hpp
+    modlib/fediymod.h
 )
 
 
 add_library(demo_mod_cpp SHARED
     modlib/example_mod.cpp
-        modlib/fediymodpp.hpp
+    modlib/fediymodpp.hpp
 )
 
 add_library(demo_mod_mail SHARED
     mail_mod/mod.cpp
     mail_mod/MailBox.hpp
     modlib/fediymod.h
-        modlib/fediymodpp.hpp
+    modlib/fediymodpp.hpp
 )

@@ -15,7 +15,24 @@ void Mods::find_modules() {
             m_mods.emplace_back(new Mod(id));
         }
 
-    populate_caches();
+    // m_mtx should be locked for write
+    auto mod_count = m_mods.size();
+    m_mods_lookup.reserve(mod_count * 2);
+
+    // Add lookup by id
+    for (size_t i = 0; i < mod_count; i++)
+        m_mods_lookup[m_mods[i]->m_id] = m_mods[i];
+
+    // Add lookup by path (prevent overlap)
+    for (size_t i = 0; i < mod_count; i++) {
+        if (m_mods_lookup.contains(m_mods[i]->m_path)) {
+            DEBUG_LOG("Duplicate module path " << m_mods[i]->m_path <<" for module " <<m_mods[i]->m_id << " ignored");
+            auto m = m_mods_lookup[m_mods[i]->m_path];
+            DEBUG_LOG("Module path " << m_mods[i]->m_path <<" already used by module " <<m->m_id);
+        } else {
+            m_mods_lookup[m_mods[i]->m_path] = m_mods[i];
+        }
+    }
 
     DEBUG_LOG("Found " + std::to_string(m_mods.size()) + " apps");
 }

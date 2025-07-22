@@ -27,24 +27,16 @@ class Peers {
     // bearer token -> peer
     std::unordered_map<std::string, std::shared_ptr<Peer>> m_peers_in;
 
+    std::thread m_cron;
+
 public:
+    Peers();
+
 //    void load_peers_from_db();
 
     void prune();
 
-    bool add_peer(const std::string& domain, const std::shared_ptr<Peer>& p) {
-        RWMutex::LockForWrite lock{m_mtx};
-        auto ret = m_peers_out.emplace(domain, p);
-        if (!ret.second)
-            return false;
-        ret = m_peers_in.emplace(p->m_auth.m_bearer_token_we_accept, p);
-        if (!ret.second) {
-            m_peers_out.erase(domain);
-            return false;
-        }
-        DEBUG_LOG("added peer: " << domain);
-        return true;
-    }
+    bool add_peer(const std::string& domain, const std::shared_ptr<Peer>& p);
 
     std::shared_ptr<Peer> get_peer_for_domain(const std::string& domain);
     std::shared_ptr<Peer> get_peer_from_token(const std::string& domain);
@@ -55,15 +47,17 @@ public:
         const std::shared_ptr<Peer>& peer,
         const std::string& appid,
         const std::string& user,
-        drogon::HttpRequestPtr& req,
-        std::function<void(const drogon::HttpResponsePtr&)> callback
+        const fiy_request_t* req,
+        void* context,
+        void (*callback)(const fiy_response_t*, void*)
     );
     void request_peer(
         const std::string& domain,
         const std::string& appid,
         const std::string& user,
-        drogon::HttpRequestPtr& req,
-        std::function<void(const drogon::HttpResponsePtr&)> callback
+        const fiy_request_t* req,
+        void* context,
+        void (*callback)(const fiy_response_t*, void*)
     );
 
 //    void request_peer(std::shared_ptr<Peer> peer, const std::string& local_user, T& req, callback

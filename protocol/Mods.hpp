@@ -19,19 +19,7 @@ protected:
     RWMutex m_mtx; // TODO compare performance of just using std::mutex
 
     std::vector<Mod*> m_mods;
-    std::unordered_map<std::string, Mod*> m_mods_by_id;
-    std::unordered_map<std::string, Mod*> m_mods_by_path;
-
-    void populate_caches() {
-        // m_mtx should be locked for write
-        auto mod_count = m_mods.size();
-        m_mods_by_id.reserve(mod_count);
-        m_mods_by_path.reserve(mod_count);
-        for (int i = 0; i < mod_count; i++) {
-            m_mods_by_id[m_mods[i]->m_id] = m_mods[i];
-            m_mods_by_path[m_mods[i]->m_path] = m_mods[i];
-        }
-    }
+    std::unordered_map<std::string, Mod*> m_mods_lookup;
 
 public:
 
@@ -53,18 +41,10 @@ public:
             delete m;
     }
 
-    Mod* get_mod_by_path(const std::string& path) {
+    Mod* get_mod(const std::string& path) {
         RWMutex::LockForRead lock{m_mtx};
-        auto ret = m_mods_by_path.find(path);
-        if (ret != m_mods_by_path.end())
-            return ret->second;
-        else
-            return nullptr;
-    }
-    Mod* get_mod_by_id(const std::string& id) {
-        RWMutex::LockForRead lock{m_mtx};
-        auto ret = m_mods_by_id.find(id);
-        if (ret != m_mods_by_id.end())
+        auto ret = m_mods_lookup.find(path);
+        if (ret != m_mods_lookup.end())
             return ret->second;
         else
             return nullptr;
@@ -90,23 +70,23 @@ public:
 
     bool remove_mod(const std::string& id) {
         RWMutex::LockForWrite lock{m_mtx};
-        auto m = get_mod_by_id(id);
+        auto m = get_mod(id);
         if (m == nullptr)
             return false;
         auto it = std::find(m_mods.begin(), m_mods.end(), m);
         m_mods.erase(it);
-        m_mods_by_path.erase(m->m_path);
-        m_mods_by_id.erase(m->m_id);
+        m_mods_lookup.erase(m->m_path);
+        m_mods_lookup.erase(m->m_id);
         return m->stop();
     }
 
     bool update_path(const std::string& old_path, const std::string& new_path) {
         RWMutex::LockForWrite lock{m_mtx};
-        if (m_mods_by_path.contains(new_path))
+        if (m_mods_lookup.contains(new_path))
             return false;
-        auto m = (m_mods_by_path[new_path] = m_mods_by_path[old_path]);
+        auto m = (m_mods_lookup[new_path] = m_mods_lookup[old_path]);
         m->set_path(new_path);
-        m_mods_by_path.erase(old_path);
+        m_mods_lookup.erase(old_path);
         return true;
     }
 };

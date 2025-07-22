@@ -32,6 +32,11 @@ public:
     virtual bool start() = 0;
     virtual bool stop() = 0;
     virtual void handle_request(std::shared_ptr<Connection> conn) = 0;
+    virtual void handle_request(
+        const fiy_request_t* req,
+        void* context,
+        void (*callback)(const fiy_response_t*, void*)
+    ) = 0;
 
     // IPC interface
     enum class IPCType {
@@ -79,8 +84,6 @@ class ModDLLIPC : public ModIPC {
         }
     }
 
-//    std::list<ModDllIpcRequest*> m_msg_queue;
-
 public:
     ModDLLIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
 
@@ -120,6 +123,11 @@ public:
     }
 
     void handle_request(std::shared_ptr<Connection> conn) override;
+    void handle_request(
+        const fiy_request_t* req,
+        void* context,
+        void (*callback)(const fiy_response_t*, void*)
+    ) override;
 };
 
 // IPC over the network
@@ -165,7 +173,13 @@ public:
 //        );
 //    }
 
-    void handle_request(std::shared_ptr<Connection>) override;
+    // TODO
+    void handle_request(std::shared_ptr<Connection>) override {}
+    void handle_request(
+        const fiy_request_t* req,
+        void* context,
+        void (*callback)(const fiy_response_t*, void*)
+    ) override {}
 };
 
 // IPC over unix socket

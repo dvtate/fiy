@@ -70,7 +70,7 @@ std::map<std::string, std::string>& Connection::get_cookies() {
 }
 
 Connection::User Connection::find_user() {
-    static const User unauthenticated = {.domain=nullptr, .user=" "};
+    static const User unauthenticated = { .domain=nullptr, .user=" " };
     auto& cookies = get_cookies();
 
     // Local User authentication
@@ -89,17 +89,14 @@ Connection::User Connection::find_user() {
 //        std::cout << "missing auth token\n";
         return unauthenticated;
     }
-
-    auto user = m_request.at("Fiy-User");
-    auto p = g_app->m_peers.get_peer_from_token(peer_token);
-    if (p != nullptr) {
-        std::cout << "remote user authenticated\n";
-        return { .domain=p->m_domain, .user=user };
+    auto peer = g_app->m_peers.get_peer_from_token(peer_token);
+    if (!peer) {
+        DEBUG_LOG("Invalid peer auth token: " << peer_token);
+        return unauthenticated;
     }
-
-    // Failed auth equals unauthenticated
-    DEBUG_LOG("invalid peer auth token: " << peer_token);
-    return unauthenticated;
+    auto user = m_request.at("Fiy-User");
+    DEBUG_LOG("remote user authenticated\n");
+    return { .domain=peer->m_domain, .user=user };
 }
 
 std::shared_ptr<LocalUser> Connection::find_user_local() {

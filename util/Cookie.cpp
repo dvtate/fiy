@@ -137,6 +137,38 @@ namespace Cookie {
         return result;
     }
 
+    std::map<std::string, std::string> parse(std::string_view header) {
+        std::string::size_type pos;
+        std::map<std::string, std::string> ret;
+        while ((pos = header.find(';')) != std::string::npos) {
+            std::string_view coo = header.substr(0, pos);
+            auto epos = coo.find('=');
+            if (epos != std::string::npos) {
+                // Get cookie name
+                std::string::size_type start = 0;
+                std::string::size_type end = epos;
+                while (coo[start] == 0x20 || coo[start] == 0x09)
+                    start++;
+                while (coo[end] == 0x20 || coo[end] == 0x09)
+                    end--;
+                auto cookie_name = std::string(coo.substr(start, end - start));
+
+                // Get cookie value
+                start = epos + 1;
+                end = coo.size() - 1;
+                while (coo[start] == 0x20 || coo[start] == 0x09)
+                    start++;
+                while (coo[end] == 0x20 || coo[end] == 0x09)
+                    end--;
+                auto cookie_value = std::string(coo.substr(start, end));
+
+                // Set cookie
+                ret[std::move(cookie_name)] = std::move(cookie_value);
+            }
+            header.remove_prefix(pos + 1);
+        }
+        return ret;
+    }
     /**
      * Equivalent to encodeUriComponent in JS
      * @param src
