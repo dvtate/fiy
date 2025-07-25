@@ -11,5 +11,8 @@
 #include <boost/beast.hpp>
 
 class Connection;
+class Session;
 
-void route_request(std::shared_ptr<Connection> conn);
+void route_request(std::shared_ptr<Session> conn);
+
+void handle_request(std::shared_ptr<Session> session);

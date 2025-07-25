@@ -37,6 +37,15 @@ Mod::Mod(std::string id) {
         return;
     }
 
+    // Override id
+    if (conf.contains("id")) {
+        auto conf_id = conf.at("id");
+        if (!conf_id.is_string()) {
+            err("module.json: \"id\" should be a string");
+        }
+        m_id = conf_id.get<std::string>();
+    }
+
     // Get routing path
     if (conf.contains("path")) {
         auto path = conf.at("path");
@@ -216,7 +225,7 @@ std::string Mod::user_json() {
         { "version", m_version.str() },
         { "name", m_name },
         { "description", m_description },
-        { "icon", m_icon },
+//        { "icon", m_icon },
         { "status", status() }, // TODO give string instead
         { "loaded", m_loaded },
         { "enabled", m_enabled },

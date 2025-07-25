@@ -2,6 +2,8 @@
 // Created by tate on 7/5/24.
 //
 
+#include <ranges>
+
 #include "ModIPC.hpp"
 
 #include "LocalUser.hpp"
@@ -9,15 +11,17 @@
 
 static char* new_cstr_from_string(const std::string_view& s) {
     auto l = s.size();
+//    std::cout <<"new cstr: '" << s <<"' -- Size: " <<l <<std::endl;
     char* ret = new char[l + 1];
-    strncpy(ret, s.data(), l + 1);
+    strncpy(ret, s.data(), l);
+    ret[l] = '\0';
     return ret;
 }
 
-ModDllIpcRequest::ModDllIpcRequest(std::shared_ptr<Connection> conn):
+ModDllIpcRequest::ModDllIpcRequest(std::shared_ptr<Session> conn):
     m_conn(std::move(conn))
 {
-    auto user = conn->find_user();
+    auto user = m_conn->find_user();
     // Initialize fiy_request_t
     this->method = (uint8_t) m_conn->req().method();
     this->path = new_cstr_from_string(m_conn->req().target());
@@ -29,11 +33,47 @@ ModDllIpcRequest::ModDllIpcRequest(std::shared_ptr<Connection> conn):
     this->headers = nullptr;
 }
 
+template<class ResponseType>
+void response_set_headers(ResponseType& res, const char* headers_str) {
+    if (headers_str == nullptr)
+        return;
+
+    std::string_view headers{headers_str};
+    while (!headers.empty()) {
+        // Get field
+        auto end = headers.find('\n');
+
+        // Find colon
+        auto colon = headers.find(':');
+        if (colon >= end) {
+            DEBUG_LOG("Invalid http header: " << headers.substr(0, end));
+            return; // invalid
+        }
+
+        // Get header components
+        auto name = headers.substr(0, colon);
+        auto start = colon + 1;
+        while ((headers[start] == 0x20 || headers[start] == 0x09) && start < end)
+            start++;
+        auto value = headers.substr(start, end - start);
+
+        res.set(name, value);
+
+        // Next if any
+        if (end == std::string_view::npos)
+            break;
+        headers.remove_prefix(end + 1);
+    }
+}
+
 void ModDllIpcRequest::callback(const fiy_response_t* r) {
-    Connection::StringResponse res;
+    Session::StringResponse res;
     res.body() = r->body;
     res.result(r->status);
-    m_conn->respond(res);
+    response_set_headers(res, r->headers);
+
+    // TODO add headers
+    m_conn->respond(m_conn->prep(std::move(res)));
     this->remove_from_task_queue();
 }
 
@@ -75,16 +115,17 @@ void ModDLLIPC::gen_host_info() {
         std::cout <<"Mod: " <<s <<std::endl;
     };
     std::string base_uri = std::string(g_app->m_config.m_ssl ? "https://" : "http://")
-            + g_app->m_config.m_hostname + '/' + m_mod->m_path;
+        + g_app->m_config.m_hostname + '/' + m_mod->m_path;
 
     char* cstr = new char[base_uri.size() + 1];
     strcpy(cstr, base_uri.c_str());
     m_host_info->base_uri = cstr;
     m_host_info->request = send_request_to_app;
     m_host_info->domain = g_app->m_config.m_hostname;
+    m_host_info->app_id = m_mod->m_id.c_str();
 }
 
-void ModDLLIPC::handle_request(std::shared_ptr<Connection> conn) {
+void ModDLLIPC::handle_request(std::shared_ptr<Session> conn) {
     fiy_request_t* r = new ModDllIpcRequest(conn);
     m_mod_info->on_request(
         r,

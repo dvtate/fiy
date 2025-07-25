@@ -25,5 +25,12 @@ bool App::start() {
 
     m_server.start();
 
+    // Run the I/O service on the requested number of threads
+    std::vector<std::thread> v;
+    v.reserve(m_config.m_concurrency - 1);
+    for(auto i = m_config.m_concurrency - 1; i > 0; --i)
+        v.emplace_back([this]{ m_ioc->run(); });
+    m_ioc->run();
+
     return true;
 }

@@ -17,7 +17,7 @@
 
 #include "../modlib/fediymod.h"
 
-#include "Server/Connection.hpp"
+#include "Server/Session.hpp"
 
 class Mod;
 
@@ -31,7 +31,7 @@ public:
 
     virtual bool start() = 0;
     virtual bool stop() = 0;
-    virtual void handle_request(std::shared_ptr<Connection> conn) = 0;
+    virtual void handle_request(std::shared_ptr<Session> conn) = 0;
     virtual void handle_request(
         const fiy_request_t* req,
         void* context,
@@ -51,9 +51,9 @@ public:
 // Message passed to shared library
 class ModDllIpcRequest : public fiy_request_t {
 public:
-    std::shared_ptr<Connection> m_conn;
+    std::shared_ptr<Session> m_conn;
 
-    explicit ModDllIpcRequest(std::shared_ptr<Connection> conn);
+    explicit ModDllIpcRequest(std::shared_ptr<Session> conn);
 
     virtual ~ModDllIpcRequest() {
         delete[] this->body;
@@ -122,7 +122,7 @@ public:
         return IPCType::SHARED_LIBRARY;
     }
 
-    void handle_request(std::shared_ptr<Connection> conn) override;
+    void handle_request(std::shared_ptr<Session> conn) override;
     void handle_request(
         const fiy_request_t* req,
         void* context,
@@ -174,7 +174,7 @@ public:
 //    }
 
     // TODO
-    void handle_request(std::shared_ptr<Connection>) override {}
+    void handle_request(std::shared_ptr<Session>) override {}
     void handle_request(
         const fiy_request_t* req,
         void* context,

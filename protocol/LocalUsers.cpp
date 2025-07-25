@@ -38,6 +38,7 @@ std::shared_ptr<LocalUser> LocalUsers::auth_user(const std::string& auth_token) 
     LocalUser::AuthToken token{nullptr, auth_token, 0};
     RWMutex::LockForRead lock{m_mtx};
 
+    DEBUG_LOG("Checking token: " <<auth_token);
     auto it = m_token_cache.find(token);
     if (it == m_token_cache.end())
         return nullptr;
@@ -82,6 +83,7 @@ LocalUser::AuthToken LocalUsers::login_user(const std::string& username, const s
     // Generate auth token
     while (m_token_cache.contains(token))
         token.m_token = LocalUser::AuthToken::get_token_string();
+    DEBUG_LOG("added token: " << token.m_token);
     m_token_cache.emplace(token);
     return token;
 }

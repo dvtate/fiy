@@ -12,7 +12,7 @@
 #include <vector>
 #include <set>
 
-const fiy_host_info_t* g_host_info;
+static const fiy_host_info_t* g_host_info;
 
 MailBox g_mailbox;
 
@@ -92,7 +92,7 @@ void send_mail(fiy::Request& req, fiy_callback_t cb) {
         for (const auto& dom : doms) {
             req.domain = dom.c_str();
             std::cout <<"sending to: " <<dom <<std::endl;
-            g_host_info->request("mail", &req, nullptr);
+            g_host_info->request("mail", &req, nullptr, nullptr);
         }
     }
     req.respond(cb, fiy::Response(200, "sent"));
@@ -132,13 +132,13 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
                            "<li><a href='" + root + "/outbox'>Outbox</a></li>"
                            "<li><a href='" + root + "/compose'>Compose</a></li>"
                            "</ul>";
-        req.respond(cb, fiy::Response(200, body.c_str()));
+        req.respond(cb, fiy::Response(200, body.c_str(), "Content-Type: text/html"));
         return;
     } else if (strcmp(req.path, "/inbox") == 0) {
         // Authenticated local user
         if (req.domain == nullptr && req.user != nullptr) {
             auto inbox_str = g_mailbox.get_inbox_str(req.user_str());
-            req.respond(cb, fiy::Response(200, inbox_str.c_str()));
+            req.respond(cb, fiy::Response(200, inbox_str.c_str(), "Content-Type: text/html"));
             return;
         }
 
@@ -148,15 +148,16 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
     } else if (strcmp(req.path, "/outbox") == 0) {
         if (req.domain == nullptr && req.user != nullptr) {
             auto outbox_str = g_mailbox.get_outbox_str(req.user_str());
-            req.respond(cb, fiy::Response(200, outbox_str.c_str()));
+            req.respond(cb, fiy::Response(200, outbox_str.c_str(), "Content-Type: text/html"));
             return;
         }
+
         // Unauthenticated
         req.respond(cb, fiy::Response(401, "Unauthenticated"));
         return;
 
     } else if (strcmp(req.path, "/compose") == 0) {
-        req.respond(cb, fiy::Response(200, compose_html));
+        req.respond(cb, fiy::Response(200, compose_html, "Content-Type: text/html"));
         return;
     } else if (strncmp(req.path, "/view/", strlen("/view/")) == 0) {
         auto idx = strtoul(req.path + strlen("/view/"), nullptr, 10);
@@ -167,7 +168,7 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
             return;
         }
         auto view = m->long_view();
-        req.respond(cb, fiy::Response(200, view.c_str()));
+        req.respond(cb, fiy::Response(200, view.c_str(), "Content-Type: text/html"));
         return;
     }
 

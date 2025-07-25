@@ -29,10 +29,12 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/Server/Router.cpp
     protocol/LocalUsers.hpp
     protocol/LocalUsers.cpp
-    protocol/Server/Connection.hpp
-    protocol/Server/Connection.cpp
     util/Cookie.hpp
     util/Cookie.cpp
+    protocol/HttpClient.cpp
+    protocol/HttpClient.hpp
+    protocol/Server/Session.cpp
+    protocol/Server/Session.hpp
 )
 
 # Debug/vs release

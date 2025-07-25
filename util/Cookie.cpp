@@ -138,37 +138,78 @@ namespace Cookie {
     }
 
     std::map<std::string, std::string> parse(std::string_view header) {
-        std::string::size_type pos;
         std::map<std::string, std::string> ret;
-        while ((pos = header.find(';')) != std::string::npos) {
-            std::string_view coo = header.substr(0, pos);
-            auto epos = coo.find('=');
-            if (epos != std::string::npos) {
-                // Get cookie name
-                std::string::size_type start = 0;
-                std::string::size_type end = epos;
-                while (coo[start] == 0x20 || coo[start] == 0x09)
-                    start++;
-                while (coo[end] == 0x20 || coo[end] == 0x09)
-                    end--;
-                auto cookie_name = std::string(coo.substr(start, end - start));
 
-                // Get cookie value
-                start = epos + 1;
-                end = coo.size() - 1;
-                while (coo[start] == 0x20 || coo[start] == 0x09)
-                    start++;
-                while (coo[end] == 0x20 || coo[end] == 0x09)
-                    end--;
-                auto cookie_value = std::string(coo.substr(start, end));
+        while (!header.empty()) {
+            // Get field
+            auto field_end = header.find(';');
 
-                // Set cookie
-                ret[std::move(cookie_name)] = std::move(cookie_value);
+            // Find equals sign
+            auto equals_pos = header.find('=');
+            if (equals_pos >= field_end) {
+//                DEBUG_LOG("Invalid http header: " << header.substr(0, field_end));
+                return ret; // invalid
             }
-            header.remove_prefix(pos + 1);
+
+            // Get cookie name
+            std::string_view::size_type start = 0;
+            auto end = equals_pos;
+            while ((header[start] == 0x20 || header[start] == 0x09) && start < equals_pos)
+                ++start;
+            while ((header[end] == 0x20 || header[end] == 0x09) && end > start)
+                --end;
+            auto name = header.substr(start, end - start);
+
+            // Get cookie value
+            start = equals_pos + 1;
+            end = (field_end == std::string_view::npos) ? header.size() - 1 : field_end;
+            while ((header[start] == 0x20 || header[start] == 0x09) && start < field_end)
+                ++start;
+            while ((header[end] == 0x20 || header[end] == 0x09) && end >= start)
+                --end;
+            auto value = header.substr(start, end - start + 1);
+
+            ret[std::string(name)] = value;
+
+            // Next if any
+            if (field_end == std::string_view::npos)
+                break;
+            header.remove_prefix(field_end + 1);
         }
+//
+//        // TODO fix this algorithm using logic from response_set_headers
+//        std::string::size_type pos = header.find(';');
+//        do {
+//            std::string_view coo = header.substr(0, pos);
+//            auto epos = coo.find('=');
+//            if (epos != std::string::npos) {
+//                // Get cookie name
+//                std::string::size_type start = 0;
+//                std::string::size_type end = epos;
+//                while (coo[start] == 0x20 || coo[start] == 0x09)
+//                    start++;
+//                while (coo[end] == 0x20 || coo[end] == 0x09)
+//                    end--;
+//                auto cookie_name = std::string(coo.substr(start, end - start));
+//
+//                // Get cookie value
+//                start = epos + 1;
+//                end = coo.size() - 1;
+//                while (coo[start] == 0x20 || coo[start] == 0x09)
+//                    start++;
+//                while (coo[end] == 0x20 || coo[end] == 0x09)
+//                    end--;
+//                auto cookie_value = std::string(coo.substr(start, end));
+//
+//                // Set cookie
+//                ret[std::move(cookie_name)] = std::move(cookie_value);
+//            }
+//            header.remove_prefix(pos + 1);
+//            pos = header.find(';');
+//        } while (pos != std::string::npos);
         return ret;
     }
+
     /**
      * Equivalent to encodeUriComponent in JS
      * @param src
@@ -177,6 +218,8 @@ namespace Cookie {
     std::string uri_encode(const std::string& src) {
         std::string result;
         std::string::const_iterator iter;
+
+        // wtf this adds random "%00"s to the output???
 
         for (iter = src.begin(); iter != src.end(); ++iter) {
             switch (*iter) {

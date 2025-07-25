@@ -122,15 +122,15 @@ void Peers::request_peer(
         std::cout <<"peer not in cache\n";
         new_peer(
             domain,
-            [appid, user, req, cb = std::move(callback), context]
-            (const std::shared_ptr<Peer>& p) mutable
-            {
+            [appid, user, req, callback, context]
+            (const std::shared_ptr<Peer>& p) {
                 if (p != nullptr) {
                     DEBUG_LOG("sending request to peer " <<p->m_domain );
-                    request_peer(p, appid, user, req, context, cb);
+                    request_peer(p, appid, user, req, context, callback);
                 } else {
                     DEBUG_LOG("couldn't link with peer");
-                    cb(nullptr, context);
+                    if (callback != nullptr)
+                        callback(nullptr, context);
                 }
             }
         );
@@ -173,8 +173,7 @@ void Peers::request_peer(
     req2->setMethod(http_verb_boost_to_drogon((boost::beast::http::verb)req->method));
     client->sendRequest(
         req2,
-        [cb = std::move(callback), context]
-        (
+        [callback, context] (
             drogon::ReqResult status,
             const drogon::HttpResponsePtr& resp
         ){
@@ -182,7 +181,7 @@ void Peers::request_peer(
                 DEBUG_LOG("remote request failed: " << to_string(status));
                 if (resp == nullptr) {
                     DEBUG_LOG("response is null!");
-                    cb(nullptr, context);
+                    callback(nullptr, context);
                     return;
                 }
             }
@@ -190,7 +189,8 @@ void Peers::request_peer(
                 .status = resp->getStatusCode(),
                 .body = resp->body().data()
             };
-            cb(&r, context);
+            if (callback != nullptr)
+                callback(&r, context);
         }
     );
 }

@@ -10,9 +10,39 @@
 namespace fiy {
 
     struct Response : public fiy_response_t {
-        explicit Response(int status = 200, const char* body = nullptr, const char* headers = nullptr):
-                fiy_response_t{ .status=status, .body = body, .headers = headers }
-        {}
+        explicit Response(int status = 200, const char* body = nullptr, std::string headers_str = ""):
+            fiy_response_t{ .status=status, .body = body  },
+            m_headers(std::move(headers_str))
+        {
+            fiy_response_t::headers = m_headers.c_str();
+        }
+
+    protected:
+        std::string m_headers;
+
+        void add_header(const std::string_view& field, const std::string_view& value) {
+            m_headers += field;
+            m_headers += ": ";
+            m_headers += value;
+            m_headers += "\n";
+            headers = m_headers.c_str();
+        }
+
+        void clear_headers() {
+            m_headers.clear();
+            headers = nullptr;
+        }
+
+        void set_headers(const std::string_view headers_str) {
+            m_headers = headers_str;
+            headers = m_headers.c_str();
+        }
+
+#if 0
+        ~Response() {
+            clear_headers();
+        }
+#endif
     };
 
     struct Request : public fiy_request_t {
@@ -52,7 +82,7 @@ namespace fiy {
             return std::string(user) + "@" + std::string(domain);
         }
         [[nodiscard]] const char* method_str() const {
-            return fiy_http_verb_strings[method];
+            return fiy_http_verb_string(method);
         }
         [[nodiscard]] bool is_local() const {
             return domain == nullptr;
@@ -63,29 +93,6 @@ namespace fiy {
         }
     };
 
-
-    struct ModInfo : public fiy_mod_info_t {};
-//    struct Request : public fiy_request_t {};
-//    struct HostInfo : public fiy_host_info_t {};
-//    struct Response : public fiy_response_t {
-//        std::string body;
-//        std::string headers;
-//        int status;
-//        explicit Response(std::string body, int status = 200):
-//            body(std::move(body)),
-//            status(status)
-//        {}
-//
-//        ~Response() {}
-//
-//        operator struct fiy_response_t() {
-//            return (struct fiy_response_t){
-//                .status=status,
-//                .body=body.c_str(),
-//                .headers=headers.c_str()
-//            };
-//        }
-//    };
 }
 
 #endif //FEDIY_FEDIYMODPP_HPP

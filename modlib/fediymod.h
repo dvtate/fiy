@@ -15,47 +15,50 @@
 #include <string>
 #endif
 
-/// String versions of http verbs
-// from boost::beast::http::verb
-//const char* fiy_http_verb_string(uint8_t verb) {
-//    static const char* verb_strings[] = {
-//            "<unknown>",
-//            "DELETE",
-//            "GET",
-//            "HEAD",
-//            "POST",
-//            "PUT",
-//            "CONNECT",
-//            "OPTIONS",
-//            "TRACE",
-//            "COPY",
-//            "LOCK",
-//            "MKCOL",
-//            "MOVE",
-//            "PROPFIND",
-//            "PROPPATCH",
-//            "SEARCH",
-//            "UNLOCK",
-//            "BIND",
-//            "REBIND",
-//            "UNBIND",
-//            "ACL",
-//            "REPORT",
-//            "MKACTIVITY",
-//            "CHECKOUT",
-//            "MERGE",
-//            "M-SEARCH",
-//            "NOTIFY",
-//            "SUBSCRIBE",
-//            "UNSUBSCRIBE",
-//            "PATCH",
-//            "PURGE",
-//            "MKCALENDAR",
-//            "LINK",
-//            "UNLINK"
-//    };
-//    return verb_strings[(verb >= 34) ? 0 : verb];
-//}
+#ifndef FEDIY_PROTOCOL_SERVER_SOURCE
+
+/// String versions of http verb
+static inline const char* fiy_http_verb_string(uint8_t verb) {
+    // from boost::beast::http::verb
+    static const char* verb_strings[] = {
+        "<unknown>",
+        "DELETE",
+        "GET",
+        "HEAD",
+        "POST",
+        "PUT",
+        "CONNECT",
+        "OPTIONS",
+        "TRACE",
+        "COPY",
+        "LOCK",
+        "MKCOL",
+        "MOVE",
+        "PROPFIND",
+        "PROPPATCH",
+        "SEARCH",
+        "UNLOCK",
+        "BIND",
+        "REBIND",
+        "UNBIND",
+        "ACL",
+        "REPORT",
+        "MKACTIVITY",
+        "CHECKOUT",
+        "MERGE",
+        "M-SEARCH",
+        "NOTIFY",
+        "SUBSCRIBE",
+        "UNSUBSCRIBE",
+        "PATCH",
+        "PURGE",
+        "MKCALENDAR",
+        "LINK",
+        "UNLINK"
+    };
+    return verb_strings[(verb >= 34) ? 0 : verb];
+}
+#endif
 
 /**
  * IPC request from a user
@@ -126,29 +129,7 @@ struct fiy_mod_info_t {
     void (*on_username_changed)(const char* old_username, const char* new_username);
 };
 
-/**
- * Send a request to another app
- * @param app_id app to send the request to
- * @param request request to send to the other app
- *      method   - http method
- *      path     - uri path
- *      domain   - remote server to send request to or nullptr if local inter-app request
- *      user     - local user or nullptr if unauthenticated
- * @param callback
- * @notes
- * - local apps can send requests to each other without restrictions
- * - an app on server a can only send requests to apps on server b on behalf of users residing on server a
- *    - this prevents false impersonation
- */
-//struct fiy_host_info_t;
-typedef void (*fiy_send_request_t)(
-//    const struct fiy_host_info_t* host,
-    const char* app_id,
-    const struct fiy_request_t* request,
-    void* context,
-    void (*callback)(const struct fiy_response_t*, void* context)
-);
-
+/// Some info from the host that may be relevant to the module
 struct fiy_host_info_t {
     /**
      * Fediy instance domain
