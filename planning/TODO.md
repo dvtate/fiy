@@ -1,6 +1,5 @@
 # TODO
-- replace/modify drogon so that we can support WebDAV HTTP methods
-- use drogon db wrapper
+- use db wrapper
 - demo mod
   - library
 

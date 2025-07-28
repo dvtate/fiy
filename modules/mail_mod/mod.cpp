@@ -2,7 +2,7 @@
 // Created by tate on 8/6/24.
 //
 
-#include "../modlib/fediymodpp.hpp"
+#include "../../modlib/fediymodpp.hpp"
 
 #include "MailBox.hpp"
 

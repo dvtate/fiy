@@ -81,8 +81,8 @@ add_library(demo_mod_cpp SHARED
 )
 
 add_library(demo_mod_mail SHARED
-    mail_mod/mod.cpp
-    mail_mod/MailBox.hpp
+        modules/mail_mod/mod.cpp
+        modules/mail_mod/MailBox.hpp
     modlib/fediymod.h
     modlib/fediymodpp.hpp
 )
