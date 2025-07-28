@@ -56,6 +56,8 @@ inline std::pair<std::string, std::string> parse_app_request_get(const std::shar
     auto path = conn->req().target();
     if (path.starts_with("/mods")) {
         path.remove_prefix(5);
+        if (path[0] == '/')
+            path.remove_prefix(1);
         return { path, conn->req().at("Fiy-Path") };
     }
 
@@ -344,14 +346,13 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
 }
 
 void route_request(std::shared_ptr<Session> conn) {
-    auto h = conn->req().at("Host");
     auto path = conn->req().target();
 
     // Logging
     DEBUG_LOG("Req: "
         <<boost::beast::http::to_string(conn->req().method())
         <<" -- "
-        <<conn->req().target());
+        <<path);
 
     switch (conn->req().method()) {
         case boost::beast::http::verb::get:

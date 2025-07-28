@@ -45,9 +45,6 @@ public:
 
     // Start the asynchronous operation
     void run() {
-        // Set host field
-        m_req.set(boost::beast::http::field::host, m_host);
-
         // Look up the domain name
         m_resolver.async_resolve(
             m_host.c_str(),

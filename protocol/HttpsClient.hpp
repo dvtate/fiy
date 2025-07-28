@@ -55,11 +55,7 @@ public:
 
         // Set the expected hostname in the peer certificate for verification
         m_stream.set_verify_callback(
-            boost::asio::ssl::host_name_verification(
-                m_host.c_str()));
-
-        // Set host field
-        m_req.set(boost::beast::http::field::host, m_host);
+            boost::asio::ssl::host_name_verification(m_host.c_str()));
 
         // Look up the domain name
         m_resolver.async_resolve(

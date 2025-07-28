@@ -14,22 +14,22 @@ void Session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred
     // This means they closed the connection
     if (ec == boost::beast::http::error::end_of_stream)
         return close();
-    if (ec) {
-        std::cerr <<"HTTP Session Read failed: " << ec.message() <<'\n';
-        std::cout <<"Buffer: " << m_buffer.data().data() <<std::endl;
-        auto bd = (char*) m_buffer.data().data();
-        size_t i = 0;
-        std::cout <<"Buffer: ";
-        while (i < m_buffer.size()) {
-            size_t incr = (i+10) > m_buffer.size() ? (m_buffer.size() - i) : 10;
-            for (size_t j = 0; j < incr; j++) {
-                std::cout <<" " <<bd[i+j];
-            }
-            std::cout <<'\n';
-            i+= incr;
-        }
-        return;
-    }
+//    if (ec) {
+//        std::cerr <<"HTTP Session Read failed: " << ec.message() <<'\n';
+//        auto bd = (char*) m_buffer.data().data();
+//        size_t i = 0;
+//        std::cout <<"Buffer: ";
+//        while (i < m_buffer.size()) {
+//            size_t incr = (i+10) > m_buffer.size() ? (m_buffer.size() - i) : 10;
+//            for (size_t j = 0; j < incr; j++) {
+//                std::cout <<"" <<bd[i+j];
+//            }
+////            std::cout <<'\n';
+//            i+= incr;
+//        }
+//        std::cout <<std::endl;
+//        return;
+//    }
 
     route_request(shared_from_this());
 }

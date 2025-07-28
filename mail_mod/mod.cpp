@@ -66,15 +66,14 @@ void send_mail(fiy::Request& req, fiy_callback_t cb) {
     }
 
     std::string subject = body.substr(old_i, i - old_i);
-    std::string local_dom = "@";
-    local_dom += g_host_info->domain;
+    const std::string local_dom = std::string("@") + g_host_info->domain;
     for (auto& recip: to)
         if (recip.find('@') == std::string::npos)
             recip += local_dom;
 
     std::string content = body.substr(i);
-    std::cout <<"new mail: " <<req.user_str() <<" : " <<to[0] <<" : " <<subject <<" : " <<content<<std::endl;
-    g_mailbox.push(Mail(req.user_str(), to, subject, content));
+    std::cout <<"new mail: " <<user_str(&req) <<" : " <<to[0] <<" : " <<subject <<" : " <<content<<std::endl;
+    g_mailbox.push(Mail(user_str(&req), to, subject, content));
 
     // Distribute to peers
     if (req.domain == nullptr) {
@@ -139,7 +138,7 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
     } else if (strcmp(req.path, "/inbox") == 0) {
         // Authenticated local user
         if (req.domain == nullptr && req.user != nullptr) {
-            auto inbox_str = g_mailbox.get_inbox_str(req.user_str());
+            auto inbox_str = g_mailbox.get_inbox_str(user_str(&req));
             req.respond(cb, fiy::Response(200, inbox_str.c_str(), "Content-Type: text/html"));
             return;
         }
@@ -149,7 +148,7 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
         return;
     } else if (strcmp(req.path, "/outbox") == 0) {
         if (req.domain == nullptr && req.user != nullptr) {
-            auto outbox_str = g_mailbox.get_outbox_str(req.user_str());
+            auto outbox_str = g_mailbox.get_outbox_str(user_str(&req));
             req.respond(cb, fiy::Response(200, outbox_str.c_str(), "Content-Type: text/html"));
             return;
         }

@@ -213,6 +213,7 @@ void Peers::request_peer(
     request.set("Fiy-Peer", peer->m_auth.m_bearer_token_we_send);
     request.set("Fiy-User", user);
     request.set("Fiy-Path", req->path);
+    request.set(boost::beast::http::field::host, req->domain);
     response_set_headers(request, req->headers);
     request.prepare_payload();
 
@@ -220,6 +221,7 @@ void Peers::request_peer(
 
     bool use_https = std::string_view(peer->m_domain).find(':') == std::string_view::npos;
     auto cb = [context, callback] (boost::beast::http::response<boost::beast::http::string_body> res) {
+//        std::cout <<"p2p response: " <<res <<std::endl;
         if (callback == nullptr)
             return;
         auto headers_str = get_headers_string(res);
