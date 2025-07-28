@@ -26,7 +26,7 @@ bool parse_form_url_encoded(const std::string_view& s, std::deque<std::pair<std:
             return false;
         }
         auto csubstr = s.data();
-        kv.first = drogon::utils::urlDecode(csubstr + start, csubstr + i);
+        kv.first = Cookie::uri_decode(csubstr + start, csubstr + i);
         if (kv.first.empty()) {
             DEBUG_LOG("bad 2");
             return false;
@@ -40,7 +40,11 @@ bool parse_form_url_encoded(const std::string_view& s, std::deque<std::pair<std:
 //            return true;
 //        }
         csubstr = s.data();
-        kv.second = drogon::utils::urlDecode(csubstr + start, csubstr + i);
+        kv.second = Cookie::uri_decode(csubstr + start, csubstr + i);
+        if (kv.second.empty()) {
+            DEBUG_LOG("bad 3");
+            return false;
+        }
         ret.emplace_back(std::move(kv));
         i++;
 
@@ -201,9 +205,10 @@ void signup_post(std::shared_ptr<Session>&& conn) {
         Cookie::serialize(
             "fiy_auth",
             auth_token.m_token,
-            {   .max_age=LocalUser::AuthToken::SESSION_LIFETIME,
+            {   .encode_fn=nullptr,
+                .max_age=LocalUser::AuthToken::SESSION_LIFETIME,
                 .http_only=true,
-                .same_site="true"
+                .same_site="lax"
             }
         )
     );
@@ -267,7 +272,7 @@ void login_post(std::shared_ptr<Session>&& conn) {
             {   .encode_fn=nullptr,
                 .max_age=LocalUser::AuthToken::SESSION_LIFETIME,
                 .http_only=true,
-                .same_site="true"
+                .same_site="lax"
             }
         )
     );
@@ -305,9 +310,10 @@ std::vector<std::string> split_string(
 
 void peer_handshake(std::shared_ptr<Session>&& conn) {
     // TODO this algorithm is insecure and just used for testing
+    DEBUG_LOG("handshake: body: " << conn->req().body());
     auto parts = split_string(conn->req().body(), "\n");
-    auto domain = std::move(parts[0]);
-    auto token = std::move(parts[1]);
+    auto domain = parts[0];
+    auto token = parts[1];
 
     std::cout <<"New peer: " <<domain <<" : " <<token <<std::endl;
 
@@ -332,7 +338,7 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
 //    auto encryptedBody = drogon::utils::base64Decode(req->body()); // may contain \0
 
     // Get relevant public key
-//    auto client = drogon::HttpClient::newHttpClient(remote_peer);
+//    auto client = drogon::HttpsClient::newHttpClient(remote_peer);
 //    client.request();
 
 }

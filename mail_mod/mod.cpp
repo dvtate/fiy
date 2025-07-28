@@ -121,7 +121,9 @@ const char* compose_html = "<!doctype html><html><body>\n"
 static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
     auto& req = *(fiy::Request*) request;
 
-    std::cout <<"Path: "<<req.path <<std::endl;
+    std::cout <<"Mail: Path: "<<req.path <<std::endl;
+    std::cout <<"Mail: User: "<<req.user_str() <<std::endl;
+
     if (strcmp(req.path, "/send") == 0) {
         send_mail(req, cb);
         return;

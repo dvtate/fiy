@@ -93,6 +93,6 @@ namespace fiy {
         }
     };
 
-}
+} // namespace fiy
 
 #endif //FEDIY_FEDIYMODPP_HPP

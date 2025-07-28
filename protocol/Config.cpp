@@ -1,10 +1,15 @@
 #include <thread>
-
+#include <filesystem>
 #include "../third_party/inih/ini.h"
 
 #include "Config.hpp"
 
 bool Config::parse(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        LOG("Config file " << path << " does not exist!");
+        return m_error = true;
+    }
+
     LOG("Loading Config file: " << path);
     return m_error = ini_parse(
         path.c_str(),

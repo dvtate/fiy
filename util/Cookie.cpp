@@ -141,15 +141,13 @@ namespace Cookie {
         std::map<std::string, std::string> ret;
 
         while (!header.empty()) {
-            // Get field
-            auto field_end = header.find(';');
+            // Get cookie
+            auto cookie_end = header.find(';');
 
             // Find equals sign
             auto equals_pos = header.find('=');
-            if (equals_pos >= field_end) {
-//                DEBUG_LOG("Invalid http header: " << header.substr(0, field_end));
+            if (equals_pos >= cookie_end)
                 return ret; // invalid
-            }
 
             // Get cookie name
             std::string_view::size_type start = 0;
@@ -162,8 +160,8 @@ namespace Cookie {
 
             // Get cookie value
             start = equals_pos + 1;
-            end = (field_end == std::string_view::npos) ? header.size() - 1 : field_end;
-            while ((header[start] == 0x20 || header[start] == 0x09) && start < field_end)
+            end = (cookie_end == std::string_view::npos) ? header.size() - 1 : cookie_end;
+            while ((header[start] == 0x20 || header[start] == 0x09) && start < cookie_end)
                 ++start;
             while ((header[end] == 0x20 || header[end] == 0x09) && end >= start)
                 --end;
@@ -172,41 +170,10 @@ namespace Cookie {
             ret[std::string(name)] = value;
 
             // Next if any
-            if (field_end == std::string_view::npos)
+            if (cookie_end == std::string_view::npos)
                 break;
-            header.remove_prefix(field_end + 1);
+            header.remove_prefix(cookie_end + 1);
         }
-//
-//        // TODO fix this algorithm using logic from response_set_headers
-//        std::string::size_type pos = header.find(';');
-//        do {
-//            std::string_view coo = header.substr(0, pos);
-//            auto epos = coo.find('=');
-//            if (epos != std::string::npos) {
-//                // Get cookie name
-//                std::string::size_type start = 0;
-//                std::string::size_type end = epos;
-//                while (coo[start] == 0x20 || coo[start] == 0x09)
-//                    start++;
-//                while (coo[end] == 0x20 || coo[end] == 0x09)
-//                    end--;
-//                auto cookie_name = std::string(coo.substr(start, end - start));
-//
-//                // Get cookie value
-//                start = epos + 1;
-//                end = coo.size() - 1;
-//                while (coo[start] == 0x20 || coo[start] == 0x09)
-//                    start++;
-//                while (coo[end] == 0x20 || coo[end] == 0x09)
-//                    end--;
-//                auto cookie_value = std::string(coo.substr(start, end));
-//
-//                // Set cookie
-//                ret[std::move(cookie_name)] = std::move(cookie_value);
-//            }
-//            header.remove_prefix(pos + 1);
-//            pos = header.find(';');
-//        } while (pos != std::string::npos);
         return ret;
     }
 
@@ -227,7 +194,7 @@ namespace Cookie {
                     result.append(1, '+');
                     break;
 
-                    // alnum
+                // alnum
                 case 'A':
                 case 'B':
                 case 'C':
@@ -291,7 +258,7 @@ namespace Cookie {
                 case '8':
                 case '9':
 
-                    // mark
+                // mark
                 case '-':
                 case '_':
                 case '.':

@@ -3,8 +3,6 @@
 #include <string>
 #include <filesystem>
 
-#include "drogon/HttpController.h"
-
 #include "globals.hpp"
 
 #include "ModIPC.hpp"
@@ -119,10 +117,6 @@ public:
     void save();
 
     inline std::filesystem::path appdir() const;
-
-//    bool action(const drogon::HttpRequestPtr& req, std::function<void(const drogon::HttpResponsePtr&)>&& callback) {
-//
-//    }
 
     friend class Mods;
 };

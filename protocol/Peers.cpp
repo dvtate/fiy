@@ -1,8 +1,10 @@
-#include "drogon/HttpClient.h"
-#include "Peers.hpp"
-
 
 #include "App.hpp"
+
+#include "Server/util.hpp"
+
+#include "Peers.hpp"
+
 
 Peers::Peers() {
     m_cron = std::thread([this]() {
@@ -69,40 +71,95 @@ void Peers::prune() {
 
 
 void Peers::new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb) {
-    auto client = drogon::HttpClient::newHttpClient("http://" + domain);
-
+    DEBUG_LOG("Sending message to new peer...");
     // Generate unique auth token
     auto tok = PeerAuth::get_token_string();
     m_mtx.read_lock();
     while (m_peers_in.contains(tok))
         tok = PeerAuth::get_token_string();
-    m_mtx.read_unlock();
+    m_mtx.read_to_write();
+    m_peers_in[tok] = nullptr;
+    m_mtx.write_unlock();
 
-    auto req = drogon::HttpRequest::newHttpRequest();
-    req->setBody(g_app->m_config.m_hostname + std::string("\n") + tok);
-    req->setPath("/peer/handshake");
-    req->setMethod(drogon::HttpMethod::Post);
-    client->sendRequest(
-        req,
-        [this, cb, domain, token = std::move(tok)]
-        (
-            drogon::ReqResult status,
-            const drogon::HttpResponsePtr& resp
-        ) {
-            if (resp == nullptr) {
-                std::cout <<"new peer status: " <<to_string(status) <<std::endl;
-                DEBUG_LOG("failed to link with peer: " <<domain);
-                cb(nullptr);
-                return;
-            }
+    boost::beast::http::request<boost::beast::http::string_body> req;
+    req.method(boost::beast::http::verb::post);
+    req.target("/peer/handshake");
+    // TODO this is just a placeholder for now, actual algorithm in Server/Router.cpp
+    req.body() = g_app->m_config.m_hostname + std::string("\n") + tok;
+    req.keep_alive(false);
+    req.prepare_payload();
 
-            // TODO FIXME Race condition! another token could form between when we checked earlier and now
-            auto p = std::make_shared<Peer>(domain, PeerAuth("symkey", std::string(resp->body()), token));
-            this->add_peer(domain, p);
-            cb(p);
+    auto callback =
+        [this, cb2 = std::move(cb), domain, token = std::move(tok)]
+        (boost::beast::http::response<boost::beast::http::string_body> res)
+    {
+        // Make Peer
+        auto p = std::make_shared<Peer>(
+            domain,
+            PeerAuth("symkey", std::string(res.body()), std::move(token))
+        );
+
+        // Add peer
+        m_mtx.write_lock();
+        m_peers_in[p->m_auth.m_bearer_token_we_accept] = p;
+        auto ret = m_peers_out.emplace(domain, p);
+        if (!ret.second) {
+            DEBUG_LOG("Duplicate peer?? - " <<domain);
+            m_peers_in.erase(p->m_auth.m_bearer_token_we_accept);
+            m_mtx.write_unlock();
+            return;
         }
-    );
+        m_mtx.write_unlock();
+
+        // Success
+        DEBUG_LOG("New peer: " <<domain);
+        cb2(p);
+    };
+
+    bool use_https = domain.find(':') == std::string::npos;
+    if (use_https) {
+        g_app->m_https.request(domain, req, callback);
+    } else {
+        g_app->m_http.request(domain, req, callback);
+    }
 }
+
+
+
+struct ScopedRequest {
+    std::string m_domain;
+    std::string m_user;
+    std::string m_path;
+    std::string m_headers;
+    std::string m_body;
+    uint8_t m_method;
+
+    explicit ScopedRequest(const fiy_request_t* req) {
+        if (req->domain != nullptr)
+            m_domain = req->domain;
+        if (req->user != nullptr)
+            m_user = req->user;
+        if (req->path != nullptr)
+            m_path = req->path;
+        if (req->headers != nullptr)
+            m_headers = req->headers;
+        if (req->body != nullptr)
+            m_body = req->body;
+        m_method = req->method;
+    }
+
+    fiy_request_t temp_copy() const {
+        return fiy_request_t{
+                .domain=m_domain.empty() ? nullptr : m_domain.c_str() ,
+                .user=m_user.empty() ? nullptr : m_user.c_str(),
+                .path=m_path.empty() ? nullptr : m_path.c_str(),
+                .headers=m_headers.empty() ? nullptr : m_headers.c_str(),
+                .body=m_body.empty() ? nullptr : m_body.c_str(),
+                .method=m_method,
+        };
+    }
+};
+
 
 void Peers::request_peer(
     const std::string& domain,
@@ -122,11 +179,12 @@ void Peers::request_peer(
         std::cout <<"peer not in cache\n";
         new_peer(
             domain,
-            [appid, user, req, callback, context]
+            [appid, user, request = ScopedRequest(req), callback, context]
             (const std::shared_ptr<Peer>& p) {
                 if (p != nullptr) {
                     DEBUG_LOG("sending request to peer " <<p->m_domain );
-                    request_peer(p, appid, user, req, context, callback);
+                    auto r = request.temp_copy(); // copied earlier to prevent invalidation
+                    request_peer(p, appid, user, &r, context, callback);
                 } else {
                     DEBUG_LOG("couldn't link with peer");
                     if (callback != nullptr)
@@ -140,22 +198,6 @@ void Peers::request_peer(
     }
 }
 
-
-drogon::HttpMethod http_verb_boost_to_drogon(boost::beast::http::verb m) {
-    using namespace boost::beast::http;
-    switch (m) {
-    case verb::get:     return drogon::HttpMethod::Get;
-    case verb::post:    return drogon::HttpMethod::Post;
-    case verb::head:    return drogon::HttpMethod::Head;
-    case verb::put:     return drogon::HttpMethod::Put;
-    case verb::delete_: return drogon::HttpMethod::Delete;
-    case verb::options: return drogon::HttpMethod::Options;
-    case verb::patch:   return drogon::HttpMethod::Patch;
-    case verb::copy:    return drogon::HttpMethod::Copy;
-    default:            return drogon::HttpMethod::Invalid;
-    }
-}
-
 void Peers::request_peer(
     const std::shared_ptr<Peer>& peer,
     const std::string& appid,
@@ -164,33 +206,34 @@ void Peers::request_peer(
     void* context,
     void (*callback)(const fiy_response_t*, void*)
 ) {
-    auto client = drogon::HttpClient::newHttpClient(std::string("https://") + peer->m_domain);
-    auto req2 = drogon::HttpRequest::newHttpRequest();
-    req2->addHeader("Fiy-Peer", peer->m_auth.m_bearer_token_we_send);
-    req2->addHeader("Fiy-User", user);
-    req2->addHeader("Fiy-Path", req->path);
-    req2->setPath("/mods/" + appid);
-    req2->setMethod(http_verb_boost_to_drogon((boost::beast::http::verb)req->method));
-    client->sendRequest(
-        req2,
-        [callback, context] (
-            drogon::ReqResult status,
-            const drogon::HttpResponsePtr& resp
-        ){
-            if (status != drogon::ReqResult::Ok) {
-                DEBUG_LOG("remote request failed: " << to_string(status));
-                if (resp == nullptr) {
-                    DEBUG_LOG("response is null!");
-                    callback(nullptr, context);
-                    return;
-                }
-            }
-            fiy_response_t r {
-                .status = resp->getStatusCode(),
-                .body = resp->body().data()
-            };
-            if (callback != nullptr)
-                callback(&r, context);
-        }
-    );
+    boost::beast::http::request<boost::beast::http::string_body> request;
+    request.method((boost::beast::http::verb)req->method);
+    request.target("/mods/" + appid);
+    request.body() = req->body;
+    request.set("Fiy-Peer", peer->m_auth.m_bearer_token_we_send);
+    request.set("Fiy-User", user);
+    request.set("Fiy-Path", req->path);
+    response_set_headers(request, req->headers);
+    request.prepare_payload();
+
+    std::cout <<request <<std::endl;
+
+    bool use_https = std::string_view(peer->m_domain).find(':') == std::string_view::npos;
+    auto cb = [context, callback] (boost::beast::http::response<boost::beast::http::string_body> res) {
+        if (callback == nullptr)
+            return;
+        auto headers_str = get_headers_string(res);
+        const fiy_response_t response{
+            .status = (int) res.result(),
+            .body = res.body().c_str(),
+            .headers = headers_str.c_str(),
+        };
+        callback(&response, context);
+    };
+    if (use_https) {
+        g_app->m_https.request(peer->m_domain, std::move(request), std::move(cb));
+    } else {
+        g_app->m_http.request(peer->m_domain, std::move(request), std::move(cb));
+    }
+
 }

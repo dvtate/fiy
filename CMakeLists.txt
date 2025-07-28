@@ -31,10 +31,13 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/LocalUsers.cpp
     util/Cookie.hpp
     util/Cookie.cpp
-    protocol/HttpClient.cpp
-    protocol/HttpClient.hpp
+        protocol/HttpsClient.cpp
+        protocol/HttpsClient.hpp
     protocol/Server/Session.cpp
     protocol/Server/Session.hpp
+        protocol/HttpClient.cpp
+        protocol/HttpClient.hpp
+        protocol/Server/util.hpp
 )
 
 # Debug/vs release

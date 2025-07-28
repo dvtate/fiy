@@ -26,39 +26,39 @@ void fail(beast::error_code ec, char const* what) {
 
 // Accepts incoming connections and launches the sessions
 class Listener : public std::enable_shared_from_this<Listener> {
-    net::io_context& ioc_;
-    tcp::acceptor acceptor_;
+    net::io_context& m_ioc;
+    tcp::acceptor m_acceptor;
 
 public:
     Listener(net::io_context& ioc, tcp::endpoint&& endpoint)
-        : ioc_(ioc), acceptor_(net::make_strand(ioc))
+        : m_ioc(ioc), m_acceptor(net::make_strand(ioc))
     {
         beast::error_code ec;
 
         // Open the acceptor
-        acceptor_.open(endpoint.protocol(), ec);
-        if(ec) {
+        m_acceptor.open(endpoint.protocol(), ec);
+        if (ec) {
             fail(ec, "open");
             return;
         }
 
         // Allow address reuse
-        acceptor_.set_option(net::socket_base::reuse_address(true), ec);
-        if(ec) {
+        m_acceptor.set_option(net::socket_base::reuse_address(true), ec);
+        if (ec) {
             fail(ec, "set_option");
             return;
         }
 
         // Bind to the server address
-        acceptor_.bind(endpoint, ec);
-        if(ec) {
+        m_acceptor.bind(endpoint, ec);
+        if (ec) {
             fail(ec, "bind");
             return;
         }
 
         // Start listening for connections
-        acceptor_.listen(net::socket_base::max_listen_connections, ec);
-        if(ec) {
+        m_acceptor.listen(net::socket_base::max_listen_connections, ec);
+        if (ec) {
             fail(ec, "listen");
             return;
         }
@@ -72,8 +72,8 @@ public:
 private:
     void do_accept() {
         // The new connection gets its own strand
-        acceptor_.async_accept(
-            net::make_strand(ioc_),
+        m_acceptor.async_accept(
+            net::make_strand(m_ioc),
             beast::bind_front_handler(
                 &Listener::on_accept,
                 shared_from_this()));

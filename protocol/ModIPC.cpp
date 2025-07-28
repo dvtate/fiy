@@ -9,6 +9,9 @@
 #include "LocalUser.hpp"
 #include "App.hpp"
 
+#include "Server/util.hpp"
+
+
 static char* new_cstr_from_string(const std::string_view& s) {
     auto l = s.size();
 //    std::cout <<"new cstr: '" << s <<"' -- Size: " <<l <<std::endl;
@@ -33,38 +36,6 @@ ModDllIpcRequest::ModDllIpcRequest(std::shared_ptr<Session> conn):
     this->headers = nullptr;
 }
 
-template<class ResponseType>
-void response_set_headers(ResponseType& res, const char* headers_str) {
-    if (headers_str == nullptr)
-        return;
-
-    std::string_view headers{headers_str};
-    while (!headers.empty()) {
-        // Get field
-        auto end = headers.find('\n');
-
-        // Find colon
-        auto colon = headers.find(':');
-        if (colon >= end) {
-            DEBUG_LOG("Invalid http header: " << headers.substr(0, end));
-            return; // invalid
-        }
-
-        // Get header components
-        auto name = headers.substr(0, colon);
-        auto start = colon + 1;
-        while ((headers[start] == 0x20 || headers[start] == 0x09) && start < end)
-            start++;
-        auto value = headers.substr(start, end - start);
-
-        res.set(name, value);
-
-        // Next if any
-        if (end == std::string_view::npos)
-            break;
-        headers.remove_prefix(end + 1);
-    }
-}
 
 void ModDllIpcRequest::callback(const fiy_response_t* r) {
     Session::StringResponse res;
@@ -75,24 +46,6 @@ void ModDllIpcRequest::callback(const fiy_response_t* r) {
     // TODO add headers
     m_conn->respond(m_conn->prep(std::move(res)));
     this->remove_from_task_queue();
-}
-
-drogon::HttpMethod drogon_http_method(const std::string& method) {
-    if (method == "GET")
-        return drogon::HttpMethod::Get;
-    if (method == "POST")
-        return drogon::HttpMethod::Post;
-    if (method == "PATCH")
-        return drogon::HttpMethod::Patch;
-    if (method == "PUT")
-        return drogon::HttpMethod::Put;
-    if (method == "DELETE")
-        return drogon::HttpMethod::Delete;
-    if (method == "HEAD")
-        return drogon::HttpMethod::Head;
-    if (method == "OPTIONS")
-        return drogon::HttpMethod::Options;
-    return drogon::HttpMethod::Invalid;
 }
 
 void send_request_to_app(

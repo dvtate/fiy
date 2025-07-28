@@ -5,12 +5,11 @@
 #include <memory>
 #include <algorithm>
 #include <variant>
+#include <thread>
+#include <functional>
 
 #include "globals.hpp"
 #include "../util/RWMutex.hpp"
-
-#include "drogon/HttpRequest.h"
-#include "drogon/HttpResponse.h"
 
 #include "Peer.hpp"
 #include "LocalUser.hpp"

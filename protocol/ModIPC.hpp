@@ -10,9 +10,6 @@
 
 #include <boost/beast.hpp>
 
-#include "drogon/HttpController.h"
-#include "drogon/HttpClient.h"
-
 #include "globals.hpp"
 
 #include "../modlib/fediymod.h"
@@ -149,7 +146,7 @@ public:
 //            User&& user,
 //            std::function<void(const drogon::HttpResponsePtr&)>&& callback
 //    ) override {
-//        auto client = drogon::HttpClient::newHttpClient(m_ipc_uri);
+//        auto client = drogon::HttpsClient::newHttpClient(m_ipc_uri);
 //        req->addHeader("fediy-user", user.user + '@' + user.domain);
 //        client->sendRequest(
 //            req,
