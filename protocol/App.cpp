@@ -1,16 +1,15 @@
 #include "App.hpp"
 
-#include "HTTPRoutes/PortalRoutes.hpp"
-#include "HTTPRoutes/ModuleRoutes.hpp"
-#include "HTTPRoutes/PeerRoutes.hpp"
-
 bool App::start() {
     // Note: order is important
+
 
     if (m_config.m_error) {
         LOG_ERR("Failed to parse config file.");
         return false;
     }
+
+    m_ioc = new boost::asio::io_context{m_config.m_concurrency};
 
     // Connect to datbase
     m_db = std::make_unique<DB>();
@@ -24,9 +23,14 @@ bool App::start() {
 
     m_pages = std::make_unique<Pages>();
 
-    PortalRoutes::initPathRouting();
-    ModuleRoutes::initPathRouting();
-    PeerRoutes::initPathRouting();
+    m_server.start();
+
+    // Run the I/O service on the requested number of threads
+    std::vector<std::thread> v;
+    v.reserve(m_config.m_concurrency - 1);
+    for(auto i = m_config.m_concurrency - 1; i > 0; --i)
+        v.emplace_back([this]{ m_ioc->run(); });
+    m_ioc->run();
 
     return true;
 }

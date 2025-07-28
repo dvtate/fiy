@@ -61,7 +61,11 @@ public:
     /// TCP port number to bind to
     int m_port{8848};
 
+    /// Hint for the number of threads to use
+    int m_concurrency{4};
+
     // TODO parse public and private keys
+    // TODO request timeouts?
 
 protected:
     bool set_key(const char* section, const char* key, const char* value) override;

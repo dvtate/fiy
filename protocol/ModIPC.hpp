@@ -8,14 +8,13 @@
 #include <functional>
 #include <dlfcn.h>
 
-#include "drogon/HttpController.h"
-#include "drogon/HttpClient.h"
+#include <boost/beast.hpp>
 
 #include "globals.hpp"
 
 #include "../modlib/fediymod.h"
 
-#include "HTTPRoutes/ModuleRoutes.hpp"
+#include "Server/Session.hpp"
 
 class Mod;
 
@@ -29,12 +28,12 @@ public:
 
     virtual bool start() = 0;
     virtual bool stop() = 0;
+    virtual void handle_request(std::shared_ptr<Session> conn) = 0;
     virtual void handle_request(
-            const drogon::HttpRequestPtr& req,
-            ModuleRoutes::User&& user,
-            std::function<void(const drogon::HttpResponsePtr&)>&& callback
+        const fiy_request_t* req,
+        void* context,
+        void (*callback)(const fiy_response_t*, void*)
     ) = 0;
-
 
     // IPC interface
     enum class IPCType {
@@ -47,20 +46,16 @@ public:
 };
 
 // Message passed to shared library
-class ModDllIpcRequest : public fediy::fiy_request_t {
+class ModDllIpcRequest : public fiy_request_t {
 public:
-    ModuleRoutes::User m_user;
-    std::function<void(const drogon::HttpResponsePtr&)> m_callback;
+    std::shared_ptr<Session> m_conn;
 
-    ModDllIpcRequest(
-        const drogon::HttpRequestPtr& req,
-        ModuleRoutes::User&& user,
-        std::function<void(const drogon::HttpResponsePtr&)>&& callback
-    );
+    explicit ModDllIpcRequest(std::shared_ptr<Session> conn);
 
     virtual ~ModDllIpcRequest() {
         delete[] this->body;
         delete[] this->path;
+        delete[] this->user;
     }
 
     void remove_from_task_queue() {
@@ -68,23 +63,14 @@ public:
         delete this;
     }
 
-    void callback(const fediy::fiy_response_t* r) {
-        auto resp = drogon::HttpResponse::newHttpResponse();
-        resp->setBody(r->body);
-        resp->setStatusCode((drogon::HttpStatusCode)r->status);
-        // TODO add headers
-//        resp->addHeader()
-        m_callback(resp);
-
-        this->remove_from_task_queue();
-    }
+    void callback(const fiy_response_t* r);
 };
 
 // Communicates with the module by dynamically linking
 class ModDLLIPC : public ModIPC {
     void* m_dl_handle{nullptr};
-    fediy::fiy_mod_info_t* m_mod_info{nullptr};
-    fediy::fiy_host_info_t* m_host_info{nullptr};
+    fiy_mod_info_t* m_mod_info{nullptr};
+    fiy_host_info_t* m_host_info{nullptr};
 
     void gen_host_info();
     void free_host_info() {
@@ -94,8 +80,6 @@ class ModDLLIPC : public ModIPC {
             m_host_info = nullptr;
         }
     }
-
-//    std::list<ModDllIpcRequest*> m_msg_queue;
 
 public:
     ModDLLIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
@@ -126,7 +110,7 @@ public:
         if (m_dl_handle == nullptr)
             return false;
 
-        auto start_fn = (fediy::fiy_mod_start_function_t) dlsym(m_dl_handle, "start");
+        auto start_fn = (fiy_mod_start_function_t) dlsym(m_dl_handle, "start");
         m_mod_info = start_fn(m_host_info);
         return m_mod_info != nullptr;
     }
@@ -135,10 +119,11 @@ public:
         return IPCType::SHARED_LIBRARY;
     }
 
+    void handle_request(std::shared_ptr<Session> conn) override;
     void handle_request(
-        const drogon::HttpRequestPtr& req,
-        ModuleRoutes::User&& user,
-        std::function<void(const drogon::HttpResponsePtr&)>&& callback
+        const fiy_request_t* req,
+        void* context,
+        void (*callback)(const fiy_response_t*, void*)
     ) override;
 };
 
@@ -156,44 +141,54 @@ public:
     virtual bool stop() override;
         // Invalidate credentials both ways
 
-    virtual void handle_request(
-            const drogon::HttpRequestPtr& req,
-            ModuleRoutes::User&& user,
-            std::function<void(const drogon::HttpResponsePtr&)>&& callback
-    ) override {
-        auto client = drogon::HttpClient::newHttpClient(m_ipc_uri);
-        req->addHeader("fediy-user", user.user + '@' + user.domain);
-        client->sendRequest(
-            req,
-            [
-                this,
-                cb = std::move(callback)
-            ](
-                drogon::ReqResult status,
-                const drogon::HttpResponsePtr& resp
-            ) {
-//                if (status == drogon::ReqResult::Ok) {
-                if (resp != nullptr) {
-                    resp->setPassThrough(true);
-                    cb(resp);
-                } else {
-                    auto r = drogon::HttpResponse::newHttpResponse();
-                    r->setStatusCode(drogon::k500InternalServerError);
-                    cb(r);
-                }
-            }
-        );
-    };
+//    virtual void handle_request(
+//            const drogon::HttpRequestPtr& req,
+//            User&& user,
+//            std::function<void(const drogon::HttpResponsePtr&)>&& callback
+//    ) override {
+//        auto client = drogon::HttpsClient::newHttpClient(m_ipc_uri);
+//        req->addHeader("fediy-user", user.user + '@' + user.domain);
+//        client->sendRequest(
+//            req,
+//            [
+//                this,
+//                cb = std::move(callback)
+//            ](
+//                drogon::ReqResult status,
+//                const drogon::HttpResponsePtr& resp
+//            ) {
+////                if (status == drogon::ReqResult::Ok) {
+//                if (resp != nullptr) {
+//                    resp->setPassThrough(true);
+//                    cb(resp);
+//                } else {
+//                    auto r = drogon::HttpResponse::newHttpResponse();
+//                    r->setStatusCode(drogon::k500InternalServerError);
+//                    cb(r);
+//                }
+//            }
+//        );
+//    }
+
+    // TODO
+    void handle_request(std::shared_ptr<Session>) override {}
+    void handle_request(
+        const fiy_request_t* req,
+        void* context,
+        void (*callback)(const fiy_response_t*, void*)
+    ) override {}
 };
 
 // IPC over unix socket
-class ModSockIPC : public ModIPC {
-public:
-    ModSockIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
-
-    IPCType ipc_type() final {
-        return IPCType::SOCKET;
-    }
-
-    // TODO
-};
+// there's no reason to use this as it's worse performance than dll
+// and can't be done over network (right?)
+//class ModSockIPC : public ModIPC {
+//public:
+//    ModSockIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
+//
+//    IPCType ipc_type() final {
+//        return IPCType::SOCKET;
+//    }
+//
+//    // TODO
+//};

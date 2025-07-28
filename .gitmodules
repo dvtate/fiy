@@ -13,6 +13,3 @@
 [submodule "third_party/Mustache"]
 	path = third_party/Mustache
 	url = https://github.com/kainjow/Mustache
-[submodule "third_party/drogon"]
-	path = third_party/drogon
-	url = https://github.com/drogonframework/drogon
