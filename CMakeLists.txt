@@ -6,7 +6,8 @@ project(fediy
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/SQLiteCpp)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/drogon)
+
+find_package(Boost REQUIRED)
 
 file(GLOB protocol_server_sources protocol/*.cpp)
 
@@ -55,7 +56,7 @@ target_include_directories(protocol_server PUBLIC protocol
     third_party/inja/single_include
     third_party/inih
     third_party/Mustache
-    third_party/drogon/lib/inc
+    ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(protocol_server
@@ -64,7 +65,7 @@ target_link_libraries(protocol_server
     pthread
     dl
     crypto
-    drogon
+    ssl
 )
 
 
