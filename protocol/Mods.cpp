@@ -40,16 +40,15 @@ void Mods::find_modules() {
 bool Mods::start_all() {
     bool ret = true;
 
-    // TODO parallel
     for (auto* mod: m_mods) {
         if (!mod->m_loaded)
             continue;
         DEBUG_LOG("Starting module: " + mod->m_id + "...");
         if (!mod->start()) {
-            LOG("Failed to start module " + mod->m_id);
+            LOG("Failed to start module " + mod->m_id <<".");
             ret = false;
         } else {
-            LOG("Successfully started module " + mod->m_id);
+            LOG("Successfully started module " + mod->m_id <<".");
         }
     }
     return ret;

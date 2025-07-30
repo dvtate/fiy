@@ -5,7 +5,6 @@
 #ifndef FEDIY_FEDIYMOD_H
 #define FEDIY_FEDIYMOD_H
 
-
 #ifndef __cplusplus
 #include <stdio.h>
 #include <stdint.h>
@@ -100,6 +99,12 @@ struct fiy_request_t {
     const char* body;       // null = get request
 
     /**
+     * How big is the body
+     * @note can't rely on null-terminators bc body could be binary format
+     */
+    size_t body_len;
+
+    /**
      * Enum value corresponding to the HTTP verb sent
      */
     uint8_t method;   // http method (from boost::beast::http::verb)
@@ -107,14 +112,30 @@ struct fiy_request_t {
 };
 
 struct fiy_response_t {
-    int status;                     // exit status
-    const char* body;               // body
-    const char* headers;            // updated headers or null
+    /**
+     * HTTP Status code
+     */
+    int status;
+
+    /**
+     * HTTP body
+     */
+    const char* body;
+
+    /**
+     * How many characters are in the body
+     */
+    size_t body_len;
+
+    /**
+     * HTTP Headers to set
+     */
+    const char* headers;
 };
 
 typedef void (* fiy_callback_t)(const struct fiy_request_t* request, const struct fiy_response_t*);
 
-/// This is used to provide callbacks to the host app
+/// This is used to provide callbacks to the host
 struct fiy_mod_info_t {
     const char* remote_app_id;
 
@@ -147,6 +168,11 @@ struct fiy_host_info_t {
      * - ie - https://bodge.dev/git
      */
     const char* base_uri;
+
+    /**
+     * Where this app's files go
+     */
+    const char* data_dir;
 
     /**
      * Write a debug message

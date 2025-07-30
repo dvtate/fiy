@@ -101,7 +101,7 @@ inline static void app_send_msg(std::shared_ptr<Session> conn) {
     // Get app
     auto [ app, uri ] = parse_app_request_get(conn);
 
-    // Forward to app
+    // Forward to apps
     Mod* m = g_app->m_mods.get_mod(app);
     if (m == nullptr) {
         Session::DynamicResponse res;
@@ -110,7 +110,7 @@ inline static void app_send_msg(std::shared_ptr<Session> conn) {
                 <<"App '" <<app <<"' not found\n";
         res.set(boost::beast::http::field::content_type, "text/html");
         conn->respond(conn->prep(std::move(res)));
-        DEBUG_LOG("Invalid app: " <<app <<" : " <<uri);
+        DEBUG_LOG("Invalid apps: " <<app <<" : " <<uri);
         return;
     }
     DEBUG_LOG("Calling App " <<app <<" : " << uri);
@@ -209,8 +209,8 @@ void signup_post(std::shared_ptr<Session>&& conn) {
             auth_token.m_token,
             {   .encode_fn=nullptr,
                 .max_age=LocalUser::AuthToken::SESSION_LIFETIME,
-                .http_only=true,
-                .same_site="lax"
+                .path="/",
+                .http_only=true
             }
         )
     );
@@ -273,8 +273,8 @@ void login_post(std::shared_ptr<Session>&& conn) {
             auth_token.m_token,
             {   .encode_fn=nullptr,
                 .max_age=LocalUser::AuthToken::SESSION_LIFETIME,
-                .http_only=true,
-                .same_site="lax"
+                .path="/",
+                .http_only=true
             }
         )
     );
@@ -365,23 +365,12 @@ void route_request(std::shared_ptr<Session> conn) {
                     conn->respond(conn->prep(signup_page()));
                     return;
                 } else if (path.starts_with("/main.js")) {
-                    // Open the file
-                    // TODO would probably be better to use string body instead
-                    // TODO cache it
-                    beast::error_code ec;
-                    boost::beast::http::file_body::value_type body;
-                    auto file_path = g_app->m_config.m_data_dir + "/page_templates/main.js";
-                    body.open(file_path.c_str(), beast::file_mode::scan, ec);
-                    if (ec) {
-                        conn->respond(conn->prep(std::move(server_error(ec.what()))));
-                        return;
-                    }
-
-                    // Send it
-                    Session::FileResponse res{
+                    // Send cached file contents
+                    static const char subpath[] = "/main.js";
+                    Session::StringResponse res{
                         boost::beast::http::status::ok,
                         conn->req().version(),
-                        std::move(body)
+                        Pages::file_contents<subpath>()
                     };
                     res.set(boost::beast::http::field::content_type, "text/javascript");
                     conn->respond(conn->prep(std::move(res)));

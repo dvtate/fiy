@@ -18,16 +18,26 @@
 
 class Mod;
 
-// Abstract class
+/**
+ * Abstract class that handles communication between the protocol host and the apps apps
+ */
 class ModIPC {
 public:
+    /// Relevant apps
     Mod* m_mod{nullptr};
+
     std::string m_ipc_uri;
+
     ModIPC(Mod* mod, std::string path): m_mod(mod), m_ipc_uri(std::move(path)) {}
     virtual ~ModIPC() = default;
 
+    /// Initialize the app
     virtual bool start() = 0;
+
+    /// Cleanly shut the app down
     virtual bool stop() = 0;
+
+    /// Handle user request
     virtual void handle_request(std::shared_ptr<Session> conn) = 0;
     virtual void handle_request(
         const fiy_request_t* req,
@@ -141,37 +151,9 @@ public:
     virtual bool stop() override;
         // Invalidate credentials both ways
 
-//    virtual void handle_request(
-//            const drogon::HttpRequestPtr& req,
-//            User&& user,
-//            std::function<void(const drogon::HttpResponsePtr&)>&& callback
-//    ) override {
-//        auto client = drogon::HttpsClient::newHttpClient(m_ipc_uri);
-//        req->addHeader("fediy-user", user.user + '@' + user.domain);
-//        client->sendRequest(
-//            req,
-//            [
-//                this,
-//                cb = std::move(callback)
-//            ](
-//                drogon::ReqResult status,
-//                const drogon::HttpResponsePtr& resp
-//            ) {
-////                if (status == drogon::ReqResult::Ok) {
-//                if (resp != nullptr) {
-//                    resp->setPassThrough(true);
-//                    cb(resp);
-//                } else {
-//                    auto r = drogon::HttpResponse::newHttpResponse();
-//                    r->setStatusCode(drogon::k500InternalServerError);
-//                    cb(r);
-//                }
-//            }
-//        );
-//    }
 
     // TODO
-    void handle_request(std::shared_ptr<Session>) override {}
+    void handle_request(std::shared_ptr<Session>) override;
     void handle_request(
         const fiy_request_t* req,
         void* context,

@@ -92,6 +92,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
     auto callback =
         [this, cb2 = std::move(cb), domain, token = std::move(tok)]
         (boost::beast::http::response<boost::beast::http::string_body> res)
+        mutable
     {
         // Make Peer
         auto p = std::make_shared<Peer>(
@@ -143,19 +144,21 @@ struct ScopedRequest {
             m_path = req->path;
         if (req->headers != nullptr)
             m_headers = req->headers;
-        if (req->body != nullptr)
-            m_body = req->body;
+        m_body = req->body == nullptr
+            ? ""
+            : std::string(req->body, req->body_len);
         m_method = req->method;
     }
 
-    fiy_request_t temp_copy() const {
+    [[nodiscard]] fiy_request_t temp_copy() const {
         return fiy_request_t{
-                .domain=m_domain.empty() ? nullptr : m_domain.c_str() ,
-                .user=m_user.empty() ? nullptr : m_user.c_str(),
-                .path=m_path.empty() ? nullptr : m_path.c_str(),
-                .headers=m_headers.empty() ? nullptr : m_headers.c_str(),
-                .body=m_body.empty() ? nullptr : m_body.c_str(),
-                .method=m_method,
+            .domain=m_domain.empty() ? nullptr : m_domain.c_str() ,
+            .user=m_user.empty() ? nullptr : m_user.c_str(),
+            .path=m_path.empty() ? nullptr : m_path.c_str(),
+            .headers=m_headers.empty() ? nullptr : m_headers.c_str(),
+            .body=m_body.empty() ? nullptr : m_body.data(),
+            .body_len=m_body.size(),
+            .method=m_method
         };
     }
 };
@@ -206,10 +209,11 @@ void Peers::request_peer(
     void* context,
     void (*callback)(const fiy_response_t*, void*)
 ) {
+    // Convert to boost request
     boost::beast::http::request<boost::beast::http::string_body> request;
     request.method((boost::beast::http::verb)req->method);
     request.target("/mods/" + appid);
-    request.body() = req->body;
+    request.body() = std::string(req->body, req->body_len); // note this should work even if body contains null chars
     request.set("Fiy-Peer", peer->m_auth.m_bearer_token_we_send);
     request.set("Fiy-User", user);
     request.set("Fiy-Path", req->path);
@@ -227,7 +231,8 @@ void Peers::request_peer(
         auto headers_str = get_headers_string(res);
         const fiy_response_t response{
             .status = (int) res.result(),
-            .body = res.body().c_str(),
+            .body = res.body().data(),
+            .body_len = res.body().size(),
             .headers = headers_str.c_str(),
         };
         callback(&response, context);
@@ -237,5 +242,4 @@ void Peers::request_peer(
     } else {
         g_app->m_http.request(peer->m_domain, std::move(request), std::move(cb));
     }
-
 }

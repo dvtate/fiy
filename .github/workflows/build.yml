@@ -1,0 +1,40 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-gcc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: build-gcc
+        run: |
+          sudo apt-get install -y gcc-14 g++14
+          mkdir build 
+          cd build
+          export CXX=g++-14
+          export CC=gcc-14
+          cmake ..
+          make -j `nproc`
+          cd ..
+          rm -rf build
+
+  build-clang:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: build-clang
+        run: |
+          sudo apt-get install -y clang-19 clang++-19
+          mkdir build 
+          cd build
+          export CXX=clang++-19
+          export CC=clang-19
+          cmake ..
+          make -j `nproc`
+          cd ..
+          rm -rf build

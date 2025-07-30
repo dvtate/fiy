@@ -45,14 +45,14 @@ std::string user_str(const fiy_request_t* request) {
 void send_mail(fiy::Request& req, fiy_callback_t cb) {
     if (req.user == nullptr) {
         // Unauthenticated
-        req.respond(cb, fiy::Response(401, "Unauthenticated"));
+        req.respond(cb, 401, "Unauthenticated");
         return;
     }
 
     std::string body = req.body;
     auto i = body.find('\n');
     if (i == std::string::npos) {
-        req.respond(cb, fiy::Response(400));
+        req.respond(cb, 400);
         return;
     }
 
@@ -61,7 +61,7 @@ void send_mail(fiy::Request& req, fiy_callback_t cb) {
     auto old_i = i + 1;
     i = body.find('\n', old_i);
     if (i == std::string::npos) {
-        req.respond(cb, fiy::Response(400));
+        req.respond(cb, 400);
         return;
     }
 
@@ -94,7 +94,7 @@ void send_mail(fiy::Request& req, fiy_callback_t cb) {
             g_host_info->request("mail", &req, nullptr, nullptr);
         }
     }
-    req.respond(cb, fiy::Response(200, "sent"));
+    req.respond(cb);
 }
 
 const char* compose_html = "<!doctype html><html><body>\n"
@@ -133,43 +133,43 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
                            "<li><a href='" + root + "/outbox'>Outbox</a></li>"
                            "<li><a href='" + root + "/compose'>Compose</a></li>"
                            "</ul>";
-        req.respond(cb, fiy::Response(200, body.c_str(), "Content-Type: text/html"));
+        req.respond(cb, body, "Content-Type: text/html");
         return;
     } else if (strcmp(req.path, "/inbox") == 0) {
         // Authenticated local user
         if (req.domain == nullptr && req.user != nullptr) {
             auto inbox_str = g_mailbox.get_inbox_str(user_str(&req));
-            req.respond(cb, fiy::Response(200, inbox_str.c_str(), "Content-Type: text/html"));
+            req.respond(cb, inbox_str, "Content-Type: text/html");
             return;
         }
 
         // Unauthenticated
-        req.respond(cb, fiy::Response(401, "Unauthenticated"));
+        req.respond(cb, 401, "Unauthenticated");
         return;
     } else if (strcmp(req.path, "/outbox") == 0) {
         if (req.domain == nullptr && req.user != nullptr) {
             auto outbox_str = g_mailbox.get_outbox_str(user_str(&req));
-            req.respond(cb, fiy::Response(200, outbox_str.c_str(), "Content-Type: text/html"));
+            req.respond(cb, outbox_str, "Content-Type: text/html");
             return;
         }
 
         // Unauthenticated
-        req.respond(cb, fiy::Response(401, "Unauthenticated"));
+        req.respond(cb, 401, "Unauthenticated");
         return;
 
     } else if (strcmp(req.path, "/compose") == 0) {
-        req.respond(cb, fiy::Response(200, compose_html, "Content-Type: text/html"));
+        req.respond(cb, compose_html, "Content-Type: text/html");
         return;
     } else if (strncmp(req.path, "/view/", strlen("/view/")) == 0) {
-        auto idx = strtoul(req.path + strlen("/view/"), nullptr, 10);
+        size_t idx = strtoul(req.path + strlen("/view/"), nullptr, 10);
         // TODO verify that the user has access to the email
-        auto* m = g_mailbox.get(idx);
+        Mail* m = g_mailbox.get(idx);
         if (m == nullptr) {
-            req.respond(cb, fiy::Response(404, "Not found"));
+            req.respond(cb, 404, "Not found");
             return;
         }
-        auto view = m->long_view();
-        req.respond(cb, fiy::Response(200, view.c_str(), "Content-Type: text/html"));
+        std::string view = m->long_view();
+        req.respond(cb, view, "Content-Type: text/html");
         return;
     }
 
@@ -185,7 +185,7 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
     if (req.path != nullptr)
         body += req.path;
 
-    req.respond(cb, fiy::Response(404, "Not found"));
+    req.respond(cb, 404, "Not found.");
 }
 
 //

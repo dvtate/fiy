@@ -29,9 +29,10 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t callbac
 
     // Pass response to callback
     struct fiy_response_t resp = {
-            .status=200,
-            .headers="Content-Type: text/html",
-            .body=body
+        .status=200,
+        .body=body,
+        .body_len=strlen(body),
+        .headers="Content-Type: text/html"
     };
     callback(request, &resp);
 
@@ -56,9 +57,9 @@ static void update_username(const char* old_username, const char* new_username) 
 struct fiy_mod_info_t* start(const struct fiy_host_info_t* host_info) {
     // Prepare and make sure everything is set up and installed correctly
     static struct fiy_mod_info_t mod_info = {
-            .on_request=handle_request,
-            .on_peer_domain_changed=update_peer_domain,
-            .on_username_changed=update_username
+        .on_request=handle_request,
+        .on_peer_domain_changed=update_peer_domain,
+        .on_username_changed=update_username
     };
     return &mod_info;
 }

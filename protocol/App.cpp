@@ -11,13 +11,13 @@ bool App::start() {
 
     m_ioc = new boost::asio::io_context{m_config.m_concurrency};
 
-    // Connect to datbase
+    // Connect to database
     m_db = std::make_unique<DB>();
 
-    // Start modules
+    // Start apps
     m_mods.find_modules();
     if (!m_mods.start_all()) {
-        LOG_ERR("Failed to start modules.");
+        LOG_ERR("Failed to start apps.");
         return false;
     }
 

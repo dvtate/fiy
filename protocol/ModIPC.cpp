@@ -25,10 +25,13 @@ ModDllIpcRequest::ModDllIpcRequest(std::shared_ptr<Session> conn):
     m_conn(std::move(conn))
 {
     auto user = m_conn->find_user();
+    auto& r = m_conn->req();
+
     // Initialize fiy_request_t
-    this->method = (uint8_t) m_conn->req().method();
-    this->path = new_cstr_from_string(m_conn->req().target());
-    this->body = new_cstr_from_string(m_conn->req().body());
+    this->method = (uint8_t) r.method();
+    this->path = new_cstr_from_string(r.target());
+    this->body = new_cstr_from_string(r.body());
+    this->body_len = r.body().size();
     this->domain = user.domain;
     this->user = (user.user.empty() || user.user == " ")
         ? nullptr
@@ -39,7 +42,7 @@ ModDllIpcRequest::ModDllIpcRequest(std::shared_ptr<Session> conn):
 
 void ModDllIpcRequest::callback(const fiy_response_t* r) {
     Session::StringResponse res;
-    res.body() = r->body;
+    res.body() = std::string(r->body, r->body_len);
     res.result(r->status);
     response_set_headers(res, r->headers);
 
@@ -142,3 +145,43 @@ bool ModNetIPC::start() {
 bool ModNetIPC::stop() {
     return true;
 }
+
+void ModNetIPC::handle_request(std::shared_ptr<Session> conn) {
+    conn->req().set("Fediy-User", conn->find_user().str());
+    g_app->m_http.request(
+        m_ipc_uri,
+        conn->req(),
+        [session = std::move(conn)] (auto resp) {
+            session->respond(std::move(resp));
+        }
+    );
+}
+
+//    virtual void handle_request(
+//            const drogon::HttpRequestPtr& req,
+//            User&& user,
+//            std::function<void(const drogon::HttpResponsePtr&)>&& callback
+//    ) override {
+//        auto client = drogon::HttpsClient::newHttpClient(m_ipc_uri);
+//        req->addHeader("fediy-user", user.user + '@' + user.domain);
+//        client->sendRequest(
+//            req,
+//            [
+//                this,
+//                cb = std::move(callback)
+//            ](
+//                drogon::ReqResult status,
+//                const drogon::HttpResponsePtr& resp
+//            ) {
+////                if (status == drogon::ReqResult::Ok) {
+//                if (resp != nullptr) {
+//                    resp->setPassThrough(true);
+//                    cb(resp);
+//                } else {
+//                    auto r = drogon::HttpResponse::newHttpResponse();
+//                    r->setStatusCode(drogon::k500InternalServerError);
+//                    cb(r);
+//                }
+//            }
+//        );
+//    }

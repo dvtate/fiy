@@ -32,22 +32,22 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/LocalUsers.cpp
     util/Cookie.hpp
     util/Cookie.cpp
-        protocol/HttpsClient.cpp
-        protocol/HttpsClient.hpp
+    protocol/HttpsClient.cpp
+    protocol/HttpsClient.hpp
     protocol/Server/Session.cpp
     protocol/Server/Session.hpp
-        protocol/HttpClient.cpp
-        protocol/HttpClient.hpp
-        protocol/Server/util.hpp
+    protocol/HttpClient.cpp
+    protocol/HttpClient.hpp
+    protocol/Server/util.hpp
 )
 
 # Debug/vs release
 target_compile_definitions(protocol_server PRIVATE
-        $<$<CONFIG:Debug>:FEDIY_DEBUG=1>
+    $<$<CONFIG:Debug>:FEDIY_DEBUG=1>
 )
 target_compile_options(protocol_server PRIVATE
-        $<$<CONFIG:Debug>:-O0;-g>
-        $<$<CONFIG:Release>:-O3>
+    $<$<CONFIG:Debug>:-O0;-g>
+    $<$<CONFIG:Release>:-O3>
 )
 
 target_include_directories(protocol_server PUBLIC protocol
@@ -81,8 +81,8 @@ add_library(demo_mod_cpp SHARED
 )
 
 add_library(demo_mod_mail SHARED
-        modules/mail_mod/mod.cpp
-        modules/mail_mod/MailBox.hpp
+    apps/mail_mod/mod.cpp
+    apps/mail_mod/MailBox.hpp
     modlib/fediymod.h
     modlib/fediymodpp.hpp
 )

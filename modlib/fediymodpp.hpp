@@ -5,16 +5,25 @@
 #ifndef FEDIY_FEDIYMODPP_HPP
 #define FEDIY_FEDIYMODPP_HPP
 
+#include <string>
+#include <string_view>
+#include <cstring>
+
 #include "fediymod.h"
 
 namespace fiy {
 
     struct Response : public fiy_response_t {
-        explicit Response(int status = 200, const char* body = nullptr, std::string headers_str = ""):
-            fiy_response_t{ .status=status, .body = body  },
+        explicit Response(
+            int status,
+            const char* body,
+            std::size_t body_len,
+            std::string headers_str = ""
+        ):
+            fiy_response_t{ .status=status, .body = body, .body_len = body_len },
             m_headers(std::move(headers_str))
         {
-            fiy_response_t::headers = m_headers.c_str();
+            headers = m_headers.c_str();
         }
 
     protected:
@@ -24,7 +33,12 @@ namespace fiy {
             m_headers += field;
             m_headers += ": ";
             m_headers += value;
-            m_headers += "\n";
+            m_headers += '\n';
+            headers = m_headers.c_str();
+        }
+        void add_header(const std::string_view& header) {
+            m_headers += header;
+            m_headers += '\n';
             headers = m_headers.c_str();
         }
 
@@ -88,8 +102,28 @@ namespace fiy {
             return domain == nullptr;
         }
 
-        inline void respond(fiy_callback_t cb, const Response& resp) {
+        inline void respond(fiy_callback_t cb, const fiy_response_t& resp) {
             cb(this, &resp);
+        }
+
+        /**
+         * Respond to request
+         * @param cb provided callback function
+         * @param status HTTP status code
+         * @param body HTTP body
+         * @param headers null-terminated headers string
+         */
+        inline void respond(fiy_callback_t cb, int status = 200, const std::string_view& body = "", const std::string_view& headers = "") {
+            fiy_response_t res = {
+                .status=status,
+                .body=body.empty() ? nullptr : body.data(),
+                .body_len=body.size(),
+                .headers=headers.empty() ? nullptr : headers.data()
+            };
+            cb(this, &res);
+        }
+        inline void respond(fiy_callback_t cb, const std::string_view& body, const std::string_view& headers = "") {
+            respond(cb, 200, body, headers);
         }
     };
 

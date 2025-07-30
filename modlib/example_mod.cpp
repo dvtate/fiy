@@ -38,10 +38,7 @@ static void handle_request(fiy_request_t* _request, fiy_callback_t callback) {
            req->method_str(), req->path, req->user, req->domain,
            req->body, req->headers);
 
-    req->respond(
-        callback,
-        fiy::Response(200, body.c_str(), "Content-Type: text/html")
-    );
+    req->respond(callback, 200, body, "Content-Type: text/html");
 }
 
 //

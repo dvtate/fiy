@@ -61,10 +61,4 @@ public:
 
 //    void request_peer(std::shared_ptr<Peer> peer, const std::string& local_user, T& req, callback
 
-    // TODO forward arguments to constructor
-//    auto add_user(const LocalUser::AuthToken& token) -> auto {
-//        RWMutex::LockForWrite lock{m_users_mtx};
-//        return m_local_users.emplace(token.m_token, token);
-//    }
-//    std::shared_ptr<LocalUser> get_user_from_token(const std::string& token);
 };

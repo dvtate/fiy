@@ -7,8 +7,6 @@
 
 #include "ModIPC.hpp"
 
-// TODO abstract base with child classes for each method of sending requests to the modules
-
 class Mods;
 
 /**

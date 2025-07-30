@@ -17,11 +17,11 @@ Mod::Mod(std::string id) {
     m_path = m_id;
 
     // Set error and log
-    auto err = [this, &id](auto reason) {
+    auto err = [this](auto&& reason) {
         m_error += reason;
         m_error += '\n';
         m_loaded = false;
-        LOG_ERR(m_error);
+        LOG_ERR(m_id << ": " <<m_error);
     };
 
     // Load json from file
@@ -43,7 +43,11 @@ Mod::Mod(std::string id) {
         if (!conf_id.is_string()) {
             err("module.json: \"id\" should be a string");
         }
-        m_id = conf_id.get<std::string>();
+
+        auto new_id = conf_id.get<std::string>();
+        if (m_id != new_id)
+            err("module.json: \"id\" field does not match directory name, the app may not work");
+        m_id = new_id;
     }
 
     // Get routing path
@@ -185,7 +189,7 @@ bool Mod::stop() {
 
 std::string Mod::json() {
     nlohmann::json json = {
-        // Identifier speficying the protocol the app implemets
+        // Identifier specifying the protocol the app implements
         // Multiple apps can have the same id only if they're compatible
         //      ie - chat.v3
         { "id", m_id },

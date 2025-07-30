@@ -54,6 +54,15 @@ public:
     struct User {
         const char* domain{nullptr};
         std::string user;
+
+        [[nodiscard]] std::string str() const {
+            std::string ret = user;
+            if (domain != nullptr) {
+                ret += '@';
+                ret += domain;
+            }
+            return ret;
+        }
     };
 
     // Take ownership of the stream
