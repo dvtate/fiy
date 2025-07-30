@@ -10,7 +10,9 @@ jobs:
   build-gcc:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
       - name: build-gcc
         run: |
           echo "nproc = `nproc`"
@@ -28,7 +30,9 @@ jobs:
   build-clang:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
       - name: build-clang
         run: |
           echo "nproc = `nproc`"
