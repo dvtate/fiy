@@ -9,6 +9,9 @@
 #include <vector>
 
 struct Contact {
+    /// Unique ID
+    int64_t m_id;
+
     /// Full name
     std::string m_name;
 
@@ -18,7 +21,7 @@ struct Contact {
     /// Relevant fields
     std::vector<std::pair<std::string, std::string>> m_fields;
 
-    static constexpr std::vector<std::pair<std::string, std::string>> FieldOptions;
+//    static constexpr std::vector<std::pair<std::string, std::string>> FieldOptions;
 
     std::string to_vcard();
 

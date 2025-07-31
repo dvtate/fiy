@@ -34,10 +34,13 @@ With this roadmap, and the pages below, it would probably take about a man-year 
   - Settings
 
 - Repo page
+  - Create new repo
   - Collaborate tab:
-    - Tickets for issues, pull requests, etc.
+    - View tickets for issues, pull requests, etc.
+    - Make new ticket
   - Project browser
-  - Make Commit code
+  - Code viewer/editor
+  - Make Commit
   - Settings
 
 - User page

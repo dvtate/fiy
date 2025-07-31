@@ -11,6 +11,7 @@
 #include "../../../modlib/fediymodpp.hpp"
 
 extern const fiy_host_info_t* g_host_info;
+extern DB* g_db;
 
 namespace Pages {
 
@@ -62,7 +63,8 @@ namespace Pages {
         return haystack;
     }
 
-    std::string index_html(std::string contacts_list_json) {
-
+    std::string index_html(const std::string& contacts_list_json) {
+        static const char path[] = "/index.html";
+        return replace_one(file_contents<path>(), "{{contacts_json}}", contacts_list_json);
     }
 };

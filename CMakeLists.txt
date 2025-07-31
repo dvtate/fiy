@@ -91,8 +91,6 @@ add_library(contacts_mod SHARED
     modlib/fediymod.h
     modlib/fediymodpp.hpp
     apps/contacts/src/mod.cpp
-    apps/contacts/src/Contacts.cpp
-    apps/contacts/src/Contacts.hpp
     apps/contacts/src/Contact.cpp
     apps/contacts/src/Contact.hpp
     apps/contacts/src/DB.cpp

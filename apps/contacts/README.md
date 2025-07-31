@@ -13,7 +13,7 @@ Manage contacts for federated users.
 
 ### Stage 2
 - Send your contact info to other users
-- Accept/merge recieved contacts
+- Accept/merge received contacts
 - Download vCard file for contact
 
 ### Stage 3

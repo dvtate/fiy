@@ -15,12 +15,14 @@ std::string Contact::to_vcard() {
 
 std::string Contact::to_json() {
     nlohmann::json::array_t fields;
-    for (auto& [k , v] : m_fields) {
+    for (auto& [k , v] : m_fields)
+        fields.emplace_back(nlohmann::json::array({ k, v }));
 
-    }
-
-
-    nlohmann::json ret{
-        { name }
+    nlohmann::json ret = {
+        { "name", m_name },
+        { "name", m_fiy_user },
+        { "fields", std::move(fields) },
     };
+
+    return ret.dump();
 }

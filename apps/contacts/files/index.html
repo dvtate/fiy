@@ -100,8 +100,23 @@
                 });
         }
 
-        function newContactClicked() {
+        const fieldOptions = [
+            "Website", "Email", "Phone", "Address",
+            "Home Phone", "Cell Phone",
+        ];
 
+        function newContactClicked() {
+            contactDetails.innerHTML = `
+            <h2>New Contact</h2>
+            <label for="name">Name:</label><input type="text" id="nc-name" required />
+            <label for="name">FedIY User:</label><input type="text" id="nc-fiy-user" />
+            <fieldset>
+                <legend>Fields</legend>
+                <span id="fields"></span>
+
+                <button>Add field</button>
+            </fieldset>
+            `;
 
         }
         function newContactFinalize() {
@@ -131,11 +146,10 @@
 <h3>${contact.user}</h3>
 ${contact.fields.map(fieldToString).join('')}
 <hr>
-<button><i class="fa fa-download"></i></button>
-<button><i class="fa fa-share"></i></button>
-<button><i class="fa fa-pencil"></i></button>
-<button><i class="fa fa-trash"></i></button>
-`;
+<button title="Download"><i class="fa fa-download"></i></button>
+<button title="Share"><i class="fa fa-share"></i></button>
+<button title="Edit"><i class="fa fa-pencil"></i></button>
+<button title="Delete"><i class="fa fa-trash"></i></button>`;
 
             // Mobile behavior
             if (window.innerWidth <= 768) {
@@ -144,6 +158,7 @@ ${contact.fields.map(fieldToString).join('')}
             }
         }
 
+        // Mobile behavior
         function goBack() {
             sidebar.classList.remove("hidden");
             detailsView.classList.remove("active");

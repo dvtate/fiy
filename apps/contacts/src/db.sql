@@ -1,6 +1,6 @@
 
 CREATE TABLE Contacts (
-    contactId INTEGER UNIQUE,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     ownerUserName VARCHAR,
     fullName VARCHAR,
     user VARCHAR,
