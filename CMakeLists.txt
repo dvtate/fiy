@@ -74,7 +74,6 @@ add_library(demo_mod SHARED
     modlib/fediymod.h
 )
 
-
 add_library(demo_mod_cpp SHARED
     modlib/example_mod.cpp
     modlib/fediymodpp.hpp
@@ -85,4 +84,27 @@ add_library(demo_mod_mail SHARED
     apps/mail_mod/MailBox.hpp
     modlib/fediymod.h
     modlib/fediymodpp.hpp
+)
+
+# Contacts builtin mod
+add_library(contacts_mod SHARED
+    modlib/fediymod.h
+    modlib/fediymodpp.hpp
+    apps/contacts/src/mod.cpp
+    apps/contacts/src/Contacts.cpp
+    apps/contacts/src/Contacts.hpp
+    apps/contacts/src/Contact.cpp
+    apps/contacts/src/Contact.hpp
+    apps/contacts/src/DB.cpp
+    apps/contacts/src/DB.hpp
+    apps/contacts/src/Pages.hpp
+)
+target_link_libraries(contacts_mod
+    SQLiteCpp
+    sqlite3
+    pthread
+    dl
+)
+target_include_directories(contacts_mod PUBLIC protocol
+    third_party/SQLiteCpp/include
 )

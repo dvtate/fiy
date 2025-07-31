@@ -9,7 +9,6 @@
 #include <variant>
 
 #include "Repo.hpp"
-#include "Contrib.hpp"
 
 class Org;
 
@@ -18,7 +17,6 @@ protected:
     // cache
     std::mutex m_mtx;
     std::deque<std::shared_ptr<Repo>> m_repos;
-    std::deque<std::shared_ptr<Contrib>> m_contribs;
     std::vector<std::shared_ptr<User>> m_following;
     std::vector<std::shared_ptr<User>> m_followers;
     std::vector<std::shared_ptr<Org>> m_orgs;

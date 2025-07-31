@@ -3,7 +3,7 @@ USE gitfed;
 
 CREATE TABLE Users (
     `username` VARCHAR(128) PRIMARY KEY,
-    `password` CHAR(128) NOT NULL,
+    `password` CHAR(128) NOT NULL
 );
 
 CREATE TABLE UserEmails (
@@ -13,7 +13,7 @@ CREATE TABLE UserEmails (
 
 -- remote repos are not stored in our databese?
 CREATE TABLE Repo (
-    `username` VARCHAR(128) REFERENCES Users,
+    `username` VARCHAR(128) REFERENCES Users
 );
 
 CREATE TABLE RepoLikes (

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Contacts Page</title>
+
+    <link rel="stylesheet" href="main.css" />
+
+    <!-- TODO locally host this instead -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+</head>
+<body>
+    <nav class="navbar">
+        <a class="nav-icon" href="/portal" title="Apps"><i class="fa fa-th"></i></a>
+        <a class="nav-icon" title="Add Contact"><i class="fa fa-plus"></i></a>
+        <a class="nav-icon" title="Notifications"><i class="fa fa-bell"></i></a>
+        <a class="nav-icon" title="Settings"><i class="fa fa-cog"></i></a>
+    </nav>
+    <div class="container">
+        <div class="sidebar">
+            <input type="text" id="search" placeholder="Search contacts..." />
+            <ul id="contact-list">
+                <noscript>This app uses JavaScript. Send a PR if that's a problem.</noscript>
+            </ul>
+        </div>
+        <div class="details-view">
+            <button class="back-button" onclick="goBack()">← Back</button>
+            <div id="contact-details">
+                <p>Select a contact to view details</p>
+                <button>Make a new contact</button>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        // TODO JSON.parse is faster
+        const contacts = [
+            {
+                name: 'Dustin Van Tate Testa',
+                user: 'dvtt@fiy.bodge.dev',
+                fields: [
+                    ['Email', 'dvtt@example.com'],
+                    ['Phone', '5555555555'],
+                    ['Website', 'https://dvtt.net'],
+                    ['Language', 'en'],
+                    ['Anniversary', '2022.8.1'],
+                ],
+            }, {
+                name: "Alice Johnson",
+                user: 'alice@example.com',
+                fields: [
+                    ["Email", "alice@example.com"],
+                    ["Phone", "123-456-7890"],
+                ],
+            },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+            { name: "Bob Smith", user: 'bob@example.com', fields: [['Email', "bob@example.com"], ['Phone', "987-654-3210" ] ] },
+            { name: "Charlie Rose", user: 'charlie@example.com', fields: [['Email', "charlie@example.com"], ['Phone', "555-555-5555"] ] },
+        ];
+
+        const contactList = document.getElementById("contact-list");
+        const contactDetails = document.getElementById("contact-details");
+        const searchInput = document.getElementById("search");
+        const sidebar = document.querySelector(".sidebar");
+        const detailsView = document.querySelector(".details-view");
+
+        function renderContacts(filter = "") {
+            contactList.innerHTML = "";
+            contacts
+                .filter(c => c.name.toLowerCase().includes(filter.toLowerCase()))
+                .forEach((contact, index) => {
+                    const li = document.createElement("li");
+                    li.textContent = contact.name;
+                    li.onclick = () => showContactDetails(index);
+                    contactList.appendChild(li);
+                });
+        }
+
+        function newContactClicked() {
+
+
+        }
+        function newContactFinalize() {
+
+        }
+
+
+        function showContactDetails(index) {
+            function fieldToString([name, value]) {
+                let ret = `<p><strong>${name}:</strong> `;
+                if (name.endsWith('Email')) {
+                    ret += `<a href="mailto:${value}">${value}</a>`;
+                } else if (name.endsWith('Phone')) {
+                    ret += `<a href="tel:${value}">${value}</a>`;
+                } else if (name.endsWith('Website')) {
+                    ret += `<a href="${value}" target="_blank">${value}</a>`;
+                } else {
+                    ret += value;
+                }
+                ret += '</p>';
+                return ret;
+            }
+
+            const contact = contacts[index];
+            contactDetails.innerHTML = `
+<h2>${contact.name}</h2>
+<h3>${contact.user}</h3>
+${contact.fields.map(fieldToString).join('')}
+<hr>
+<button><i class="fa fa-download"></i></button>
+<button><i class="fa fa-share"></i></button>
+<button><i class="fa fa-pencil"></i></button>
+<button><i class="fa fa-trash"></i></button>
+`;
+
+            // Mobile behavior
+            if (window.innerWidth <= 768) {
+                sidebar.classList.add("hidden");
+                detailsView.classList.add("active");
+            }
+        }
+
+        function goBack() {
+            sidebar.classList.remove("hidden");
+            detailsView.classList.remove("active");
+        }
+
+        searchInput.addEventListener("input", () => {
+            renderContacts(searchInput.value);
+        });
+
+        // Initial render
+        renderContacts(new URL(document.location.toString()).searchParams.get('q') || "");
+    </script>
+</body>
+</html>

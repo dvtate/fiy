@@ -30,11 +30,10 @@ GET /api/users/<user>
 GET /api/repos/<user>/<repo>
 */
 
-static void handle_request(fediy::fiy_request_t* request, fediy::fiy_callback_t callback) {
-    fediy::fiy_response_t resp;
+static void handle_request(fiy_request_t* request, fiy_callback_t callback) {
+    fiy_response_t resp;
 
     std::string_view path = request->path;
-    if (path == )
 
     path.remove_prefix(1); // remove leading /
     auto slash_pos = path.find('/');
