@@ -58,7 +58,7 @@ std::shared_ptr<Peer> Peers::get_peer_from_token(const std::string& token) {
 
 void Peers::prune() {
     RWMutex::LockForWrite lock{m_mtx};
-    const auto now = std::time(nullptr);
+    const auto now = g_app->now();
     std::erase_if(m_peers_in, [this, now](const auto& item) {
         const auto& [domain, peer] = item;
         if (peer->m_auth.is_expired(now)) {
@@ -71,57 +71,80 @@ void Peers::prune() {
 
 
 void Peers::new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb) {
-    DEBUG_LOG("Sending message to new peer...");
-    // Generate unique auth token
-    auto tok = PeerAuth::get_token_string();
-    m_mtx.read_lock();
-    while (m_peers_in.contains(tok))
-        tok = PeerAuth::get_token_string();
-    m_mtx.read_to_write();
-    m_peers_in[tok] = nullptr;
-    m_mtx.write_unlock();
+    DEBUG_LOG("Sending message to new peer " << domain);
 
-    boost::beast::http::request<boost::beast::http::string_body> req;
-    req.method(boost::beast::http::verb::post);
-    req.target("/peer/handshake");
-    // TODO this is just a placeholder for now, actual algorithm in Server/Router.cpp
-    req.body() = g_app->m_config.m_hostname + std::string("\n") + tok;
-    req.keep_alive(false);
-    req.prepare_payload();
-
-    auto callback =
-        [this, cb2 = std::move(cb), domain, token = std::move(tok)]
+    auto with_key_cb =
+        [this, domain, cb = std::move(cb)]
         (boost::beast::http::response<boost::beast::http::string_body> res)
-        mutable
     {
-        // Make Peer
-        auto p = std::make_shared<Peer>(
-            domain,
-            PeerAuth("symkey", std::string(res.body()), std::move(token))
-        );
-
-        // Add peer
-        m_mtx.write_lock();
-        m_peers_in[p->m_auth.m_bearer_token_we_accept] = p;
-        auto ret = m_peers_out.emplace(domain, p);
-        if (!ret.second) {
-            DEBUG_LOG("Duplicate peer?? - " <<domain);
-            m_peers_in.erase(p->m_auth.m_bearer_token_we_accept);
-            m_mtx.write_unlock();
-            return;
-        }
+        // Generate unique auth token
+        auto tok = PeerAuth::get_token_string();
+        m_mtx.read_lock();
+        while (m_peers_in.contains(tok))
+            tok = PeerAuth::get_token_string();
+        m_mtx.read_to_write();
+        m_peers_in[tok] = nullptr; // placeholder to prevent another peer from using this token
         m_mtx.write_unlock();
 
-        // Success
-        DEBUG_LOG("New peer: " <<domain);
-        cb2(p);
+        // Make handshake request
+        boost::beast::http::request<boost::beast::http::string_body> req;
+        req.method(boost::beast::http::verb::post);
+        req.target("/peer/handshake");
+        // TODO this is just a placeholder for now, actual algorithm in Server/Router.cpp
+        req.body() = g_app->m_config.m_hostname + std::string("\n") + tok;
+        req.keep_alive(false);
+        req.prepare_payload();
+
+        auto handshake_cb =
+            [this, cb2 = std::move(cb), domain, token = std::move(tok)]
+            (boost::beast::http::response<boost::beast::http::string_body> res)
+            mutable
+        {
+                // Make Peer
+                auto p = std::make_shared<Peer>(
+                    domain,
+                    PeerAuth("symkey", std::string(res.body()), std::move(token))
+                );
+
+                // Add peer
+                m_mtx.write_lock();
+                m_peers_in[p->m_auth.m_bearer_token_we_accept] = p;
+                auto ret = m_peers_out.emplace(domain, p);
+                if (!ret.second) {
+                    DEBUG_LOG("Duplicate peer?? - " <<domain);
+                    m_peers_in.erase(p->m_auth.m_bearer_token_we_accept);
+                    m_mtx.write_unlock();
+                    return;
+                }
+                m_mtx.write_unlock();
+
+                // Success
+                DEBUG_LOG("New peer: " <<domain);
+                cb2(p);
+        };
+
+        bool use_https = domain.find(':') == std::string::npos;
+        if (use_https) {
+            g_app->m_https.request(domain, std::move(req), handshake_cb);
+        } else {
+            g_app->m_http.request(domain, std::move(req), handshake_cb);
+        }
     };
 
+    boost::beast::http::request<boost::beast::http::empty_body> key_req;
+    key_req.target("/peer/key");
+    key_req.method(boost::beast::http::verb::get);
+    key_req.keep_alive(false);
+
+    auto err_key_cb = [domain, cb](std::string message) {
+        LOG_ERR("Could not get key for peer " <<domain <<": " <<message);
+        cb(nullptr);
+    };
     bool use_https = domain.find(':') == std::string::npos;
     if (use_https) {
-        g_app->m_https.request(domain, req, callback);
+        g_app->m_https.request(domain, std::move(key_req), with_key_cb, err_key_cb);
     } else {
-        g_app->m_http.request(domain, req, callback);
+        g_app->m_http.request(domain, std::move(key_req), with_key_cb, err_key_cb);
     }
 }
 
@@ -167,7 +190,6 @@ struct ScopedRequest {
 void Peers::request_peer(
     const std::string& domain,
     const std::string& appid,
-    const std::string& user,
     const fiy_request_t* req,
     void* context,
     void (*callback)(const fiy_response_t*, void*)
@@ -182,12 +204,12 @@ void Peers::request_peer(
         std::cout <<"peer not in cache\n";
         new_peer(
             domain,
-            [appid, user, request = ScopedRequest(req), callback, context]
+            [appid, request = ScopedRequest(req), callback, context]
             (const std::shared_ptr<Peer>& p) {
                 if (p != nullptr) {
                     DEBUG_LOG("sending request to peer " <<p->m_domain );
                     auto r = request.temp_copy(); // copied earlier to prevent invalidation
-                    request_peer(p, appid, user, &r, context, callback);
+                    request_peer(p, appid, &r, context, callback);
                 } else {
                     DEBUG_LOG("couldn't link with peer");
                     if (callback != nullptr)
@@ -197,33 +219,41 @@ void Peers::request_peer(
         );
         return;
     } else {
-        request_peer(p, appid, user, req, context, callback);
+        request_peer(p, appid, req, context, callback);
     }
 }
 
 void Peers::request_peer(
     const std::shared_ptr<Peer>& peer,
     const std::string& appid,
-    const std::string& user,
     const fiy_request_t* req,
     void* context,
     void (*callback)(const fiy_response_t*, void*)
 ) {
-    // Convert to boost request
+    // Null check
+    if (peer == nullptr) {
+        if (callback != nullptr)
+            callback(nullptr, context);
+        return;
+    }
+
+    std::string user = req->user != nullptr ? req->user : "";
+    std::string path = req->path != nullptr ? req->path : "";
+
     boost::beast::http::request<boost::beast::http::string_body> request;
     request.method((boost::beast::http::verb)req->method);
     request.target("/mods/" + appid);
     request.body() = std::string(req->body, req->body_len); // note this should work even if body contains null chars
     request.set("Fiy-Peer", peer->m_auth.m_bearer_token_we_send);
     request.set("Fiy-User", user);
-    request.set("Fiy-Path", req->path);
+    request.set("Fiy-Path", path);
+    std::string now_str = std::to_string(g_app->now());
+    request.set("Fiy-Now", now_str);
+    request.set("Authorization", "FIY1 " + peer->sig(appid, path, user, req->body_len, now_str));
     request.set(boost::beast::http::field::host, req->domain);
     response_set_headers(request, req->headers);
     request.prepare_payload();
 
-    std::cout <<request <<std::endl;
-
-    bool use_https = std::string_view(peer->m_domain).find(':') == std::string_view::npos;
     auto cb = [context, callback] (boost::beast::http::response<boost::beast::http::string_body> res) {
 //        std::cout <<"p2p response: " <<res <<std::endl;
         if (callback == nullptr)
@@ -237,6 +267,8 @@ void Peers::request_peer(
         };
         callback(&response, context);
     };
+
+    bool use_https = std::string_view(peer->m_domain).find(':') == std::string_view::npos;
     if (use_https) {
         g_app->m_https.request(peer->m_domain, std::move(request), std::move(cb));
     } else {

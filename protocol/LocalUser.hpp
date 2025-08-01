@@ -5,7 +5,10 @@
 #include <deque>
 #include <unordered_map>
 
+#include "../util/Crypto.hpp"
+
 #include "Peer.hpp"
+
 
 /**
  * User authenticated on our instance (not remotee)
@@ -93,40 +96,21 @@ public:
         std::shared_ptr<LocalUser> m_user;
         std::string m_token;
         time_t m_expiration;
-        // TODO maybe track sessionId too?
-
 
         static std::string get_token_string() {
-            // Create random generator that picks indices charset
-            // https://en.cppreference.com/w/cpp/numeric/random/uniform_int_distribution
-            static thread_local std::random_device rd;
-            static thread_local std::mt19937 gen(rd());
-            std::uniform_int_distribution<unsigned short> dist(1, 63);
-            const char charset[64] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
-
-            // Generate token using random chars from charset
-            // Probably a better way to do this that doesn't use operator+=
-            std::string ret;
-            ret.reserve(TOKEN_LEN);
-            for (int i = 0; i < TOKEN_LEN; i++)
-                ret += charset[dist(gen)];
-            return ret;
+            return Crypto::get_token_string<TOKEN_LEN>();
         }
 
-        AuthToken(
-            std::shared_ptr<LocalUser> user,
-            std::string token = get_token_string(),
-            time_t expiration = std::time(nullptr) + SESSION_LIFETIME
-        ):
-            m_user(std::move(user)),
-            m_token(std::move(token)),
-            m_expiration(expiration)
-        {}
+        AuthToken(std::shared_ptr<LocalUser> user, std::string token, std::time_t expiration);
+        AuthToken(std::shared_ptr<LocalUser> user, std::string token);
+        explicit AuthToken(std::shared_ptr<LocalUser> user);
 
-        [[nodiscard]] bool is_expired(const time_t now = std::time(nullptr)) const {
+        [[nodiscard]] bool is_expired(const std::time_t now) const {
             return now > m_expiration;
         }
+        bool is_expired();
 
+        // These are for storing in stl containers... ugly solution
         struct Hash {
             std::size_t operator()(const AuthToken& token) const {
                 return std::hash<std::string>{}(token.m_token);
@@ -135,7 +119,6 @@ public:
                 return std::hash<std::string>{}(token->m_token);
             }
         };
-
         struct TokenEquals {
             inline bool operator()(const AuthToken& a, const AuthToken& b) const {
                 return a.m_token == b.m_token;
@@ -144,7 +127,6 @@ public:
                 return a->m_token == b->m_token;
             };
         };
-
         struct Compare {
             inline bool operator()(const AuthToken& a, const AuthToken& b) const {
                 return a.m_token < b.m_token;

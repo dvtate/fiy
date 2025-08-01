@@ -192,7 +192,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
     }
 
     // Create user
-    LocalUser user{username, username, false, contact, "en", std::time(nullptr)};
+    LocalUser user{username, username, false, contact, "en", g_app->now()};
     if (!g_app->m_db->add_user(user, password)) {
         DEBUG_LOG("Failed to create user??");
         conn->respond(conn->prep(resp_server_error));
@@ -370,7 +370,7 @@ void route_request(std::shared_ptr<Session> conn) {
                     Session::StringResponse res{
                         boost::beast::http::status::ok,
                         conn->req().version(),
-                        Pages::file_contents<subpath>()
+                        g_app->m_pages->file_contents<subpath>()
                     };
                     res.set(boost::beast::http::field::content_type, "text/javascript");
                     conn->respond(conn->prep(std::move(res)));
@@ -404,23 +404,15 @@ void route_request(std::shared_ptr<Session> conn) {
                     return;
                 }
             } else if (path == "/peer/key") {
-                // Open the file
-                // TODO would probably be better to use string body instead
-                beast::error_code ec;
-                boost::beast::http::file_body::value_type body;
-                auto file_path = g_app->m_config.m_data_dir + "/auth/pubkey";
-                body.open(file_path.c_str(), beast::file_mode::scan, ec);
-                if (ec) {
-                    conn->respond(conn->prep(server_error(ec.what())));
-                    return;
-                }
+                // Cache file contents
+                static const std::string contents = FileCache::load_file_as_string(
+                    g_app->m_config.m_data_dir + "/auth/key"
+                );
 
-                // Send it
-                Session::FileResponse res{
-                    boost::beast::http::status::ok,
-                    conn->req().version(),
-                    std::move(body)
-                };
+                // Send contents
+                Session::StringResponse res;
+                res.result(200);
+                res.body() = contents;
                 conn->respond(conn->prep(std::move(res)));
                 return;
             } else {

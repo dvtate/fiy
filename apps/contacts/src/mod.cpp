@@ -12,16 +12,6 @@
 const fiy_host_info_t* g_host_info;
 DB* g_db;
 
-std::string user_contacts_json(const std::string& user) {
-    std::string ret = "[";
-    for (Contact c : g_db->get_contacts(user)) {
-        ret += c.to_json();
-        ret += ',';
-    }
-    ret[ret.size() - 1] = ']';
-    return ret;
-}
-
 void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     auto& req = *(fiy::Request*) request;
 

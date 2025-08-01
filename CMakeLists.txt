@@ -39,6 +39,10 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/HttpClient.cpp
     protocol/HttpClient.hpp
     protocol/Server/util.hpp
+    util/FileCache.hpp
+    util/Crypto.cpp
+    util/Crypto.hpp
+    protocol/Peer.cpp
 )
 
 # Debug/vs release

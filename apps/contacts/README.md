@@ -12,6 +12,10 @@ Manage contacts for federated users.
 - Web interface + API
 
 ### Stage 2
+- User public profiles
+  - Let them determine what info to share publicly
+  - Let them share their full contact info with other users
+  - Field components
 - Send your contact info to other users
 - Accept/merge received contacts
 - Download vCard file for contact

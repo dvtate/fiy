@@ -29,6 +29,7 @@ std::vector<Contact> DB::get_contacts(const std::string& owner) {
         c.m_name = m_get_user_contacts.getColumn(2).getString();
         c.m_fiy_user = m_get_user_contacts.getColumn(3).getString();
 
+        // TODO FIXME changed schema
         auto fields_json_str = m_get_user_contacts.getColumn(4).getString();
         if (!fields_json_str.empty()) {
             using namespace nlohmann;

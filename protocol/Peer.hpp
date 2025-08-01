@@ -6,6 +6,7 @@
 #include <cstring>
 #include <random>
 
+#include "../util/Crypto.hpp"
 
 class PeerAuth {
 public:
@@ -13,6 +14,7 @@ public:
     std::string m_sym_key; // TODO make this secure!
 
     /// Public key
+    // dvtt: should we store this for later in case they change it?
 //    std::string m_pubkey;
 
     /// Bearer token for authenticating endpoints
@@ -26,29 +28,15 @@ public:
     static constexpr int TOKEN_LEN = 24;
 
     static std::string get_token_string() {
-        // Create random generator that picks indices charset
-        // https://en.cppreference.com/w/cpp/numeric/random/uniform_int_distribution
-        static thread_local std::random_device rd;
-        static thread_local std::mt19937 gen(rd());
-        std::uniform_int_distribution<unsigned short> dist(1, 63);
-        const char charset[64] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
-
-        // Generate token using random chars from charset
-        // Probably a better way to do this that doesn't use operator+=
-        std::string ret;
-        ret.reserve(TOKEN_LEN);
-        ret += '.'; // start with '.' to differentiate from user tokens
-        for (int i = 1; i < TOKEN_LEN; i++)
-            ret += charset[dist(gen)];
-        return ret;
+        return Crypto::get_token_string<TOKEN_LEN>();
     }
 
     PeerAuth(
         std::string sym_key,
 //        std::string pubkey,
         std::string peer_provided_token,
-        std::string our_generated_token = get_token_string(),
-        const time_t expire_ts = std::time(nullptr) + SESSION_LIFETIME
+        std::string our_generated_token,
+        const time_t expire_ts
     ):
         m_sym_key(std::move(sym_key)),
 //        m_pubkey(std::move(pubkey)),
@@ -57,9 +45,18 @@ public:
         m_expire_ts(expire_ts)
     {}
 
-    [[nodiscard]] bool is_expired(const time_t now = std::time(nullptr)) const {
+    PeerAuth(
+        std::string sym_key,
+//        std::string pubkey,
+        std::string peer_provided_token,
+        std::string our_generated_token = get_token_string()
+    );
+
+
+    [[nodiscard]] bool is_expired(const time_t now) const {
         return now > m_expire_ts;
     }
+    [[nodiscard]] bool is_expired() const;
 
 };
 
@@ -76,12 +73,19 @@ public:
         strcpy(m_domain, domain.c_str());
     }
     Peer(char* domain, PeerAuth auth):
-        m_auth(auth), m_domain(domain) 
+        m_auth(std::move(auth)), m_domain(domain)
     {}
 
     ~Peer() {
         free(m_domain);
     }
 
+    [[nodiscard]] std::string sig(
+        const std::string& appid,
+        const std::string& path,
+        const std::string& user,
+        const std::size_t body_len,
+        const std::string& ts_str
+    ) const;
 };
 

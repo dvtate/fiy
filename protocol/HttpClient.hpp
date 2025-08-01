@@ -13,8 +13,8 @@
 
 // TODO callback for errors?
 
-template<class RequestType, class CallbackType>
-class HttpRequest : public std::enable_shared_from_this<HttpRequest<RequestType, CallbackType>> {
+template<class RequestType, class CallbackType, class ErrCallbackType>
+class HttpRequest : public std::enable_shared_from_this<HttpRequest<RequestType, CallbackType, ErrCallbackType>> {
     using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
     tcp::resolver m_resolver;
@@ -26,6 +26,7 @@ class HttpRequest : public std::enable_shared_from_this<HttpRequest<RequestType,
     RequestType m_req;
     boost::beast::http::response<boost::beast::http::string_body> m_res;
     CallbackType m_cb;
+    ErrCallbackType m_err_cb;
 
 public:
     HttpRequest(
@@ -33,13 +34,15 @@ public:
         std::string host,
         std::string port,
         RequestType req,
-        CallbackType cb
+        CallbackType cb,
+        ErrCallbackType err_cb = [](std::string err){ DEBUG_LOG(err); }
     ):  m_resolver(boost::asio::make_strand(*ioc)),
         m_stream(boost::asio::make_strand(*ioc)),
         m_host(std::move(host)),
         m_port(std::move(port)),
         m_req(std::move(req)),
-        m_cb(std::move(cb))
+        m_cb(std::move(cb)),
+        m_err_cb(std::move(err_cb))
     {}
 
 
@@ -57,7 +60,7 @@ public:
 private:
     void on_resolve(boost::beast::error_code ec, tcp::resolver::results_type results) {
         if (ec) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -75,7 +78,7 @@ private:
 
     void on_connect(boost::beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
         if (ec) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -91,7 +94,7 @@ private:
         boost::ignore_unused(bytes_transferred);
 
         if (ec) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -107,7 +110,7 @@ private:
         boost::ignore_unused(bytes_transferred);
 
         if (ec) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -119,7 +122,7 @@ private:
 
         // not_connected happens sometimes so don't bother reporting it.
         if(ec && ec != boost::beast::errc::not_connected) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -134,8 +137,13 @@ class HttpClient {
 
 public:
 
-    template<class RequestType, class CallbackType>
-    void request(std::string host, RequestType req, CallbackType cb) {
+    template<class RequestType, class CallbackType, class ErrCallbackType>
+    void request(
+        std::string host,
+        RequestType req,
+        CallbackType cb,
+        ErrCallbackType err_cb
+    ) {
         std::string port = "80";
         const auto colon_pos = host.find(':');
         if (colon_pos != std::string::npos) {
@@ -149,13 +157,24 @@ public:
             }
         }
 
-        std::cout <<"FETCH: " <<req.method_string() <<" http://" <<host <<":" <<port <<req.target() <<std::endl;
-        std::make_shared<HttpRequest<RequestType, CallbackType>>(
+        DEBUG_LOG("FETCH: " <<req.method_string() <<" http://" <<host <<":" <<port <<req.target());
+
+        std::make_shared<HttpRequest<RequestType, CallbackType, ErrCallbackType>>(
             get_io_context(),
             std::move(host),
             std::move(port),
             std::move(req),
-            std::move(cb)
+            std::move(cb),
+            std::move(err_cb)
         )->run();
+    }
+
+    template<class RequestType, class CallbackType>
+    void request(
+        std::string host,
+        RequestType req,
+        CallbackType cb
+    ) {
+        request(host, req, cb, [](std::string err){ DEBUG_LOG(err); });
     }
 };

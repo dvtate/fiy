@@ -13,8 +13,8 @@
 #include "globals.hpp"
 
 
-template<class RequestType, class CallbackType>
-class HttpsRequest : public std::enable_shared_from_this<HttpsRequest<RequestType, CallbackType>> {
+template<class RequestType, class CallbackType, class ErrCallbackType>
+class HttpsRequest : public std::enable_shared_from_this<HttpsRequest<RequestType, CallbackType, ErrCallbackType>> {
     using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
     tcp::resolver m_resolver;
@@ -26,6 +26,7 @@ class HttpsRequest : public std::enable_shared_from_this<HttpsRequest<RequestTyp
     RequestType m_req;
     boost::beast::http::response<boost::beast::http::string_body> m_res;
     CallbackType m_cb;
+    ErrCallbackType m_err_cb;
 public:
 
     HttpsRequest(
@@ -34,13 +35,15 @@ public:
         std::string host,
         std::string port,
         RequestType req,
-        CallbackType cb
+        CallbackType cb,
+        ErrCallbackType err_cb = [](std::string err){ DEBUG_LOG(err); }
     ):  m_resolver(ex),
         m_stream(ex, ssl_ctx),
         m_host(std::move(host)),
         m_port(std::move(port)),
         m_req(std::move(req)),
-        m_cb(std::move(cb))
+        m_cb(std::move(cb)),
+        m_err_cb(std::move(err_cb))
     {}
 
     void run() {
@@ -49,7 +52,7 @@ public:
             boost::beast::error_code ec{
                     static_cast<int>(::ERR_get_error()),
                     boost::asio::error::get_ssl_category()};
-            DEBUG_LOG(ec.message());
+            m_err_cb(ec.message());
             return;
         }
 
@@ -69,7 +72,7 @@ public:
 private:
     void on_resolve(boost::beast::error_code ec, tcp::resolver::results_type results) {
         if (ec) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -87,7 +90,7 @@ private:
 
     void on_connect(boost::beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
         if (ec) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -101,7 +104,7 @@ private:
 
     void on_handshake(boost::beast::error_code ec) {
         if (ec) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -120,7 +123,7 @@ private:
         boost::ignore_unused(bytes_transferred);
 
         if (ec) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -135,7 +138,7 @@ private:
         boost::ignore_unused(bytes_transferred);
 
         if (ec) {
-            DEBUG_LOG(ec.what());
+            m_err_cb(ec.what());
             return;
         }
 
@@ -172,6 +175,7 @@ private:
         // after the message has been completed, so it is safe to ignore it.
 
         if (ec != boost::asio::ssl::error::stream_truncated) {
+            // Don't call m_err_cb here because we successfully completed the request already
             DEBUG_LOG(ec.what());
             return;
         }
@@ -192,8 +196,13 @@ public:
         prep_ssl();
     }
 
-    template<class RequestType, class CallbackType>
-    void request(std::string host, RequestType req, CallbackType cb) {
+    template<class RequestType, class CallbackType, class ErrCallbackType>
+    void request(
+        std::string host,
+        RequestType req,
+        CallbackType cb,
+        ErrCallbackType err_cb
+    ) {
         std::string port = "443";
         const auto colon_pos = host.find(':');
         if (colon_pos != std::string::npos) {
@@ -207,15 +216,25 @@ public:
             }
         }
 
-        std::cout <<"FETCH: " <<req.method_string() <<" https://" <<host <<":" <<port <<req.target() <<std::endl;
+        DEBUG_LOG("FETCH: " <<req.method_string() <<" https://" <<host <<":" <<port <<req.target());
 
-        std::make_shared<HttpsRequest<RequestType, CallbackType>>(
+        std::make_shared<HttpsRequest<RequestType, CallbackType, ErrCallbackType>>(
             boost::asio::make_strand(*get_io_context()),
             m_ssl,
             std::move(host),
             std::move(port),
             std::move(req),
-            std::move(cb)
+            std::move(cb),
+            std::move(err_cb)
         )->run();
+    }
+
+    template<class RequestType, class CallbackType>
+    void request(
+        std::string host,
+        RequestType req,
+        CallbackType cb
+    ) {
+        request(host, req, cb, [](std::string err){ DEBUG_LOG(err); });
     }
 };

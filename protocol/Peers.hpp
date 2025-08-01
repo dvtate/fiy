@@ -45,7 +45,6 @@ public:
     static void request_peer(
         const std::shared_ptr<Peer>& peer,
         const std::string& appid,
-        const std::string& user,
         const fiy_request_t* req,
         void* context,
         void (*callback)(const fiy_response_t*, void*)
@@ -53,7 +52,6 @@ public:
     void request_peer(
         const std::string& domain,
         const std::string& appid,
-        const std::string& user,
         const fiy_request_t* req,
         void* context,
         void (*callback)(const fiy_response_t*, void*)

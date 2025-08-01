@@ -23,7 +23,18 @@ struct Contact {
 
 //    static constexpr std::vector<std::pair<std::string, std::string>> FieldOptions;
 
-    std::string to_vcard();
+    std::string vcard();
 
-    std::string to_json();
+    std::string json();
+
+    template<class IterableContainer>
+    static std::string json_list(const IterableContainer& contacts) {
+        std::string ret = "[";
+        for (Contact c : contacts) {
+            ret += c.json();
+            ret += ',';
+        }
+        ret[ret.size() - 1] = ']';
+        return ret;
+    }
 };

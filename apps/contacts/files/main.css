@@ -72,6 +72,10 @@ body {
     overflow-y: auto;
 }
 
+.details-view img {
+    max-width: 75%;
+}
+
 .back-button {
     display: none;
     margin-bottom: 1rem;

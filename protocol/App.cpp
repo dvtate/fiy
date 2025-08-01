@@ -1,3 +1,5 @@
+#include <thread>
+
 #include "App.hpp"
 
 bool App::start() {
@@ -22,6 +24,14 @@ bool App::start() {
     }
 
     m_pages = std::make_unique<Pages>();
+
+    // Track current time
+    std::thread now_tracker{[this](){
+        while (true) {
+            m_now = std::time(nullptr);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }};
 
     m_server.start();
 

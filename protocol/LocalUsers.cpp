@@ -55,10 +55,11 @@ void LocalUsers::cron() {
     RWMutex::LockForWrite lock{m_mtx};
 
     // Remove expired auth tokens
-    const auto now = std::time(nullptr);
-    std::erase_if(m_token_cache, [now](const LocalUser::AuthToken& t) {
-        return t.is_expired(now);
-    });
+    std::erase_if(m_token_cache,
+        [now = g_app->now()] (const LocalUser::AuthToken& t) {
+            return t.is_expired(now);
+        }
+    );
 }
 
 void LocalUsers::deauth_token(const std::string& auth_token) {

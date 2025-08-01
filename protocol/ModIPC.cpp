@@ -59,7 +59,7 @@ void send_request_to_app(
     void (*callback)(const struct fiy_response_t*, void*)
 ) {
     // Send request to peer
-    g_app->m_peers.request_peer(request->domain, app_id, request->user, request, context, callback);
+    g_app->m_peers.request_peer(request->domain, app_id, request, context, callback);
 }
 
 void ModDLLIPC::gen_host_info() {

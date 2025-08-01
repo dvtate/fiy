@@ -1,4 +1,7 @@
+# Server Installation
 
+## Notes
+- Your system clock must be accurate
 
 ## Paths
 - `/usr/bin/fediy` - portal/protcol server

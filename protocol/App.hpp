@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ctime>
+
 #include "globals.hpp"
 
 #include "Peers.hpp"
@@ -12,10 +14,12 @@
 #include "HttpClient.hpp"
 #include "HttpsClient.hpp"
 
+
 /**
  * Global protocol server app singleton
  */
 class App {
+    volatile std::time_t m_now;
 
 public:
     boost::asio::io_context* m_ioc;
@@ -30,12 +34,17 @@ public:
     HttpClient m_http;
     HttpsClient m_https;
 
+
     App() = default;
     explicit App(const std::string& config_path):
         m_config(config_path)
     {}
 
     bool start();
+
+    inline std::time_t now() const {
+        return m_now;
+    }
 };
 
 // Global Singleton set in main.c
