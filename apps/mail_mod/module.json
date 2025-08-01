@@ -1,0 +1,10 @@
+{
+  "id": "fediy.mail",
+  "version": "0.0",
+  "name": "Mail",
+  "description": "Send and receive mail",
+  "icon": "icon.png",
+  "enabled": false,
+  "ipc":"shared_object",
+  "path":"mail"
+}

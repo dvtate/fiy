@@ -12,6 +12,8 @@ class DB {
 public:
     SQLite::Database m_db;
 
+    using Exception = SQLite::Exception;
+
 private:
     // Precompiled queries
     SQLite::Statement m_get_user_query;

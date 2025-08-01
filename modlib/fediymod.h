@@ -142,12 +142,19 @@ struct fiy_mod_info_t {
     /// Handle http requests to the module
     void (*on_request)(struct fiy_request_t* request, fiy_callback_t callback);
 
-    /// Peer domain changed
+    /// Peer domain changed handler
     void (*on_peer_domain_changed)(const char* old_domain, const char* new_domain);
 
-    /// Username changed
+    /// Username changed handler
     /// @note usernames of form user@domain
     void (*on_username_changed)(const char* old_username, const char* new_username);
+};
+
+struct fiy_local_user_info_t {
+    bool admin;
+    int64_t join_ts;
+    char name[200];   // max should be 128
+    char locale[16]; // max should be 12
 };
 
 /// Some info from the host that may be relevant to the module
@@ -213,16 +220,24 @@ struct fiy_host_info_t {
      * Authenticate an instance-local user
      * @param username user's username
      * @param password user's password
-     * @return true if valid credentials
+     * @return
+     *      0 if valid credentials
+     *      1 invalid credentials
+     *      2 user locked
+     *      -1 error
      */
-    bool (*local_login)(const char* username, const char* password);
+    int (*local_login)(const char* username, const char* password);
 
     /**
-     * Is the given user an admin on this fediy instance?
-     * @param local_user_name
-     * @return true if the user is an admin
+     * Get information for a given local user
+     * @param local_user_name username for relevant user
+     * @param ret struct to put the results into
+     * @return
+     *  0 on success
+     *  1 if the user does not exist
+     *  -1 error
      */
-    bool (*is_admin)(const char* local_user_name);
+    int (*user_info)(const char* local_user_name, struct fiy_local_user_info_t* ret);
 };
 
 typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host_info_t*);

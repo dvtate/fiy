@@ -17,11 +17,12 @@ DB::DB():
 {
 }
 
-std::vector<Contact> DB::get_contacts(const std::string& owner) {
+std::vector<Contact> DB::get_contacts(const std::string_view& owner) {
     std::vector<Contact> ret;
     std::lock_guard mtx{m_mtx};
 
-    m_get_user_contacts.bindNoCopy(1, owner);
+    // TODO make issue string_view support in SQLiteCpp
+    m_get_user_contacts.bind(1, std::string(owner.data(), owner.size()));
 
     while (m_get_user_contacts.executeStep()) {
         Contact c;

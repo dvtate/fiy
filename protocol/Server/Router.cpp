@@ -10,9 +10,6 @@
 #include "Router.hpp"
 
 
-namespace beast = boost::beast;
-namespace http = boost::beast::http;
-
 // parse application/x-www-form-urlencoded
 bool parse_form_url_encoded(const std::string_view& s, std::deque<std::pair<std::string, std::string>>& ret) {
     size_t i = 0;
@@ -147,8 +144,9 @@ void signup_post(std::shared_ptr<Session>&& conn) {
     static const auto resp_bad_username = signup_page(400, "Username should contain only alphanumeric characters");
     static const auto resp_username_taken = signup_page(400, "Username is taken, try a different one");
     static const auto resp_bad_form = signup_page(400, "Form Error");
-    static const auto resp_long_username = signup_page(400, "Username must be less than 32 characters");
-    static const auto resp_long_contact = signup_page(400, "Contact info must be less than 255 characters");
+    static const auto resp_long_username = signup_page(400, "Username must be less than " + std::to_string(LocalUser::USERNAME_MAX_LENGTH) +  " characters");
+    static const auto resp_long_name = signup_page(400, "Name must be less than " + std::to_string(LocalUser::NAME_MAX_LENGTH) +  " characters");
+    static const auto resp_long_contact = signup_page(400, "Contact info must be less than " + std::to_string(LocalUser::EMAIL_MAX_LENGTH) + " characters");
     static const auto resp_server_error = signup_page(500, "Failed to create account, try again later");
 
     // Parse form body
@@ -158,7 +156,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
         DEBUG_LOG("invalid body: '" <<conn->req().body() <<"'");
         return;
     }
-    std::string username, password, contact;
+    std::string username, password, contact, name;
     for (auto&& [k, v] : std::move(form)) {
         if (k == "username")
             username = std::move(v);
@@ -166,17 +164,19 @@ void signup_post(std::shared_ptr<Session>&& conn) {
             password = std::move(v);
         else if (k == "contact")
             contact = std::move(v);
+        else if (k == "name")
+            name = std::move(v);
         else
             DEBUG_LOG("invalid form field: " <<k);
     }
-    DEBUG_LOG("Creating user: " << username <<"  | " << password << " | " << contact );
+    LOG("Creating local user: " << username <<"  | " << contact);
 
     // Validate username
     if (!str_is_alphanum(username)) {
         conn->respond(conn->prep(resp_bad_username));
         return;
     }
-    if (username.size() > 32) {
+    if (username.size() > LocalUser::USERNAME_MAX_LENGTH) {
         conn->respond(conn->prep(resp_long_username));
         return;
     }
@@ -184,19 +184,27 @@ void signup_post(std::shared_ptr<Session>&& conn) {
         conn->respond(conn->prep(resp_username_taken));
         return;
     }
+    if (name.size() > LocalUser::NAME_MAX_LENGTH) {
+        conn->respond(conn->prep(resp_long_name));
+        return;
+    }
 
     // Validate contact
-    if (contact.size() > 255) {
+    if (contact.size() > LocalUser::EMAIL_MAX_LENGTH) {
         conn->respond(conn->prep(resp_long_contact));
         return;
     }
 
     // Create user
-    LocalUser user{username, username, false, contact, "en", g_app->now()};
-    if (!g_app->m_db->add_user(user, password)) {
-        DEBUG_LOG("Failed to create user??");
-        conn->respond(conn->prep(resp_server_error));
-        return;
+    LocalUser user{username, false, username, contact, "en", g_app->now()};
+    try {
+        if (!g_app->m_db->add_user(user, password)) {
+            LOG_ERR("Failed to create user?");
+            conn->respond(conn->prep(resp_server_error));
+            return;
+        }
+    } catch (const DB::Exception& e) {
+        LOG_ERR("Failed to create new user: Database Error: " <<e.what());
     }
 
     auto auth_token = g_app->m_users.login_user(username, password);

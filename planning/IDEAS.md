@@ -6,6 +6,10 @@ These might be worth doing eventually
   -  they're taken to a specified app instead
 
 ## App Ideas
+### Builtin
+See [built-in apps in /apps](../apps).
+
+### Installable Apps
 - Git-IY: GitLab killer
 - Blog-IY: Wordpress killer
 - Chat-IY: Matrix competitor
@@ -18,4 +22,3 @@ These might be worth doing eventually
 - Calendar-IY: Google Calendar killer
 - Cloud-IY: Nextcloud competitor
 - Kanban-IY: jira/trello/etc. killer
-

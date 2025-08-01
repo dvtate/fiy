@@ -55,41 +55,14 @@ public:
     [[nodiscard]] virtual IPCType ipc_type() = 0;
 };
 
-// Message passed to shared library
-class ModDllIpcRequest : public fiy_request_t {
-public:
-    std::shared_ptr<Session> m_conn;
-
-    explicit ModDllIpcRequest(std::shared_ptr<Session> conn);
-
-    virtual ~ModDllIpcRequest() {
-        delete[] this->body;
-        delete[] this->path;
-        delete[] this->user;
-    }
-
-    void remove_from_task_queue() {
-        // TODO might be nice to have a list of active tasks and remove
-        delete this;
-    }
-
-    void callback(const fiy_response_t* r);
-};
 
 // Communicates with the module by dynamically linking
+struct ModDLLHostInfo;
+
 class ModDLLIPC : public ModIPC {
     void* m_dl_handle{nullptr};
     fiy_mod_info_t* m_mod_info{nullptr};
-    fiy_host_info_t* m_host_info{nullptr};
-
-    void gen_host_info();
-    void free_host_info() {
-        if (m_host_info != nullptr) {
-            delete m_host_info->base_uri;
-            delete m_host_info;
-            m_host_info = nullptr;
-        }
-    }
+    ModDLLHostInfo* m_host_info{nullptr};
 
 public:
     ModDLLIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
@@ -98,37 +71,12 @@ public:
         ModDLLIPC::stop();
     }
 
-    bool stop() override {
-        if (m_dl_handle == nullptr)
-            return true;
-        auto ret = dlclose(m_dl_handle);
-        if (ret == 0) {
-            m_dl_handle = nullptr;
-        } else {
-            LOG_ERR("dlclose() gave" << ret <<": " <<dlerror());
-        }
-        free_host_info();
-        return ret == 0;
-    }
-
-    bool start() override {
-        gen_host_info();
-        if (m_dl_handle != nullptr) {
-            DEBUG_LOG("Handle replaced!");
-        }
-        m_dl_handle = dlopen(m_ipc_uri.c_str(), RTLD_LAZY | RTLD_LOCAL);
-        if (m_dl_handle == nullptr)
-            return false;
-
-        auto start_fn = (fiy_mod_start_function_t) dlsym(m_dl_handle, "start");
-        m_mod_info = start_fn(m_host_info);
-        return m_mod_info != nullptr;
-    }
-
-    IPCType ipc_type() {
+    IPCType ipc_type() override {
         return IPCType::SHARED_LIBRARY;
     }
 
+    bool stop() override;
+    bool start() override;
     void handle_request(std::shared_ptr<Session> conn) override;
     void handle_request(
         const fiy_request_t* req,

@@ -6,10 +6,14 @@
 
 #include "Contact.hpp"
 
+std::vector<std::pair<std::string, std::string>> vcard_fields {
+    {  }
+};
 
 std::string Contact::vcard() {
     std::string ret = "BEGIN:VCARD\nVERSION:4.0\n";
 
+    ret += "END:VCARD";
     return ret;
 }
 
@@ -25,4 +29,15 @@ std::string Contact::json() {
     };
 
     return ret.dump();
+}
+
+
+Contact Contact::json(const std::string& json_str) {
+    // TODO
+    return {};
+}
+
+Contact Contact::vcard(const std::string& vcard_str) {
+    // TODO
+    return {};
 }

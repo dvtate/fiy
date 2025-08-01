@@ -14,15 +14,21 @@
  * User authenticated on our instance (not remotee)
  */
 class LocalUser {
-    std::string m_name;
-    // TODO how do we handle updating users safely?
+protected:
     std::string m_username;
 public:
     bool m_is_admin{false};
+protected:
+    std::string m_name;
+public:
     std::string m_email;
     std::string m_locale; // TODO replace this with something better?
     time_t m_joined_ts{0};
-    std::string m_about;
+
+    static constexpr size_t USERNAME_MAX_LENGTH = 32;
+    static constexpr size_t NAME_MAX_LENGTH = 128;
+    static constexpr size_t LOCALE_MAX_LENGTH = 12;
+    static constexpr size_t EMAIL_MAX_LENGTH = 255;
 
     LocalUser(std::string username, bool is_admin):
         m_username(std::move(username)),
@@ -30,32 +36,31 @@ public:
     {}
 
     LocalUser(
-        std::string name,
         std::string username,
         bool is_admin,
+        std::string name,
         std::string email,
         std::string locale,
-        time_t joined_ts,
-        std::string about = ""
+        time_t joined_ts
     ):
-        m_name(std::move(name)),
         m_username(std::move(username)),
         m_is_admin(is_admin),
+        m_name(std::move(name)),
         m_email(std::move(email)),
         m_locale(std::move(locale)),
-        m_joined_ts(joined_ts),
-        m_about(std::move(about))
+        m_joined_ts(joined_ts)
     {}
 
     /**
      * Update user's username
-     * @param name
+     * @param name new name for user
      * @return nullptr on success, reason string on fail
      */
     const char* set_name(std::string name) {
-        if (name.size() > 128)
-            return "Name must be less than 128 characters";
+        if (name.size() > NAME_MAX_LENGTH)
+            return "Name too long";
         m_name = std::move(name);
+        // TODO update database
         return nullptr;
     }
     [[nodiscard]] const std::string& get_name() const {
@@ -66,23 +71,22 @@ public:
      * Update user's username
      * @param username
      * @return nullptr on success, reason string on fail
+     * @deprecated This feature seems problematic
      */
-    const char* set_username(std::string username) {
-        if (username.size() > 32)
-            return "Username must be less than 32 characters";
-        for (auto c: username)
-            if (!isalnum(c))
-                return "Username must have only alphanumeric characters";
-        m_username = std::move(username);
-        // TODO notify peers & apps
-        return nullptr;
-    }
+//    const char* set_username(std::string username) {
+//        if (username.size() > USERNAME_MAX_LENGTH)
+//            return "Username must be less than 32 characters";
+//        for (auto c: username)
+//            if (!isalnum(c))
+//                return "Username must have only alphanumeric characters";
+//        m_username = std::move(username);
+//        // TODO notify db, peers & apps
+//        return nullptr;
+//    }
 
     [[nodiscard]] const std::string& get_username() const {
         return m_username;
     }
-
-    bool write_changes_to_db();
 
     [[nodiscard]] std::string json() const;
 

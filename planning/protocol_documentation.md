@@ -21,15 +21,16 @@ The process goes as follows:
   - a bearer token that it will use to recognize instance A
   - a secret that should be appended to the secret that has already been provided by instance A
   - a digital signature of this response
-   
 
 ### p2p app requests
-
-After the handshake, p2p app requests include the following HTTP headers:
+After the handshake, p2p app requests include the following HTTP headers to mitigate mitm attack vectors:
 - Fiy-Peer: bearer token the instance will recognize us by
 - Fiy-User: local user (if any) that the request is for
 - Fiy-Path: path to forward to the app
 - Fiy-Now: current epoch millisecond
   - adds randomness and prevents reuse of messages
   - peers' clocks must be within 1 hour of eachother
-- Authentication: contains a hash of the above hearders along with the appid and the p2p secret from the handshake
+- Authentication: contains a hash signature with the following components:
+  - above headers
+  - the relevant appid
+  - the p2p secret from the handshake

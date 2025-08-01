@@ -18,12 +18,17 @@ protected:
     SQLite::Statement m_get_user_contacts;
 
 public:
+    using Exception = SQLite::Exception;
 
     SQLite::Database m_db;
 
     DB();
 
-    std::vector<Contact> get_contacts(const std::string& owner);
+    std::vector<Contact> get_contacts(const std::string_view& owner);
+
+    bool get_user_profile(const std::string_view& user, int level, Contact& c);
+
+    Contact get_contact_by_id(int64_t id);
 };
 
 extern DB* g_db;

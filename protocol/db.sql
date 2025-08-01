@@ -15,9 +15,8 @@ CREATE TABLE Users (
     name           VARCHAR(128) NOT NULL DEFAULT "",
     hashedPassword CHAR(128) NOT NULL,
     email          VARCHAR(255) NOT NULL DEFAULT "",
-    locale         VARCHAR(8)   NOT NULL DEFAULT "en",
-    joinTs         INTEGER UNSIGNED NOT NULL,
-    about          TEXT DEFAULT ""
+    locale         VARCHAR(12)   NOT NULL DEFAULT "en",
+    joinTs         INTEGER UNSIGNED NOT NULL
 );
 
 -- CREATE TABLE UserTokens (

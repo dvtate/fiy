@@ -27,6 +27,9 @@ struct Contact {
 
     std::string json();
 
+    static Contact json(const std::string& json_str);
+    static Contact vcard(const std::string& vcard_str);
+
     template<class IterableContainer>
     static std::string json_list(const IterableContainer& contacts) {
         std::string ret = "[";

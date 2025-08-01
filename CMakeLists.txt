@@ -13,7 +13,6 @@ file(GLOB protocol_server_sources protocol/*.cpp)
 
 add_executable(protocol_server ${protocol_server_sources}
     third_party/inih/ini.c
-    protocol/ProtocolActions.hpp
     protocol/Mod.cpp
     protocol/Mod.hpp
     protocol/Mods.cpp

@@ -15,13 +15,31 @@ DB* g_db;
 void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     auto& req = *(fiy::Request*) request;
 
+    std::string_view path{req.path};
+
+    if (path.starts_with("/profile/")) {
+        path.remove_prefix(9);
+        Contact profile;
+
+        // Trust level for the request
+        // 0 - same user
+        // 1 - user on same instance
+        // 2 - user on different instance
+        // 3 - public/unknown/bot user
+        int origin = req.user == path ? 0
+            : req.is_local() ? 1
+            : req.user != nullptr ? 2
+            : 3;
+
+        auto success = g_db->get_user_profile(path, origin, profile);
+    }
+
     // Everything here requires a login
     if (req.user == nullptr) {
         req.respond(cb, 401);
         return;
     }
 
-    std::string_view path{req.path};
 
     if (path.starts_with("/main.css")) {
         static const char css_file[] = "/main.css";
@@ -33,7 +51,7 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     }
 
     if (path == "/" || (path.size() > 1 && path[1] == '?')) {
-
+        Pages::index_html(req.user);
     }
 
 //    - Add contact

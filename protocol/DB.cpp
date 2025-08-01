@@ -70,13 +70,12 @@ std::shared_ptr<LocalUser> DB::get_user(const std::string& username, std::string
 
     // Make user object
     return std::make_shared<LocalUser>(
-        m_get_user_query.getColumn(2).getString(),  // name
         username,
         m_get_user_query.getColumn(1).getInt() != 0, // isAdmin
+        m_get_user_query.getColumn(2).getString(),  // name
         m_get_user_query.getColumn(4).getString(),  // email
         m_get_user_query.getColumn(5).getString(),  // locale
-        m_get_user_query.getColumn(6).getUInt(),  // join_ts
-        m_get_user_query.getColumn(7).getString()   // about
+        m_get_user_query.getColumn(6).getUInt()  // join_ts
     );
 }
 
@@ -89,13 +88,12 @@ std::shared_ptr<LocalUser> DB::get_user(const std::string& username) {
     if (!m_get_user_query.executeStep()) // no match
         return nullptr;
     return std::make_shared<LocalUser>(
-        m_get_user_query.getColumn(2).getString(),  // name
         username,
         m_get_user_query.getColumn(1).getInt() != 0, // isAdmin
+        m_get_user_query.getColumn(2).getString(),  // name
         m_get_user_query.getColumn(4).getString(),  // email
         m_get_user_query.getColumn(5).getString(),  // locale
-        m_get_user_query.getColumn(6).getUInt(),  // join_ts
-        m_get_user_query.getColumn(7).getString()   // about
+        m_get_user_query.getColumn(6).getUInt()  // join_ts
     );
 }
 
@@ -116,7 +114,6 @@ bool DB::add_user(const LocalUser& user, std::string password) {
     q.bindNoCopy(5, user.m_email);
     q.bindNoCopy(6, user.m_locale);
     q.bind(7, (int64_t) user.m_joined_ts);
-    q.bind(8, user.m_about);
     auto ret = q.exec();
     return ret;
 }

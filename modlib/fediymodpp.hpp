@@ -99,7 +99,7 @@ namespace fiy {
             return fiy_http_verb_string(method);
         }
         [[nodiscard]] bool is_local() const {
-            return domain == nullptr;
+            return user != nullptr && domain == nullptr;
         }
 
         inline void respond(fiy_callback_t cb, const fiy_response_t& resp) {

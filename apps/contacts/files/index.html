@@ -39,7 +39,7 @@
 
         // TODO JSON.parse is faster
         const contacts = [
-            {
+            {   id: 112312321,
                 name: 'Dustin Van Tate Testa',
                 user: 'dvtt@fiy.bodge.dev',
                 fields: [
@@ -109,8 +109,8 @@
             //      basically same as gnome-contacts app
             contactDetails.innerHTML = `
             <h2>New Contact</h2>
-            <label for="name">Name:</label><input type="text" id="nc-name" required />
-            <label for="name">FedIY User:</label><input type="text" id="nc-fiy-user" />
+            <label for="nc-name">Name:</label><input type="text" id="nc-name" required />
+            <label for="nc-fiy-user">FedIY User:</label><input type="text" id="nc-fiy-user" />
             <fieldset>
                 <legend>Fields</legend>
                 <span id="nc-fields"></span>
@@ -120,9 +120,10 @@
             <button>Save</button><button>Cancel</button>`;
 
             document.getElementById('nc-add-field').addEventListener('click', e => {
-               document.getElementById('nc-fields').innerHTML += ''
+               document.getElementById('nc-fields').innerHTML += '<label'
             });
         }
+
         function newContactFinalize() {
 
         }
@@ -163,10 +164,20 @@
 <h3>${contact.user}</h3>
 ${contact.fields.map(fieldToString).join('')}
 <hr>
-<button title="Download"><i class="fa fa-download"></i></button>
-<button title="Share"><i class="fa fa-share"></i></button>
-<button title="Edit"><i class="fa fa-pencil"></i></button>
-<button title="Delete"><i class="fa fa-trash"></i></button>`;
+<button title="Download" id="contact-download"><i class="fa fa-download"></i></button>
+<button title="Share"><i class="fa fa-share" id="contact-share"></i></button>
+<button title="Edit"><i class="fa fa-pencil" id="contact-edit"></i></button>
+<button title="Delete"><i class="fa fa-trash" id="contact-delete"></i></button>`;
+
+            document.getElementById('contact-download').addEventListener('click', e => {
+                alert("not implemented!");
+            });
+            document.getElementById('contact-share').addEventListener('click', e => {
+                alert("not implemented!");
+            });
+            document.getElementById('contact-edit').addEventListener('click', e => {
+
+            })
 
             mobileDetailsView();
         }
@@ -182,7 +193,17 @@ ${contact.fields.map(fieldToString).join('')}
         });
 
         // Initial render
-        renderContacts(new URL(document.location.toString()).searchParams.get('q') || "");
+        const queryParams = new URL(document.location.toString()).searchParams;
+        renderContacts(queryParams.get('q') || "");
+
+        if (queryParams.get('id')) {
+            // Show contact by id
+            const index = contacts.findIndex(contact => contact.id === queryParams.get('id'));
+            showContactDetails(index);
+        } else {
+            // Show profile ediable
+            
+        }
     </script>
 </body>
 </html>
