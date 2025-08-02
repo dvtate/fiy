@@ -1,20 +1,24 @@
 #include <thread>
 
+#include "Server/Server.hpp"
+
 #include "App.hpp"
 
 bool App::start() {
     // Note: order is important
-
 
     if (m_config.m_error) {
         LOG_ERR("Failed to parse config file.");
         return false;
     }
 
-    m_ioc = new boost::asio::io_context{m_config.m_concurrency};
-
-    // Connect to database
-    m_db = std::make_unique<DB>();
+    // Track current time
+    std::thread now_tracker{[this](){
+        while (true) {
+            m_now = std::time(nullptr);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }};
 
     // Start apps
     m_mods.find_modules();
@@ -25,15 +29,11 @@ bool App::start() {
 
     m_pages = std::make_unique<Pages>();
 
-    // Track current time
-    std::thread now_tracker{[this](){
-        while (true) {
-            m_now = std::time(nullptr);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-    }};
+    // Make Boost IO context
+    m_ioc = new boost::asio::io_context{m_config.m_concurrency};
 
-    m_server.start();
+    // Initialize the server (it uses boost io context)
+    Server::start();
 
     // Run the I/O service on the requested number of threads
     std::vector<std::thread> v;

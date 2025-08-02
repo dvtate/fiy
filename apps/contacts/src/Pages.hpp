@@ -65,8 +65,6 @@ namespace Pages {
         return haystack;
     }
 
-
-
     std::string index_html(const std::string& user) {
         static const char path[] = "/index.html";
         return replace_one(

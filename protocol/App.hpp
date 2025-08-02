@@ -10,7 +10,6 @@
 #include "Mods.hpp"
 #include "Pages.hpp"
 #include "LocalUsers.hpp"
-#include "Server/Server.hpp"
 #include "HttpClient.hpp"
 #include "HttpsClient.hpp"
 
@@ -26,11 +25,9 @@ public:
 
     AppConfig m_config;
     Peers m_peers;
-    std::unique_ptr<DB> m_db;
     Mods m_mods;
     std::unique_ptr<Pages> m_pages;
     LocalUsers m_users;
-    Server m_server;
     HttpClient m_http;
     HttpsClient m_https;
 

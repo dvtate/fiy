@@ -22,6 +22,7 @@ public:
     std::string m_bearer_token_we_accept;
 
     /// When do we need to refresh auth credentials?
+    // dvtt: why bother refreshing?
     time_t m_expire_ts;
 
     static constexpr time_t SESSION_LIFETIME = 60 * 60 * 24 * 7; // 1 week

@@ -27,7 +27,7 @@ std::shared_ptr<LocalUser> LocalUsers::get_username(const std::string& username)
         return it->second;
 
     // Use database
-    auto user = g_app->m_db->get_user(username);
+    auto user = DB::get_user(username);
     if (user == nullptr)
         return user;
     m_username_cache[username] = user;
@@ -70,7 +70,7 @@ void LocalUsers::deauth_token(const std::string& auth_token) {
 
 LocalUser::AuthToken LocalUsers::login_user(const std::string& username, const std::string& password) {
     // Get user from database
-    auto user = g_app->m_db->get_user(username, password);
+    auto user = DB::get_user(username, std::move(password));
     if (user == nullptr)
         return  LocalUser::AuthToken(nullptr, "", 0);
 

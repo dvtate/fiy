@@ -1,12 +1,13 @@
 --CREATE DATABASE fediy;
 
 CREATE TABLE Peers (
-    domain       VARCHAR(64) PRIMARY KEY,
-    connectTs    BIGINT NOT NULL,
-    bearerToken  CHAR(24) NOT NULL,
-    symKey BLOB,
-    pubkey       TEXT,
-    tokenExpireTs BIGINT
+    domain          VARCHAR(64) PRIMARY KEY,
+    connectTs       BIGINT NOT NULL,
+    giveToken       CHAR(24) NOT NULL,
+    takeToken       CHAR(24) NOT NULL,
+    symKey          BLOB,
+    pubkey          TEXT,
+    tokenExpireTs   BIGINT
 );
 
 CREATE TABLE Users (

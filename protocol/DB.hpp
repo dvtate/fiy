@@ -8,31 +8,20 @@
 #include "Peer.hpp"
 #include "LocalUser.hpp"
 
-class DB {
-public:
-    SQLite::Database m_db;
-
+namespace DB {
     using Exception = SQLite::Exception;
 
-private:
-    // Precompiled queries
-    SQLite::Statement m_get_user_query;
-    SQLite::Statement m_add_user_query;
-    SQLite::Statement m_get_peer_query;
-    SQLite::Statement m_add_peer_query;
-
-protected:
-    std::mutex m_mtx;
-
-public:
-
-    DB();
-
-    std::shared_ptr<Peer> get_peer(std::string domain);
+    /**
+     * Get a connection to the database
+     * 
+     * @note creates only one connection per thread, then re-uses
+     */
+    SQLite::Database& connection();
 
     std::shared_ptr<LocalUser> get_user(const std::string& username);
     std::shared_ptr<LocalUser> get_user(const std::string& username, std::string password);
     bool add_user(const LocalUser& user, std::string password);
+    std::shared_ptr<Peer> get_peer(const std::string_view& domain);
 
 };
 

@@ -10,14 +10,16 @@
 
 extern const fiy_host_info_t* g_host_info;
 
-
-DB::DB():
-    m_db(std::string(g_host_info->data_dir) + "/db.db3", SQLite::OPEN_FULLMUTEX | SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE ),
-    m_get_user_contacts(m_db, "SELECT * FROM Contacts WHERE ownerUserName=?")
-{
+SQLite::Database& connection() {
+    static thread_local SQLite::Database db{
+        std::string(g_host_info->data_dir) + "/db.db3",
+        SQLite::OPEN_READWRITE
+    };
+    return db;
 }
 
 std::vector<Contact> DB::get_contacts(const std::string_view& owner) {
+    static thread_local SQLite::Statement query{connection(), "SELECT * FROM Contacts WHERE ownerUserName=?"};
     std::vector<Contact> ret;
     std::lock_guard mtx{m_mtx};
 
