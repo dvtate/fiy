@@ -12,6 +12,9 @@
 
 // TODO i18n
 // TODO minification
+// dvtt: keeping this as an instanced object to make it easier to dynamically change language
+
+class LocalUser;
 
 /**
  * Handles server-side rendering of pages via templating engine

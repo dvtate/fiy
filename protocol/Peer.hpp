@@ -10,8 +10,8 @@
 
 class PeerAuth {
 public:
-    /// Symmetric key
-    std::string m_sym_key; // TODO make this secure!
+    /// Super secret symmetric key
+    std::string m_sym_key;
 
     /// Public key
     // dvtt: should we store this for later in case they change it?
@@ -22,6 +22,7 @@ public:
     std::string m_bearer_token_we_accept;
 
     /// When do we need to refresh auth credentials?
+    // dvtt: why bother refreshing?
     time_t m_expire_ts;
 
     static constexpr time_t SESSION_LIFETIME = 60 * 60 * 24 * 7; // 1 week

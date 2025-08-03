@@ -198,7 +198,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
     // Create user
     LocalUser user{username, false, username, contact, "en", g_app->now()};
     try {
-        if (!g_app->m_db->add_user(user, password)) {
+        if (!DB::add_user(user, password)) {
             LOG_ERR("Failed to create user?");
             conn->respond(conn->prep(resp_server_error));
             return;
@@ -264,7 +264,7 @@ void login_post(std::shared_ptr<Session>&& conn) {
 
 
     // Get auth token for user
-    auto auth_token = g_app->m_users.login_user(username, password);
+    auto auth_token = g_app->m_users.login_user(username, std::move(password));
     if (auth_token.m_user == nullptr) {
         conn->respond(conn->prep(resp_bad_creds));
         DEBUG_LOG("wrong username/password for user " <<username);

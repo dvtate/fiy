@@ -4,9 +4,6 @@
 
 #pragma once
 
-class Connection;
-
-class Server {
-public:
+namespace Server {
     void start();
-};
+}

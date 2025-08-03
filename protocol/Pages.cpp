@@ -18,7 +18,7 @@ mustache::mustache Pages::open_mustache_file(std::string&& path) {
     return std::regex_replace(ret, std::regex("\\{\\{domain\\}\\}"), g_app->m_config.m_hostname);
 }
 
-Pages::Pages(): FileCache(g_app->m_config.m_data_dir + "/page_templates/" ) {
+Pages::Pages(): FileCache(g_app->m_config.m_data_dir + "/pages/" ) {
 //    mustache::data global_data;
 //    global_data.set("domain", g_app->m_config.m_hostname);
 

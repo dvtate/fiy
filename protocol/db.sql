@@ -1,25 +1,35 @@
 --CREATE DATABASE fediy;
 
 CREATE TABLE Peers (
-    domain       VARCHAR(64) PRIMARY KEY,
-    connectTs    BIGINT NOT NULL,
-    bearerToken  CHAR(24) NOT NULL,
-    symKey BLOB,
-    pubkey       TEXT,
-    tokenExpireTs BIGINT
+    -- domain used to connect to peer
+    domain          VARCHAR(64) PRIMARY KEY,
+
+    -- when we connected with the peer
+    connectTs       BIGINT NOT NULL,
+
+    -- token we give to identify ourselves to the peer
+    giveToken       CHAR(24) NOT NULL,
+
+    -- token we accept as identification for peer
+    takeToken       CHAR(24) NOT NULL,
+
+    -- use to generate signature for the peer
+    symKey          BLOB,
+
+    -- cached public key
+    pubkey          TEXT,
+
+    -- when does this peer's authentication expire
+    -- (probably would be more secure if it didn't expire)
+    tokenExpireTs   BIGINT
 );
 
 CREATE TABLE Users (
     username       VARCHAR(32) PRIMARY KEY,
     isAdmin        INTEGER NOT NULL,
-    name           VARCHAR(128) NOT NULL DEFAULT "",
+    name           VARCHAR(128) NOT NULL DEFAULT "", -- should be handled by settings
     hashedPassword CHAR(128) NOT NULL,
     email          VARCHAR(255) NOT NULL DEFAULT "",
     locale         VARCHAR(12)   NOT NULL DEFAULT "en",
     joinTs         INTEGER UNSIGNED NOT NULL
 );
-
--- CREATE TABLE UserTokens (
---     token    VARCHAR(32) PRIMARY KEY,
---     username VARCHAR(32) REFERENCES Users
--- );

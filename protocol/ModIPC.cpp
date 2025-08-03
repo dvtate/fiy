@@ -124,7 +124,7 @@ struct ModDLLHostInfo : fiy_host_info_t {
      */
     static int local_login_impl(const char* username, const char* password) {
         try {
-            auto u = g_app->m_db->get_user(username, password);
+            auto u = DB::get_user(username, password);
             return u != nullptr ? 0 : 1;
         } catch (const DB::Exception& e) {
             LOG_ERR("DB Error: " <<e.what());
@@ -145,7 +145,7 @@ struct ModDLLHostInfo : fiy_host_info_t {
         if (ret == nullptr)
             return -1;
 
-        auto u = g_app->m_db->get_user(local_user_name);
+        auto u = DB::get_user(local_user_name);
         if (u == nullptr)
             return 1;
 

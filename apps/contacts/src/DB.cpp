@@ -10,28 +10,29 @@
 
 extern const fiy_host_info_t* g_host_info;
 
-
-DB::DB():
-    m_db(std::string(g_host_info->data_dir) + "/db.db3", SQLite::OPEN_FULLMUTEX | SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE ),
-    m_get_user_contacts(m_db, "SELECT * FROM Contacts WHERE ownerUserName=?")
-{
+SQLite::Database& connection() {
+    static thread_local SQLite::Database db{
+        std::string(g_host_info->data_dir) + "/db.db3",
+        SQLite::OPEN_READWRITE
+    };
+    return db;
 }
 
 std::vector<Contact> DB::get_contacts(const std::string_view& owner) {
+    static thread_local SQLite::Statement query{connection(), "SELECT * FROM Contacts WHERE ownerUserName=?"};
     std::vector<Contact> ret;
-    std::lock_guard mtx{m_mtx};
 
     // TODO make issue string_view support in SQLiteCpp
-    m_get_user_contacts.bind(1, std::string(owner.data(), owner.size()));
+    query.bind(1, std::string(owner.data(), owner.size()));
 
-    while (m_get_user_contacts.executeStep()) {
+    while (query.executeStep()) {
         Contact c;
-        c.m_id = m_get_user_contacts.getColumn(0).getInt64();
-        c.m_name = m_get_user_contacts.getColumn(2).getString();
-        c.m_fiy_user = m_get_user_contacts.getColumn(3).getString();
+        c.m_id = query.getColumn(0).getInt64();
+        c.m_name = query.getColumn(2).getString();
+        c.m_fiy_user = query.getColumn(3).getString();
 
         // TODO FIXME changed schema
-        auto fields_json_str = m_get_user_contacts.getColumn(4).getString();
+        auto fields_json_str = query.getColumn(4).getString();
         if (!fields_json_str.empty()) {
             using namespace nlohmann;
             auto fields_json = json::parse(std::move(fields_json_str));
