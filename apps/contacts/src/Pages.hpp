@@ -49,14 +49,14 @@ namespace Pages {
     }
 
     /// Primitive templating engine
-    std::string replace_one(std::string haystack, const std::string_view& needle, const std::string_view& replacement) {
+    std::string replace_one(std::string haystack, const std::string_view needle, const std::string_view replacement) {
         std::size_t i = haystack.find(needle);
         if (i == std::string::npos)
             return haystack;
         haystack.replace(i, needle.size(), replacement);
         return haystack;
     }
-    std::string replace_all(std::string haystack, const std::string_view& needle, const std::string_view& replacement) {
+    std::string replace_all(std::string haystack, const std::string_view needle, const std::string_view replacement) {
         std::size_t i = 0;
         while ((i = haystack.find(needle, i)) != std::string::npos) {
             haystack.replace(i, needle.size(), replacement);

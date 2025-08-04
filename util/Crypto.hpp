@@ -34,7 +34,7 @@ struct Crypto {
     }
 
     /// Cryptographically hash
-    static std::string hmac(const std::string_view& key, const std::string_view& message, const evp_md_st* evp_md = EVP_sha512_256()) {
+    static std::string hmac(const std::string_view key, const std::string_view message, const evp_md_st* evp_md = EVP_sha512_256()) {
         unsigned char result[EVP_MAX_MD_SIZE];
         unsigned int len = 0;
         unsigned char* ret = HMAC(

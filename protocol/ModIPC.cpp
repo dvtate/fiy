@@ -58,7 +58,7 @@ public:
         m_conn->respond(m_conn->prep(std::move(res)));
         this->remove_from_task_queue();
     }
-    static char* new_cstr_from_string(const std::string_view& s) {
+    static char* new_cstr_from_string(const std::string_view s) {
         auto l = s.size();
 //    std::cout <<"new cstr: '" << s <<"' -- Size: " <<l <<std::endl;
         char* ret = new char[l + 1];

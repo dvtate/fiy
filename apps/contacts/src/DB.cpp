@@ -18,7 +18,7 @@ SQLite::Database& connection() {
     return db;
 }
 
-std::vector<Contact> DB::get_contacts(const std::string_view& owner) {
+std::vector<Contact> DB::get_contacts(const std::string_view owner) {
     static thread_local SQLite::Statement query{connection(), "SELECT * FROM Contacts WHERE ownerUserName=?"};
     std::vector<Contact> ret;
 

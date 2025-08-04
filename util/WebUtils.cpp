@@ -2,7 +2,7 @@
 // Created by tate on 7/8/25.
 //
 
-#include "Cookie.hpp"
+#include "WebUtils.hpp"
 
 
 /**
@@ -84,7 +84,7 @@ static inline std::string charToHex(char c) {
     return result;
 }
 
-namespace Cookie {
+namespace WebUtils {
 
     /**
      * Equivalent to decodeUriComponent in JS
@@ -137,7 +137,7 @@ namespace Cookie {
         return result;
     }
 
-    std::map<std::string, std::string> parse(std::string_view header) {
+    std::map<std::string, std::string> parse_cookies(std::string_view header) {
         std::map<std::string, std::string> ret;
 
         while (!header.empty()) {
@@ -281,8 +281,46 @@ namespace Cookie {
         return result;
     }
 
+    /**
+     * Parse application/x-www-form-urlencoded
+     * @param s (in) body
+     * @param ret (out) parsed form components
+     * @return true on success, false on parse error
+     */
+    bool parse_form_url_encoded(const std::string_view s, std::deque<std::pair<std::string, std::string>>& ret) {
+        size_t i = 0;
+        do {
+            size_t start = i;
+            std::pair<std::string, std::string> kv;
+            while (i < s.size() && s[i] != '=')
+                i++;
+            if (i == s.size() || s[i] != '=') {
+                return false;
+            }
+            auto csubstr = s.data();
+            kv.first = WebUtils::uri_decode(csubstr + start, csubstr + i);
+            if (kv.first.empty()) {
+                return false;
+            }
 
-    std::string serialize(const std::string& name, std::string value) {
+            start = ++i;
+            while (i < s.size() && s[i] != '&')
+                i++;
+    //        if (i == s.size() || s[i] != '&') {
+    //            return true;
+    //        }
+            csubstr = s.data();
+            kv.second = WebUtils::uri_decode(csubstr + start, csubstr + i);
+            if (kv.second.empty()) {
+                return false;
+            }
+            ret.emplace_back(std::move(kv));
+            i++;
+        } while (i < s.size());
+        return true;
+    }
+
+    std::string serialize_cookie(const std::string& name, std::string value) {
         if (!std::regex_match(name, cookie_name_regex)) {
             std::cerr <<"Invalid cookie name\n";
             return "";
@@ -297,7 +335,7 @@ namespace Cookie {
         return str;
     }
 
-    std::string serialize(const std::string& name, std::string value, CookieOptions options) {
+    std::string serialize_cookie(const std::string& name, std::string value, CookieOptions options) {
         if (!std::regex_match(name, cookie_name_regex)) {
             std::cerr <<"Invalid cookie name\n";
             return "";

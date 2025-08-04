@@ -50,6 +50,7 @@ bool AppConfig::set_key(const char* section, const char* key, const char* value)
         int b = parse_bool(value);
         if (b == -1) {
             LOG_ERR("Config file: ssl should be set to true if the server can be accessed via https. Otherwise set it to false.");
+            b = 1; // use default of true
         }
         m_ssl = b;
     } else if (strcmp(key, "salt") == 0) {

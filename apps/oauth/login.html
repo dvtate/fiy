@@ -1,0 +1,17 @@
+        <form method="post">
+            <div class="ms-form-group">
+                <label for="Username">Username</label>
+                <input type="text" name="username" id="Username" placeholder="Username" autocomplete="username" />
+            </div>
+            <div class="ms-form-group">
+                <label for="Password">Password</label>
+                <input type="password" name="password" id="Password" placeholder="Password" autocomplete="current-password" />
+            </div>
+<!--            <div class="ms-form-group">-->
+<!--                <label for="chk-stay-logged-in">Stay Logged In</label>-->
+<!--                <input type="checkbox" name="stay-logged-in" />-->
+<!--            </div>-->
+            <div><span id="invalid-reason">{{fail_reason}}</span></div>
+            <br/>
+            <div><button type="submit" id="btn-submit" class="ms-primary">Log In</button></div>
+        </form>

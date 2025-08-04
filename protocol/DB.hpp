@@ -19,7 +19,7 @@ namespace DB {
     std::shared_ptr<LocalUser> get_user(const std::string& username);
     std::shared_ptr<LocalUser> get_user(const std::string& username, std::string password);
     bool add_user(const LocalUser& user, std::string password);
-    std::shared_ptr<Peer> get_peer(const std::string_view& domain);
+    std::shared_ptr<Peer> get_peer(const std::string_view domain);
 
 };
 

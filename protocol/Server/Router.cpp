@@ -2,52 +2,12 @@
 // Created by tate on 6/25/25.
 //
 
-#include "../util/Cookie.hpp"
+#include "../util/WebUtils.hpp"
 
 #include "../App.hpp"
 
 #include "Session.hpp"
 #include "Router.hpp"
-
-
-// parse application/x-www-form-urlencoded
-bool parse_form_url_encoded(const std::string_view& s, std::deque<std::pair<std::string, std::string>>& ret) {
-    size_t i = 0;
-    do {
-        size_t start = i;
-        std::pair<std::string, std::string> kv;
-        while (i < s.size() && s[i] != '=')
-            i++;
-        if (i == s.size() || s[i] != '=') {
-            DEBUG_LOG("bad 1");
-            return false;
-        }
-        auto csubstr = s.data();
-        kv.first = Cookie::uri_decode(csubstr + start, csubstr + i);
-        if (kv.first.empty()) {
-            DEBUG_LOG("bad 2");
-            return false;
-        }
-
-        start = ++i;
-        while (i < s.size() && s[i] != '&')
-            i++;
-//        if (i == s.size() || s[i] != '&') {
-//            DEBUG_LOG("bad 3");
-//            return true;
-//        }
-        csubstr = s.data();
-        kv.second = Cookie::uri_decode(csubstr + start, csubstr + i);
-        if (kv.second.empty()) {
-            DEBUG_LOG("bad 3");
-            return false;
-        }
-        ret.emplace_back(std::move(kv));
-        i++;
-
-    } while (i < s.size());
-    return true;
-}
 
 inline std::pair<std::string, std::string> parse_app_request_get(const std::shared_ptr<Session>& conn) {
     auto path = conn->req().target();
@@ -151,7 +111,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
 
     // Parse form body
     std::deque<std::pair<std::string, std::string>> form;
-    if (!parse_form_url_encoded(conn->req().body(), form)) {
+    if (!WebUtils::parse_form_url_encoded(conn->req().body(), form)) {
         conn->respond(conn->prep(resp_bad_form));
         DEBUG_LOG("invalid body: '" <<conn->req().body() <<"'");
         return;
@@ -212,7 +172,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
     Session::EmptyResponse res;
     res.result(boost::beast::http::status::temporary_redirect);
     res.set(boost::beast::http::field::set_cookie,
-        Cookie::serialize(
+        WebUtils::serialize_cookie(
             "fiy_auth",
             auth_token.m_token,
             {   .encode_fn=nullptr,
@@ -234,7 +194,7 @@ void login_post(std::shared_ptr<Session>&& conn) {
 
     // Get username and password from body
     std::deque<std::pair<std::string, std::string>> form;
-    if (!parse_form_url_encoded(conn->req().body(), form)) {
+    if (!WebUtils::parse_form_url_encoded(conn->req().body(), form)) {
         conn->respond(conn->prep(resp_bad_form));
         DEBUG_LOG("invalid body: '" <<conn->req().body() <<"'");
         return;
@@ -276,7 +236,7 @@ void login_post(std::shared_ptr<Session>&& conn) {
     res.result(boost::beast::http::status::see_other); // 303 - redirect them with get request
     res.set(boost::beast::http::field::location, "/portal");
     res.set(boost::beast::http::field::set_cookie,
-        Cookie::serialize(
+        WebUtils::serialize_cookie(
             "fiy_auth",
             auth_token.m_token,
             {   .encode_fn=nullptr,
@@ -300,7 +260,7 @@ auto server_error(const Str& what) {
 }
 
 std::vector<std::string> split_string(
-    const std::string_view& str,
+    const std::string_view str,
     const std::string& delimiter
 ) {
     std::vector<std::string> ret;

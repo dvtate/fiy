@@ -29,8 +29,8 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/Server/Router.cpp
     protocol/LocalUsers.hpp
     protocol/LocalUsers.cpp
-    util/Cookie.hpp
-    util/Cookie.cpp
+    util/WebUtils.hpp
+    util/WebUtils.cpp
     protocol/HttpsClient.cpp
     protocol/HttpsClient.hpp
     protocol/Server/Session.cpp
@@ -108,4 +108,10 @@ target_link_libraries(contacts_mod
 )
 target_include_directories(contacts_mod PUBLIC protocol
     third_party/SQLiteCpp/include
+)
+
+add_library(oauth_mod SHARED
+    modlib/fediymod.h
+    modlib/fediymodpp.hpp
+    apps/oauth/mod.cpp
 )

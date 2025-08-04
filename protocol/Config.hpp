@@ -23,10 +23,17 @@ protected:
     virtual bool set_key(const char* section, const char* key, const char* value) = 0;
 
     static int parse_bool(const char* str) {
-        if (strcasecmp(str, "true") == 0 || strcasecmp(str, "y") == 0 || strcmp(str, "1") == 0)
-            return 1;
-        if (strcasecmp(str, "false") == 0 || strcasecmp(str, "n") == 0 || strcmp(str, "0") == 0)
-            return 0;
+        auto len = strlen(str);
+        if (len == 4 && strcasecmp(str, "true"))
+            return true;
+        if (len == 5 && strcasecmp(str, "false"))
+            return false;
+        if (len >= 1) {
+            if (str[0] == 'y' || str[0] == 't' || str[0] == 'Y' || str[0] == 'T' || str[0] == '1')
+                return true;
+            if (str[0] == 'n' || str[0] == 'f' || str[0] == 'N' || str[0] == 'F' || str[0] == '0')
+                return false;
+        }
         return -1;
     }
 };

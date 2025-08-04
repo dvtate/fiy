@@ -29,14 +29,14 @@ namespace fiy {
     protected:
         std::string m_headers;
 
-        void add_header(const std::string_view& field, const std::string_view& value) {
+        void add_header(const std::string_view field, const std::string_view value) {
             m_headers += field;
             m_headers += ": ";
             m_headers += value;
             m_headers += '\n';
             headers = m_headers.c_str();
         }
-        void add_header(const std::string_view& header) {
+        void add_header(const std::string_view header) {
             m_headers += header;
             m_headers += '\n';
             headers = m_headers.c_str();
@@ -113,7 +113,7 @@ namespace fiy {
          * @param body HTTP body
          * @param headers null-terminated headers string
          */
-        inline void respond(fiy_callback_t cb, int status = 200, const std::string_view& body = "", const std::string_view& headers = "") {
+        inline void respond(fiy_callback_t cb, int status = 200, const std::string_view body = "", const std::string_view headers = "") {
             fiy_response_t res = {
                 .status=status,
                 .body=body.empty() ? nullptr : body.data(),
@@ -122,7 +122,7 @@ namespace fiy {
             };
             cb(this, &res);
         }
-        inline void respond(fiy_callback_t cb, const std::string_view& body, const std::string_view& headers = "") {
+        inline void respond(fiy_callback_t cb, const std::string_view body, const std::string_view headers = "") {
             respond(cb, 200, body, headers);
         }
     };

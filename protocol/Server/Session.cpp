@@ -1,7 +1,7 @@
 //
 // Created by tate on 7/24/25.
 //
-#include "../util/Cookie.hpp"
+#include "../util/WebUtils.hpp"
 #include "../App.hpp"
 
 #include "Router.hpp"
@@ -39,7 +39,7 @@ std::map<std::string, std::string>& Session::get_cookies() {
     if (m_cookies.empty()) {
         auto cookie_header = m_req["Cookie"];
         if (!cookie_header.empty()) {
-            m_cookies = Cookie::parse(cookie_header);
+            m_cookies = WebUtils::parse_cookies(cookie_header);
             std::cout << "Cookies: " << cookie_header << ": " << m_cookies.size() << std::endl;
         }
     }

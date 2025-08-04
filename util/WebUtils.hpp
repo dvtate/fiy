@@ -18,7 +18,7 @@
 #include <cctype>
 #include <iostream>
 
-namespace Cookie {
+namespace WebUtils {
 
     /**
      * Equivalent to decodeUriComponent in JS
@@ -36,10 +36,18 @@ namespace Cookie {
     std::string uri_encode(const std::string& src);
 
     /**
+     * Parse application/x-www-form-urlencoded
+     * @param s (in) body
+     * @param ret (out) parsed form components
+     * @return true on success, false on parse error
+     */
+    bool parse_form_url_encoded(const std::string_view s, std::deque<std::pair<std::string, std::string>>& ret);
+
+    /**
      * Parse from cookie header
      * @param value cookie header value
      */
-    std::map<std::string, std::string> parse(std::string_view header);
+    std::map<std::string, std::string> parse_cookies(std::string_view header);
 
     struct CookieOptions {
         /**
@@ -135,8 +143,8 @@ namespace Cookie {
      * @param value
      * @return
      */
-    std::string serialize(const std::string& name, std::string value);
-    std::string serialize(const std::string& name, std::string value, CookieOptions options);
+    std::string serialize_cookie(const std::string& name, std::string value);
+    std::string serialize_cookie(const std::string& name, std::string value, CookieOptions options);
 
 };
 

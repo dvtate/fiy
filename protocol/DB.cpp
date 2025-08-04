@@ -124,7 +124,7 @@ namespace DB {
         return ret;
     }
 
-    std::shared_ptr<Peer> get_peer(const std::string_view& domain) {
+    std::shared_ptr<Peer> get_peer(const std::string_view domain) {
         static thread_local SQLite::Statement query{connection(), "SELECT symKey, giveToken, takeToken, tokenExpireTs FROM Peers WHERE domain = ?"};
         CleanupRoutine cleanup{[&](){
             query.clearBindings();
