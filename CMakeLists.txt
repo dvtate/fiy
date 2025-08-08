@@ -71,28 +71,38 @@ target_link_libraries(protocol_server
     ssl
 )
 
+add_library(fediymod SHARED
+    modlib/fediymod.h
+    modlib/fediymod.hpp
+    modlib/fediymod.cpp
+)
+
 
 add_library(demo_mod SHARED
     modlib/example_mod.c
     modlib/fediymod.h
 )
+target_link_libraries(demo_mod PRIVATE fediymod)
 
 add_library(demo_mod_cpp SHARED
+    modlib/fediymod.h
+    modlib/fediymod.hpp
     modlib/example_mod.cpp
-    modlib/fediymodpp.hpp
 )
+target_link_libraries(demo_mod_cpp PRIVATE fediymod)
 
 add_library(demo_mod_mail SHARED
-    apps/mail_mod/mod.cpp
-    apps/mail_mod/MailBox.hpp
     modlib/fediymod.h
-    modlib/fediymodpp.hpp
+    modlib/fediymod.hpp
+    apps/mail_mod/MailBox.hpp
+    apps/mail_mod/mod.cpp
 )
+target_link_libraries(demo_mod_mail PRIVATE fediymod)
 
 # Contacts builtin mod
 add_library(contacts_mod SHARED
     modlib/fediymod.h
-    modlib/fediymodpp.hpp
+    modlib/fediymod.hpp
     apps/contacts/src/mod.cpp
     apps/contacts/src/Contact.cpp
     apps/contacts/src/Contact.hpp
@@ -101,17 +111,21 @@ add_library(contacts_mod SHARED
     apps/contacts/src/Pages.hpp
 )
 target_link_libraries(contacts_mod
-    SQLiteCpp
-    sqlite3
-    pthread
-    dl
+    PRIVATE fediymod
+    PUBLIC SQLiteCpp
+    PUBLIC sqlite3
+    PUBLIC pthread
+    PUBLIC dl
 )
-target_include_directories(contacts_mod PUBLIC protocol
+
+
+target_include_directories(contacts_mod PUBLIC
     third_party/SQLiteCpp/include
 )
 
 add_library(oauth_mod SHARED
     modlib/fediymod.h
-    modlib/fediymodpp.hpp
+    modlib/fediymod.hpp
     apps/oauth/mod.cpp
 )
+target_link_libraries(demo_mod_mail PRIVATE fediymod)

@@ -14,50 +14,8 @@
 #include <string>
 #endif
 
-#ifndef FEDIY_PROTOCOL_SERVER_SOURCE
-
 /// String versions of http verb
-static inline const char* fiy_http_verb_string(uint8_t verb) {
-    // from boost::beast::http::verb
-    static const char* verb_strings[] = {
-        "<unknown>",
-        "DELETE",
-        "GET",
-        "HEAD",
-        "POST",
-        "PUT",
-        "CONNECT",
-        "OPTIONS",
-        "TRACE",
-        "COPY",
-        "LOCK",
-        "MKCOL",
-        "MOVE",
-        "PROPFIND",
-        "PROPPATCH",
-        "SEARCH",
-        "UNLOCK",
-        "BIND",
-        "REBIND",
-        "UNBIND",
-        "ACL",
-        "REPORT",
-        "MKACTIVITY",
-        "CHECKOUT",
-        "MERGE",
-        "M-SEARCH",
-        "NOTIFY",
-        "SUBSCRIBE",
-        "UNSUBSCRIBE",
-        "PATCH",
-        "PURGE",
-        "MKCALENDAR",
-        "LINK",
-        "UNLINK"
-    };
-    return verb_strings[(verb >= 34) ? 0 : verb];
-}
-#endif
+extern const char* fiy_http_verb_strings[];
 
 /**
  * IPC request from a user

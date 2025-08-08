@@ -20,6 +20,8 @@ protected:
 
     std::vector<Mod*> m_mods;
     std::unordered_map<std::string, Mod*> m_mods_lookup;
+    // TODO maybe should add back the by_id to prevent collisions
+    //      if static/reverse-proxy apps added
 
 public:
 

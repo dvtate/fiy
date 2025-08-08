@@ -8,7 +8,7 @@
 #include <fstream>
 #include <string_view>
 
-#include "../../../modlib/fediymodpp.hpp"
+#include "../../../modlib/fediymod.hpp"
 
 #include "Contact.hpp"
 #include "DB.hpp"

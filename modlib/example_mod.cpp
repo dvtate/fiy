@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include "fediymodpp.hpp"
+#include "fediymod.hpp"
 
 //////////////////////////
 // Exports

@@ -3,7 +3,7 @@
 //
 
 
-#include "../../../modlib/fediymodpp.hpp"
+#include "../../../modlib/fediymod.hpp"
 
 #include "DB.hpp"
 #include "Pages.hpp"

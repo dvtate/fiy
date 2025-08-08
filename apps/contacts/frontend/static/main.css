@@ -82,6 +82,14 @@ body {
     padding: 0.5rem;
 }
 
+.input-group {
+    display: flex;
+    justify-content: space-between;
+    /*width: 60%;*/
+    /*margin: 0.5rem;*/
+}
+
+
 @media (max-width: 768px) {
     .container {
         flex-direction: column;

@@ -6,7 +6,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../../../modlib/fediymodpp.hpp"
+#include "../../../modlib/fediymod.hpp"
 
 extern const fiy_host_info_t* g_host_info;
 

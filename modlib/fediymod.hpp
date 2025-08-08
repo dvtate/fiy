@@ -2,8 +2,8 @@
 // Created by tate on 7/15/25.
 //
 
-#ifndef FEDIY_FEDIYMODPP_HPP
-#define FEDIY_FEDIYMODPP_HPP
+#ifndef FEDIY_FEDIYMOD_HPP
+#define FEDIY_FEDIYMOD_HPP
 
 #include <string>
 #include <string_view>
@@ -96,7 +96,7 @@ namespace fiy {
             return std::string(user) + "@" + std::string(domain);
         }
         [[nodiscard]] const char* method_str() const {
-            return fiy_http_verb_string(method);
+            return fiy_http_verb_strings[method];
         }
         [[nodiscard]] bool is_local() const {
             return user != nullptr && domain == nullptr;
@@ -129,4 +129,4 @@ namespace fiy {
 
 } // namespace fiy
 
-#endif //FEDIY_FEDIYMODPP_HPP
+#endif //FEDIY_FEDIYMOD_HPP
