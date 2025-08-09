@@ -127,6 +127,8 @@ namespace fiy {
         }
     };
 
+    // TODO Method + path Router
+
 } // namespace fiy
 
 #endif //FEDIY_FEDIYMOD_HPP

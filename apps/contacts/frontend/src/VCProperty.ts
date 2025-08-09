@@ -63,7 +63,251 @@ interface VCParams {
 
     CALSCALE?: string;
 
-}
+};
+
+const vCardFieldNames = [
+    'VERSION',          // vcard version
+    'ADR',              // address
+    'AGENT',                // person who acts on their behalf (ie - secretary)
+    'BDAY',             // birthday
+    'CATEGORIES',            // tags that describe object
+    'CLASS',                 // describes sensitivity contact info
+    'LABEL',            // what to put on a shipping label
+    'EMAIL',            // email address
+    'FN',               // Full name
+    'GEO',                   // lat+long location
+    'KEY',              // cryptographic key
+    'LOGO',                  // logo image
+    'MAILER',                // email program used
+    'N',                // structured name
+// Family Name, Given Name, Additional/Middle Names, Honorific Prefixes, and Honorific Suffixes
+
+    'NICKNAME',         // nickname
+    'NOTE',             // additional info
+    'ORG',              // company/organization
+    'PHOTO',            // pfp
+    'PRODID',           // product that created the vcard (ie - fediy)
+    'REV',              // timestamp last time vcard was updated
+    'ROLE',             // role/occupation/business category (ie - within ORG)
+    'SORT-STRING',      // used when application sorts, instead use SORT-AS parameter of N/ORG
+    'SOUND',            // name pronounciation sound
+    'TEL',              // phone number
+    'TZ',               // Timezone (ie - America/New York
+    'TITLE',            // job title
+    'URL',              // website
+];
+
+const vCardProperties = {
+    'ADR': {
+        name: 'Address',
+        description: 'Physical delivery address',
+        type: 'address',
+        versions: true,
+        types: ['home', 'work'],
+    },
+    'AGENT': {
+        name: 'Agent',
+        description: 'Person who will act on their behalf',
+        type: 'uri',
+        versions: ['2.1', '3.0'],
+    },
+    'ANNIVERSARY': {
+        name: 'Anniversary',
+        description: 'Anniversary Date',
+        type: 'date-and-or-time',
+        versions: ['4.0'],
+    },
+    'BDAY': {
+        name: 'Birthday',
+        description: 'Birthday Date',
+        type: 'date-and-or-time',
+        versions: true,
+    },
+    'CALURI': {
+        name: 'Calendar Link',
+        description: 'Link to calender for sending scheduling requests',
+        type: 'uri',
+        versions: ['4.0'],
+    },
+    'CATEGORIES': {
+        name: 'Categories',
+        description: 'List of descriptive tags',
+        type: 'text', // comma separated tags
+        versions: ['3.0', '4.0'],
+    },
+    'CLASS': {
+        name: 'Class',
+        description: 'Describes sensitivity of this information',
+        type: 'text',
+        versions: ['3.0'],
+    },
+    'CLIENTPIDMAP': {
+        name: 'Revision History',
+        description: 'Not supported',
+        internal: true,
+        type: 'text',
+        versions: false,
+    },
+    'EMAIL': {
+        name: 'Email',
+        description: 'Email address',
+        type: 'text', // does not include mailto:
+        versions: true
+    },
+    'FBURL': {
+        name: 'Free-Busy URL',
+        description: 'URL that shows when person is "free" or "busy"',
+        type: 'uri',
+        versions: ['4.0'],   
+    },
+    'FN': {
+        name: 'Name',
+        description: 'Full name, as it should be formatted',
+        type: 'text',
+        versions: true,
+    },
+    'GENDER': {
+        name: 'Gender',
+        description: 'Describes the person\s gender',
+        type: 'sex',
+        versions: ['4.0'],
+    },
+    'GEO': {
+        name: 'Geographic Location',
+        description: 'Related latitude and longitude',
+        type: 'geo', // 4.0: geo:lat,lon || 2.1,3.0: geo:lat;lon
+        versions: ['2.1','3.0','4.0'],
+    },
+    'IMPP': {
+        name: 'Instant messenger handle',
+        description: 'Instant messneger handle',
+        type: 'uri',
+        versions: ['3.0', '4.0'],
+    },
+    'KEY': {
+        name: 'Public key',
+        description: 'Associated cryptographic key for encryption',
+        type: 'key',
+        versions: ['2.1','3.0','4.0'],
+    },
+    'KIND': {
+        name: 'Entity Kind',
+        description: 'Type of entity that this card refers to',
+        type: 'text', // allowed: 'application', 'individual', 'group', 'location' or 'organization'; 'x-*'
+        versions: ['4.0'],
+    },
+    'LABEL': {
+        name: 'Shipping Address',
+        description: 'Text that should go on a mailing label',
+        type: 'adr', // same as ADR property
+        versions: ['2.1', '3.0'],
+        // version 4.0: ADR;LABEL: ...
+    },
+    'LANG': {
+        name: 'Language',
+        description: 'Language that a person speaks',
+        type: 'lang', // Language code: en-US, fr-CA
+        versions: true,
+    },
+    'LOGO': {
+        name: 'Logo',
+        description: 'Logo for associated organization',
+        type: 'img', // either encoded image or url
+        versions: ['2.1','3.0','4.0'],
+    },
+    'MAILER': {
+        name: 'Email App',
+        description: 'Email App Used',
+        type: 'text',
+        versions: ['2.1','3.0'],
+    },
+    'MEMBER': {
+        name: 'Member of this Group',
+        description: 'Defines a member of the group that this card represents',
+        type: 'uri',
+        versions: ['4.0'],
+    },
+    'N': {
+        name: 'Structured Name',
+        description: 'Structured representation of the person\'s name',
+        type: 'name', // name
+        versions: true,
+    },
+    'NICKNAME': {
+        name: 'Nickname',
+        description: 'More descriptive/familiar names',
+        type: 'text', // comma separated list
+        versions: true,
+    },
+    'NOTE': {
+        name: 'Notes',
+        description: 'Supplimental information',
+        type: 'text',
+        versions: true,
+    },
+    'ORG': {
+        name: 'Organization',
+        description: 'Units of associated organization',
+        type: 'text',
+        versions: true,
+    },
+    'PHOTO': {
+        name: 'Photo',
+        description: 'Photo of individual/profile picture',
+        type: 'img',
+        versions: true,
+    },
+    'PRODID': {
+        name: 'Created by',
+        description: 'Product that created this card',
+        type: 'text',
+        internal: true,
+        versions: ['3.0','4.0'],
+    },
+    'PROFILE': {
+        name: 'File type',
+        description: 'vcard',
+        type: 'text', // vcard
+        internal: true,
+        versions: ['3.0'],
+    },
+    'RELATED': {
+        name: 'Related',
+        description: 'Related entity',
+        type: 'text',
+        versions: ['4.0'],
+    },
+    'REV': {
+        // logic for this should be on frontend...
+        name: 'Updated',
+        description: 'Last time this contact was edited',
+        type: 'timestamp',
+        versions: true,
+    },
+    'ROLE': {
+        name: 'Role',
+        description: 'Role, Occupation or Business category',
+        type: 'text',
+        versions: true,
+    },
+    'SORT-STRING': {
+        name: 'Sort By',
+        description: 'Sort',
+        type: 'text',
+        versions: ['3.0'],
+    },
+
+    // more from wikipedia
+
+
+
+    'VERSION': {
+        name: 'vCard Version',
+        description: 'vCard File Version',
+        type: 'string',
+        versions: true,
+    },
+};
 
 interface VCProp {
     showHtml(): string,
@@ -197,6 +441,10 @@ export class VCProperty {
     ////
     // UI methods
     ////
+
+    getLabel() {
+        return vCardProperties[this.name].name;        
+    }
 
     showHtml() {
         return `<div class="input-group">
