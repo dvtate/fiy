@@ -25,7 +25,7 @@ void BackgroundProcess::start() {
     execlp(m_path.data(), m_path.data());
     // should be unreachable:
     perror("execlp() failed");
-    std::cerr <<"Failed to exec: " <<m_path <<std::endl;
+    std::cerr << "Failed to exec: " << m_path << std::endl;
     exit(EXIT_FAILURE);
 }
 

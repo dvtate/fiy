@@ -5,5 +5,5 @@
 #pragma once
 
 namespace Server {
-    void start();
+void start();
 }

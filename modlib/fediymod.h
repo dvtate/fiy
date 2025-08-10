@@ -6,9 +6,9 @@
 #define FEDIY_FEDIYMOD_H
 
 #ifndef __cplusplus
-#include <stdio.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #else
 #include <cstdint>
 #include <string>
@@ -20,41 +20,11 @@
 static inline const char* fiy_http_verb_string(uint8_t verb) {
     // from boost::beast::http::verb
     static const char* verb_strings[] = {
-        "<unknown>",
-        "DELETE",
-        "GET",
-        "HEAD",
-        "POST",
-        "PUT",
-        "CONNECT",
-        "OPTIONS",
-        "TRACE",
-        "COPY",
-        "LOCK",
-        "MKCOL",
-        "MOVE",
-        "PROPFIND",
-        "PROPPATCH",
-        "SEARCH",
-        "UNLOCK",
-        "BIND",
-        "REBIND",
-        "UNBIND",
-        "ACL",
-        "REPORT",
-        "MKACTIVITY",
-        "CHECKOUT",
-        "MERGE",
-        "M-SEARCH",
-        "NOTIFY",
-        "SUBSCRIBE",
-        "UNSUBSCRIBE",
-        "PATCH",
-        "PURGE",
-        "MKCALENDAR",
-        "LINK",
-        "UNLINK"
-    };
+        "<unknown>",   "DELETE",     "GET",      "HEAD",       "POST",     "PUT",    "CONNECT",
+        "OPTIONS",     "TRACE",      "COPY",     "LOCK",       "MKCOL",    "MOVE",   "PROPFIND",
+        "PROPPATCH",   "SEARCH",     "UNLOCK",   "BIND",       "REBIND",   "UNBIND", "ACL",
+        "REPORT",      "MKACTIVITY", "CHECKOUT", "MERGE",      "M-SEARCH", "NOTIFY", "SUBSCRIBE",
+        "UNSUBSCRIBE", "PATCH",      "PURGE",    "MKCALENDAR", "LINK",     "UNLINK"};
     return verb_strings[(verb >= 34) ? 0 : verb];
 }
 #endif
@@ -66,12 +36,12 @@ struct fiy_request_t {
     /**
      * Relevant fediy instance
      */
-    const char* domain;     // null = local user
+    const char* domain;  // null = local user
 
     /**
      * User that made the request
      */
-    const char* user;       // null = unauthenticated
+    const char* user;  // null = unauthenticated
 
     /**
      * Request path
@@ -96,7 +66,7 @@ struct fiy_request_t {
     /**
      * Request body
      */
-    const char* body;       // null = get request
+    const char* body;  // null = get request
 
     /**
      * How big is the body
@@ -107,8 +77,7 @@ struct fiy_request_t {
     /**
      * Enum value corresponding to the HTTP verb sent
      */
-    uint8_t method;   // http method (from boost::beast::http::verb)
-
+    uint8_t method;  // http method (from boost::beast::http::verb)
 };
 
 struct fiy_response_t {
@@ -133,7 +102,7 @@ struct fiy_response_t {
     const char* headers;
 };
 
-typedef void (* fiy_callback_t)(const struct fiy_request_t* request, const struct fiy_response_t*);
+typedef void (*fiy_callback_t)(const struct fiy_request_t* request, const struct fiy_response_t*);
 
 /// This is used to provide callbacks to the host
 struct fiy_mod_info_t {
@@ -154,7 +123,7 @@ struct fiy_local_user_info_t {
     bool admin;
     int64_t join_ts;
     char name[200];   // max should be 128
-    char locale[16]; // max should be 12
+    char locale[16];  // max should be 12
 };
 
 /// Some info from the host that may be relevant to the module
@@ -205,16 +174,14 @@ struct fiy_host_info_t {
      * @param callback called with response
      * @notes
      * - local apps can send requests to each other without restrictions
-     * - an app on server a can only send requests to apps on server b on behalf of users residing on server a
+     * - an app on server a can only send requests to apps on server b on behalf of users residing
+     * on server a
      *    - this prevents false impersonation
      */
     void (*request)(
-//    const struct fiy_host_info_t* host,
-            const char* app_id,
-            const struct fiy_request_t* request,
-            void* context,
-            void (*callback)(const struct fiy_response_t*, void*)
-    );
+        //    const struct fiy_host_info_t* host,
+        const char* app_id, const struct fiy_request_t* request, void* context,
+        void (*callback)(const struct fiy_response_t*, void*));
 
     /**
      * Authenticate an instance-local user
@@ -242,6 +209,4 @@ struct fiy_host_info_t {
 
 typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host_info_t*);
 
-
-
-#endif //FEDIY_FEDIYMOD_H
+#endif  // FEDIY_FEDIYMOD_H

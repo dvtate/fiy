@@ -5,13 +5,12 @@
 #ifndef FEDIY_UTIL_HPP
 #define FEDIY_UTIL_HPP
 
-
 #include <string>
 #include <string_view>
 
 #include "globals.hpp"
 
-template<class BoostHttpMessage>
+template <class BoostHttpMessage>
 inline std::string get_headers_string(const BoostHttpMessage& res) {
     // TODO there has to be a better way to do this ...
     std::string ret;
@@ -24,7 +23,7 @@ inline std::string get_headers_string(const BoostHttpMessage& res) {
     return ret;
 }
 
-template<class ResponseType>
+template <class ResponseType>
 void response_set_headers(ResponseType& res, const char* headers_str) {
     if (headers_str == nullptr)
         return;
@@ -38,7 +37,7 @@ void response_set_headers(ResponseType& res, const char* headers_str) {
         auto colon = headers.find(':');
         if (colon >= end) {
             DEBUG_LOG("Invalid http header: " << headers.substr(0, end));
-            return; // invalid
+            return;  // invalid
         }
 
         // Get header components
@@ -57,4 +56,4 @@ void response_set_headers(ResponseType& res, const char* headers_str) {
     }
 }
 
-#endif //FEDIY_UTIL_HPP
+#endif  // FEDIY_UTIL_HPP

@@ -1,12 +1,11 @@
 //
 // Created by tate on 7/24/25.
 //
-#include "../util/WebUtils.hpp"
 #include "../App.hpp"
+#include "../util/WebUtils.hpp"
 
 #include "Router.hpp"
 #include "Session.hpp"
-
 
 void Session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred) {
     boost::ignore_unused(bytes_transferred);
@@ -14,26 +13,25 @@ void Session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred
     // This means they closed the connection
     if (ec == boost::beast::http::error::end_of_stream)
         return close();
-//    if (ec) {
-//        std::cerr <<"HTTP Session Read failed: " << ec.message() <<'\n';
-//        auto bd = (char*) m_buffer.data().data();
-//        size_t i = 0;
-//        std::cout <<"Buffer: ";
-//        while (i < m_buffer.size()) {
-//            size_t incr = (i+10) > m_buffer.size() ? (m_buffer.size() - i) : 10;
-//            for (size_t j = 0; j < incr; j++) {
-//                std::cout <<"" <<bd[i+j];
-//            }
-////            std::cout <<'\n';
-//            i+= incr;
-//        }
-//        std::cout <<std::endl;
-//        return;
-//    }
+    //    if (ec) {
+    //        std::cerr <<"HTTP Session Read failed: " << ec.message() <<'\n';
+    //        auto bd = (char*) m_buffer.data().data();
+    //        size_t i = 0;
+    //        std::cout <<"Buffer: ";
+    //        while (i < m_buffer.size()) {
+    //            size_t incr = (i+10) > m_buffer.size() ? (m_buffer.size() - i) : 10;
+    //            for (size_t j = 0; j < incr; j++) {
+    //                std::cout <<"" <<bd[i+j];
+    //            }
+    ////            std::cout <<'\n';
+    //            i+= incr;
+    //        }
+    //        std::cout <<std::endl;
+    //        return;
+    //    }
 
     route_request(shared_from_this());
 }
-
 
 std::map<std::string, std::string>& Session::get_cookies() {
     if (m_cookies.empty()) {
@@ -46,9 +44,8 @@ std::map<std::string, std::string>& Session::get_cookies() {
     return m_cookies;
 }
 
-
 Session::User Session::find_user() {
-    static const User unauthenticated = { .domain=nullptr, .user=" " };
+    static const User unauthenticated = {.domain = nullptr, .user = " "};
     auto& cookies = get_cookies();
 
     // Local User authentication
@@ -58,14 +55,14 @@ Session::User Session::find_user() {
         if (user == nullptr)
             return unauthenticated;
         else
-            return { .domain=nullptr, .user=user->get_username() };
+            return {.domain = nullptr, .user = user->get_username()};
     }
 
     // Peer authentication
     auto it = m_req.find("Fiy-Peer");
     if (it == m_req.end() || it->value().empty()) {
-//    if (*it.empty()) {
-//        std::cout << "missing auth token\n";
+        //    if (*it.empty()) {
+        //        std::cout << "missing auth token\n";
         return unauthenticated;
     }
     auto peer = g_app->m_peers.get_peer_from_token(it->value());
@@ -75,7 +72,7 @@ Session::User Session::find_user() {
     }
     auto user = m_req.at("Fiy-User");
     DEBUG_LOG("remote user authenticated\n");
-    return { .domain=peer->m_domain, .user=user };
+    return {.domain = peer->m_domain, .user = user};
 }
 
 std::shared_ptr<LocalUser> Session::find_user_local() {

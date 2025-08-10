@@ -4,15 +4,14 @@
 
 #include "globals.hpp"
 
-#include "Peers.hpp"
-#include "DB.hpp"
 #include "Config.hpp"
-#include "Mods.hpp"
-#include "Pages.hpp"
-#include "LocalUsers.hpp"
+#include "DB.hpp"
 #include "HttpClient.hpp"
 #include "HttpsClient.hpp"
-
+#include "LocalUsers.hpp"
+#include "Mods.hpp"
+#include "Pages.hpp"
+#include "Peers.hpp"
 
 /**
  * Global protocol server app singleton
@@ -31,11 +30,8 @@ public:
     HttpClient m_http;
     HttpsClient m_https;
 
-
     App() = default;
-    explicit App(const std::string& config_path):
-        m_config(config_path)
-    {}
+    explicit App(const std::string& config_path) : m_config(config_path) {}
 
     bool start();
 

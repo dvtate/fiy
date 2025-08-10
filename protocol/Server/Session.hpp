@@ -6,29 +6,28 @@
 
 #include <memory>
 
+#include <boost/asio/dispatch.hpp>
+#include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
-#include <boost/asio/dispatch.hpp>
-#include <boost/asio/strand.hpp>
 #include <boost/config.hpp>
 
 #include <algorithm>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <string>
 #include <thread>
 #include <vector>
-#include <map>
 
-namespace beast = boost::beast;         // from <boost/beast.hpp>
-namespace http = beast::http;           // from <boost/beast/http.hpp>
-using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+namespace beast = boost::beast;    // from <boost/beast.hpp>
+namespace http = beast::http;      // from <boost/beast/http.hpp>
+using tcp = boost::asio::ip::tcp;  // from <boost/asio/ip/tcp.hpp>
 
 class LocalUser;
-
 
 // Handles an HTTP server connection
 class Session : public std::enable_shared_from_this<Session> {
@@ -38,7 +37,7 @@ class Session : public std::enable_shared_from_this<Session> {
 
     std::map<std::string, std::string> m_cookies;
 
-    using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+    using tcp = boost::asio::ip::tcp;  // from <boost/asio/ip/tcp.hpp>
 
 public:
     using Req = boost::beast::http::request<boost::beast::http::string_body>;
@@ -66,11 +65,15 @@ public:
     };
 
     // Take ownership of the stream
-    explicit Session(tcp::socket&& socket): m_stream(std::move(socket)) { }
+    explicit Session(tcp::socket&& socket) : m_stream(std::move(socket)) {}
 
-    inline Req& req() { return m_req; };
+    inline Req& req() {
+        return m_req;
+    };
     std::map<std::string, std::string>& get_cookies();
-    void clear_cookie_cache() { m_cookies.clear(); }
+    void clear_cookie_cache() {
+        m_cookies.clear();
+    }
     User find_user();
     std::shared_ptr<LocalUser> find_user_local();
 
@@ -79,12 +82,8 @@ public:
         // on the I/O objects in this session. Although not strictly necessary
         // for single-threaded contexts, this example code is written to be
         // thread-safe by default.
-        boost::asio::dispatch(m_stream.get_executor(),
-            boost::beast::bind_front_handler(
-                &Session::do_read,
-                shared_from_this()
-            )
-        );
+        boost::asio::dispatch(m_stream.get_executor(), boost::beast::bind_front_handler(
+                                                           &Session::do_read, shared_from_this()));
     }
 
     void respond(boost::beast::http::message_generator&& res) {
@@ -92,17 +91,11 @@ public:
 
         // Write the response
         boost::beast::async_write(
-            m_stream,
-            std::move(res),
-            boost::beast::bind_front_handler(
-                &Session::on_write,
-                shared_from_this(),
-                keep_alive
-            )
-        );
+            m_stream, std::move(res),
+            boost::beast::bind_front_handler(&Session::on_write, shared_from_this(), keep_alive));
     }
 
-    template<class T>
+    template <class T>
     inline boost::beast::http::message_generator prep(boost::beast::http::response<T> msg) {
         msg.keep_alive(m_req.keep_alive());
         msg.prepare_payload();
@@ -127,23 +120,18 @@ protected:
         m_stream.expires_after(std::chrono::seconds(30));
 
         // Read a request
-        boost::beast::http::async_read(m_stream, m_buffer, m_req,
-             beast::bind_front_handler(
-                 &Session::on_read,
-                 shared_from_this()));
+        boost::beast::http::async_read(
+            m_stream, m_buffer, m_req,
+            beast::bind_front_handler(&Session::on_read, shared_from_this()));
     }
 
     void on_read(boost::beast::error_code ec, std::size_t bytes_transferred);
 
-    void on_write(
-        bool keep_alive,
-        beast::error_code ec,
-        std::size_t bytes_transferred
-    ) {
+    void on_write(bool keep_alive, beast::error_code ec, std::size_t bytes_transferred) {
         boost::ignore_unused(bytes_transferred);
 
         if (ec) {
-            std::cerr <<"HTTP Session Write failed: " <<ec.message() <<'\n';
+            std::cerr << "HTTP Session Write failed: " << ec.message() << '\n';
             return;
         }
 

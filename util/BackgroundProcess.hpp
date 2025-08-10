@@ -15,7 +15,7 @@ public:
     pid_t m_pid;
     const std::string m_path;
 
-    explicit BackgroundProcess(std::string path): m_path(std::move(path)) {}
+    explicit BackgroundProcess(std::string path) : m_path(std::move(path)) {}
 
     void start();
 

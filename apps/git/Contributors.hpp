@@ -5,9 +5,9 @@
 #ifndef FEDIY_CONTRIBUTORS_HPP
 #define FEDIY_CONTRIBUTORS_HPP
 
+#include <memory>
 #include <string>
 #include <unordered_map>
-#include <memory>
 
 class User;
 struct FederatedUser {
@@ -16,10 +16,6 @@ struct FederatedUser {
     std::shared_ptr<User> user;
 };
 
-std::unordered_map<std::string, FederatedUser> parse_contributors_txt(const std::string& path) {
+std::unordered_map<std::string, FederatedUser> parse_contributors_txt(const std::string& path) {}
 
-}
-
-
-#endif //FEDIY_CONTRIBUTORS_HPP
-
+#endif  // FEDIY_CONTRIBUTORS_HPP

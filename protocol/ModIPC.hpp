@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <string>
-#include <functional>
 #include <dlfcn.h>
+#include <functional>
+#include <string>
 
 #include <boost/beast.hpp>
 
@@ -28,7 +28,7 @@ public:
 
     std::string m_ipc_uri;
 
-    ModIPC(Mod* mod, std::string path): m_mod(mod), m_ipc_uri(std::move(path)) {}
+    ModIPC(Mod* mod, std::string path) : m_mod(mod), m_ipc_uri(std::move(path)) {}
     virtual ~ModIPC() = default;
 
     /// Initialize the app
@@ -39,22 +39,18 @@ public:
 
     /// Handle user request
     virtual void handle_request(std::shared_ptr<Session> conn) = 0;
-    virtual void handle_request(
-        const fiy_request_t* req,
-        void* context,
-        void (*callback)(const fiy_response_t*, void*)
-    ) = 0;
+    virtual void handle_request(const fiy_request_t* req, void* context,
+                                void (*callback)(const fiy_response_t*, void*)) = 0;
 
     // IPC interface
     enum class IPCType {
-        SHARED_LIBRARY,     // .so file
-        SOCKET,             // unix socket connection
-        NETWORK             // tcp connection
+        SHARED_LIBRARY,  // .so file
+        SOCKET,          // unix socket connection
+        NETWORK          // tcp connection
     };
 
     [[nodiscard]] virtual IPCType ipc_type() = 0;
 };
-
 
 // Communicates with the module by dynamically linking
 struct ModDLLHostInfo;
@@ -65,7 +61,7 @@ class ModDLLIPC : public ModIPC {
     ModDLLHostInfo* m_host_info{nullptr};
 
 public:
-    ModDLLIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
+    ModDLLIPC(Mod* mod, std::string path) : ModIPC(mod, std::move(path)) {}
 
     ~ModDLLIPC() {
         ModDLLIPC::stop();
@@ -78,18 +74,16 @@ public:
     bool stop() override;
     bool start() override;
     void handle_request(std::shared_ptr<Session> conn) override;
-    void handle_request(
-        const fiy_request_t* req,
-        void* context,
-        void (*callback)(const fiy_response_t*, void*)
-    ) override;
+    void handle_request(const fiy_request_t* req, void* context,
+                        void (*callback)(const fiy_response_t*, void*)) override;
 };
 
 // IPC over the network
 class ModNetIPC : public ModIPC {
     std::string m_auth_secret;
+
 public:
-    ModNetIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
+    ModNetIPC(Mod* mod, std::string path) : ModIPC(mod, std::move(path)) {}
 
     IPCType ipc_type() final {
         return IPCType::NETWORK;
@@ -97,23 +91,19 @@ public:
 
     virtual bool start() override;
     virtual bool stop() override;
-        // Invalidate credentials both ways
-
+    // Invalidate credentials both ways
 
     // TODO
     void handle_request(std::shared_ptr<Session>) override;
-    void handle_request(
-        const fiy_request_t* req,
-        void* context,
-        void (*callback)(const fiy_response_t*, void*)
-    ) override {}
+    void handle_request(const fiy_request_t* req, void* context,
+                        void (*callback)(const fiy_response_t*, void*)) override {}
 };
 
 // IPC over unix socket
 // there's no reason to use this as it's worse performance than dll
 // and can't be done over network (right?)
-//class ModSockIPC : public ModIPC {
-//public:
+// class ModSockIPC : public ModIPC {
+// public:
 //    ModSockIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
 //
 //    IPCType ipc_type() final {

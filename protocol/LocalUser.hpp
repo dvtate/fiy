@@ -1,14 +1,13 @@
 #pragma once
 
-#include <string>
-#include <memory>
 #include <deque>
+#include <memory>
+#include <string>
 #include <unordered_map>
 
 #include "../util/Crypto.hpp"
 
 #include "Peer.hpp"
-
 
 /**
  * User authenticated on our instance (not remotee)
@@ -16,13 +15,16 @@
 class LocalUser {
 protected:
     std::string m_username;
+
 public:
     bool m_is_admin{false};
+
 protected:
     std::string m_name;
+
 public:
     std::string m_email;
-    std::string m_locale; // TODO replace this with something better?
+    std::string m_locale;  // TODO replace this with something better?
     time_t m_joined_ts{0};
 
     static constexpr size_t USERNAME_MAX_LENGTH = 32;
@@ -30,26 +32,17 @@ public:
     static constexpr size_t LOCALE_MAX_LENGTH = 12;
     static constexpr size_t EMAIL_MAX_LENGTH = 255;
 
-    LocalUser(std::string username, bool is_admin):
-        m_username(std::move(username)),
-        m_is_admin(is_admin)
-    {}
+    LocalUser(std::string username, bool is_admin)
+        : m_username(std::move(username)), m_is_admin(is_admin) {}
 
-    LocalUser(
-        std::string username,
-        bool is_admin,
-        std::string name,
-        std::string email,
-        std::string locale,
-        time_t joined_ts
-    ):
-        m_username(std::move(username)),
-        m_is_admin(is_admin),
-        m_name(std::move(name)),
-        m_email(std::move(email)),
-        m_locale(std::move(locale)),
-        m_joined_ts(joined_ts)
-    {}
+    LocalUser(std::string username, bool is_admin, std::string name, std::string email,
+              std::string locale, time_t joined_ts)
+        : m_username(std::move(username)),
+          m_is_admin(is_admin),
+          m_name(std::move(name)),
+          m_email(std::move(email)),
+          m_locale(std::move(locale)),
+          m_joined_ts(joined_ts) {}
 
     /**
      * Update user's username
@@ -73,16 +66,16 @@ public:
      * @return nullptr on success, reason string on fail
      * @deprecated This feature seems problematic
      */
-//    const char* set_username(std::string username) {
-//        if (username.size() > USERNAME_MAX_LENGTH)
-//            return "Username must be less than 32 characters";
-//        for (auto c: username)
-//            if (!isalnum(c))
-//                return "Username must have only alphanumeric characters";
-//        m_username = std::move(username);
-//        // TODO notify db, peers & apps
-//        return nullptr;
-//    }
+    //    const char* set_username(std::string username) {
+    //        if (username.size() > USERNAME_MAX_LENGTH)
+    //            return "Username must be less than 32 characters";
+    //        for (auto c: username)
+    //            if (!isalnum(c))
+    //                return "Username must have only alphanumeric characters";
+    //        m_username = std::move(username);
+    //        // TODO notify db, peers & apps
+    //        return nullptr;
+    //    }
 
     [[nodiscard]] const std::string& get_username() const {
         return m_username;
@@ -90,11 +83,11 @@ public:
 
     [[nodiscard]] std::string json() const;
 
-//    static std::string login(const std::string& username, const std::string& password);
+    //    static std::string login(const std::string& username, const std::string& password);
 
     class AuthToken {
     public:
-        static constexpr time_t SESSION_LIFETIME = 60 * 60 * 24 * 14; // 2 weeks
+        static constexpr time_t SESSION_LIFETIME = 60 * 60 * 24 * 14;  // 2 weeks
         static constexpr int TOKEN_LEN = 24;
 
         std::shared_ptr<LocalUser> m_user;

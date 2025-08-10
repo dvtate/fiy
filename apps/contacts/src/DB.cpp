@@ -11,15 +11,14 @@
 extern const fiy_host_info_t* g_host_info;
 
 SQLite::Database& connection() {
-    static thread_local SQLite::Database db{
-        std::string(g_host_info->data_dir) + "/db.db3",
-        SQLite::OPEN_READWRITE
-    };
+    static thread_local SQLite::Database db{std::string(g_host_info->data_dir) + "/db.db3",
+                                            SQLite::OPEN_READWRITE};
     return db;
 }
 
 std::vector<Contact> DB::get_contacts(const std::string_view owner) {
-    static thread_local SQLite::Statement query{connection(), "SELECT * FROM Contacts WHERE ownerUserName=?"};
+    static thread_local SQLite::Statement query{connection(),
+                                                "SELECT * FROM Contacts WHERE ownerUserName=?"};
     std::vector<Contact> ret;
 
     // TODO make issue string_view support in SQLiteCpp
@@ -41,7 +40,7 @@ std::vector<Contact> DB::get_contacts(const std::string_view owner) {
                 auto n = fields_json.size();
                 if (n % 2 == 0)
                     for (int i = 0; i < n; i += 2)
-                        fields.emplace_back(fields_json[i], fields_json[i+1]);
+                        fields.emplace_back(fields_json[i], fields_json[i + 1]);
                 else
                     for (json f : fields_json)
                         if (f.is_array() && f.size() == 2)

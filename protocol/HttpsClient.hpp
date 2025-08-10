@@ -4,22 +4,22 @@
 
 #pragma once
 
+#include <boost/asio/ssl.hpp>
+#include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/strand.hpp>
 
 #include "globals.hpp"
 
-
-template<class RequestType, class CallbackType, class ErrCallbackType>
-class HttpsRequest : public std::enable_shared_from_this<HttpsRequest<RequestType, CallbackType, ErrCallbackType>> {
-    using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+template <class RequestType, class CallbackType, class ErrCallbackType>
+class HttpsRequest : public std::enable_shared_from_this<
+                         HttpsRequest<RequestType, CallbackType, ErrCallbackType>> {
+    using tcp = boost::asio::ip::tcp;  // from <boost/asio/ip/tcp.hpp>
 
     tcp::resolver m_resolver;
     boost::asio::ssl::stream<boost::beast::tcp_stream> m_stream;
-    boost::beast::flat_buffer m_buffer; // (Must persist between reads)
+    boost::beast::flat_buffer m_buffer;  // (Must persist between reads)
 
     std::string m_host;
     std::string m_port;
@@ -27,46 +27,36 @@ class HttpsRequest : public std::enable_shared_from_this<HttpsRequest<RequestTyp
     boost::beast::http::response<boost::beast::http::string_body> m_res;
     CallbackType m_cb;
     ErrCallbackType m_err_cb;
-public:
 
+public:
     HttpsRequest(
-        boost::asio::any_io_executor ex,
-        boost::asio::ssl::context& ssl_ctx,
-        std::string host,
-        std::string port,
-        RequestType req,
-        CallbackType cb,
-        ErrCallbackType err_cb = [](std::string err){ DEBUG_LOG(err); }
-    ):  m_resolver(ex),
-        m_stream(ex, ssl_ctx),
-        m_host(std::move(host)),
-        m_port(std::move(port)),
-        m_req(std::move(req)),
-        m_cb(std::move(cb)),
-        m_err_cb(std::move(err_cb))
-    {}
+        boost::asio::any_io_executor ex, boost::asio::ssl::context& ssl_ctx, std::string host,
+        std::string port, RequestType req, CallbackType cb,
+        ErrCallbackType err_cb = [](std::string err) { DEBUG_LOG(err); })
+        : m_resolver(ex),
+          m_stream(ex, ssl_ctx),
+          m_host(std::move(host)),
+          m_port(std::move(port)),
+          m_req(std::move(req)),
+          m_cb(std::move(cb)),
+          m_err_cb(std::move(err_cb)) {}
 
     void run() {
         // Set SNI Hostname (many hosts need this to handshake successfully)
-        if(! SSL_set_tlsext_host_name(m_stream.native_handle(), m_host.c_str())) {
-            boost::beast::error_code ec{
-                    static_cast<int>(::ERR_get_error()),
-                    boost::asio::error::get_ssl_category()};
+        if (!SSL_set_tlsext_host_name(m_stream.native_handle(), m_host.c_str())) {
+            boost::beast::error_code ec{static_cast<int>(::ERR_get_error()),
+                                        boost::asio::error::get_ssl_category()};
             m_err_cb(ec.message());
             return;
         }
 
         // Set the expected hostname in the peer certificate for verification
-        m_stream.set_verify_callback(
-            boost::asio::ssl::host_name_verification(m_host.c_str()));
+        m_stream.set_verify_callback(boost::asio::ssl::host_name_verification(m_host.c_str()));
 
         // Look up the domain name
         m_resolver.async_resolve(
-            m_host.c_str(),
-            m_port.c_str(),
-            boost::beast::bind_front_handler(
-                &HttpsRequest::on_resolve,
-                this->shared_from_this()));
+            m_host.c_str(), m_port.c_str(),
+            boost::beast::bind_front_handler(&HttpsRequest::on_resolve, this->shared_from_this()));
     }
 
 private:
@@ -77,15 +67,12 @@ private:
         }
 
         // Set a timeout on the operation
-        boost::beast::get_lowest_layer(m_stream)
-            .expires_after(std::chrono::seconds(30));
+        boost::beast::get_lowest_layer(m_stream).expires_after(std::chrono::seconds(30));
 
         // Make the connection on the IP address we get from a lookup
         boost::beast::get_lowest_layer(m_stream).async_connect(
             results,
-            boost::beast::bind_front_handler(
-                &HttpsRequest::on_connect,
-                this->shared_from_this()));
+            boost::beast::bind_front_handler(&HttpsRequest::on_connect, this->shared_from_this()));
     }
 
     void on_connect(boost::beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
@@ -95,11 +82,9 @@ private:
         }
 
         // Perform the SSL handshake
-        m_stream.async_handshake(
-            boost::asio::ssl::stream_base::client,
-            boost::beast::bind_front_handler(
-                &HttpsRequest::on_handshake,
-                this->shared_from_this()));
+        m_stream.async_handshake(boost::asio::ssl::stream_base::client,
+                                 boost::beast::bind_front_handler(&HttpsRequest::on_handshake,
+                                                                  this->shared_from_this()));
     }
 
     void on_handshake(boost::beast::error_code ec) {
@@ -109,14 +94,12 @@ private:
         }
 
         // Set a timeout on the operation
-        boost::beast::get_lowest_layer(m_stream)
-            .expires_after(std::chrono::seconds(30));
+        boost::beast::get_lowest_layer(m_stream).expires_after(std::chrono::seconds(30));
 
         // Send the HTTP request to the remote host
-        boost::beast::http::async_write(m_stream, m_req,
-            boost::beast::bind_front_handler(
-                &HttpsRequest::on_write,
-                this->shared_from_this()));
+        boost::beast::http::async_write(
+            m_stream, m_req,
+            boost::beast::bind_front_handler(&HttpsRequest::on_write, this->shared_from_this()));
     }
 
     void on_write(boost::beast::error_code ec, std::size_t bytes_transferred) {
@@ -128,10 +111,9 @@ private:
         }
 
         // Receive the HTTP response
-        boost::beast::http::async_read(m_stream, m_buffer, m_res,
-            boost::beast::bind_front_handler(
-                &HttpsRequest::on_read,
-                this->shared_from_this()));
+        boost::beast::http::async_read(
+            m_stream, m_buffer, m_res,
+            boost::beast::bind_front_handler(&HttpsRequest::on_read, this->shared_from_this()));
     }
 
     void on_read(boost::beast::error_code ec, std::size_t bytes_transferred) {
@@ -143,14 +125,11 @@ private:
         }
 
         // Set a timeout on the operation
-        boost::beast::get_lowest_layer(m_stream)
-            .expires_after(std::chrono::seconds(10));
+        boost::beast::get_lowest_layer(m_stream).expires_after(std::chrono::seconds(10));
 
         // Gracefully close the stream
         m_stream.async_shutdown(
-            boost::beast::bind_front_handler(
-                &HttpsRequest::on_shutdown,
-                this->shared_from_this()));
+            boost::beast::bind_front_handler(&HttpsRequest::on_shutdown, this->shared_from_this()));
 
         // User takes the message and does stuff with it
         m_cb(std::move(m_res));
@@ -190,19 +169,13 @@ class HttpsClient {
 
     static boost::asio::io_context* get_io_context();
 
-
 public:
     HttpsClient() {
         prep_ssl();
     }
 
-    template<class RequestType, class CallbackType, class ErrCallbackType>
-    void request(
-        std::string host,
-        RequestType req,
-        CallbackType cb,
-        ErrCallbackType err_cb
-    ) {
+    template <class RequestType, class CallbackType, class ErrCallbackType>
+    void request(std::string host, RequestType req, CallbackType cb, ErrCallbackType err_cb) {
         std::string port = "443";
         const auto colon_pos = host.find(':');
         if (colon_pos != std::string::npos) {
@@ -216,25 +189,17 @@ public:
             }
         }
 
-        DEBUG_LOG("FETCH: " <<req.method_string() <<" https://" <<host <<":" <<port <<req.target());
+        DEBUG_LOG("FETCH: " << req.method_string() << " https://" << host << ":" << port
+                            << req.target());
 
         std::make_shared<HttpsRequest<RequestType, CallbackType, ErrCallbackType>>(
-            boost::asio::make_strand(*get_io_context()),
-            m_ssl,
-            std::move(host),
-            std::move(port),
-            std::move(req),
-            std::move(cb),
-            std::move(err_cb)
-        )->run();
+            boost::asio::make_strand(*get_io_context()), m_ssl, std::move(host), std::move(port),
+            std::move(req), std::move(cb), std::move(err_cb))
+            ->run();
     }
 
-    template<class RequestType, class CallbackType>
-    void request(
-        std::string host,
-        RequestType req,
-        CallbackType cb
-    ) {
-        request(host, req, cb, [](std::string err){ DEBUG_LOG(err); });
+    template <class RequestType, class CallbackType>
+    void request(std::string host, RequestType req, CallbackType cb) {
+        request(host, req, cb, [](std::string err) { DEBUG_LOG(err); });
     }
 };

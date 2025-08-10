@@ -1,7 +1,7 @@
 
+#include <memory>
 #include <mutex>
 #include <string>
-#include <memory>
 #include <vector>
 
 #include "GitRepo.hpp"

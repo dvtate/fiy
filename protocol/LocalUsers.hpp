@@ -4,11 +4,11 @@
 
 #pragma once
 
+#include <atomic>
+#include <chrono>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
-#include <atomic>
-#include <thread>
-#include <chrono>
 
 #include "../util/RWMutex.hpp"
 
@@ -27,11 +27,9 @@ private:
      *
      * Using set instead of map to save memory
      */
-    std::unordered_set<
-        LocalUser::AuthToken,
-        LocalUser::AuthToken::Hash,
-        LocalUser::AuthToken::TokenEquals
-    > m_token_cache;
+    std::unordered_set<LocalUser::AuthToken, LocalUser::AuthToken::Hash,
+                       LocalUser::AuthToken::TokenEquals>
+        m_token_cache;
 
     /**
      * Periodically filters out expired auth tokens
@@ -56,5 +54,4 @@ public:
     void deauth_token(const std::string& auth_token);
     void delete_user(const std::string& username);
     void delete_user(std::shared_ptr<LocalUser> username);
-
 };

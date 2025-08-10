@@ -4,22 +4,23 @@
 
 #pragma once
 
+#include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
-#include <boost/asio/strand.hpp>
 
 #include "globals.hpp"
 
 // TODO callback for errors?
 
-template<class RequestType, class CallbackType, class ErrCallbackType>
-class HttpRequest : public std::enable_shared_from_this<HttpRequest<RequestType, CallbackType, ErrCallbackType>> {
-    using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+template <class RequestType, class CallbackType, class ErrCallbackType>
+class HttpRequest
+    : public std::enable_shared_from_this<HttpRequest<RequestType, CallbackType, ErrCallbackType>> {
+    using tcp = boost::asio::ip::tcp;  // from <boost/asio/ip/tcp.hpp>
 
     tcp::resolver m_resolver;
     boost::beast::tcp_stream m_stream;
-    boost::beast::flat_buffer m_buffer; // (Must persist between reads)
+    boost::beast::flat_buffer m_buffer;  // (Must persist between reads)
 
     std::string m_host;
     std::string m_port;
@@ -30,31 +31,22 @@ class HttpRequest : public std::enable_shared_from_this<HttpRequest<RequestType,
 
 public:
     HttpRequest(
-        boost::asio::io_context* ioc,
-        std::string host,
-        std::string port,
-        RequestType req,
-        CallbackType cb,
-        ErrCallbackType err_cb = [](std::string err){ DEBUG_LOG(err); }
-    ):  m_resolver(boost::asio::make_strand(*ioc)),
-        m_stream(boost::asio::make_strand(*ioc)),
-        m_host(std::move(host)),
-        m_port(std::move(port)),
-        m_req(std::move(req)),
-        m_cb(std::move(cb)),
-        m_err_cb(std::move(err_cb))
-    {}
-
+        boost::asio::io_context* ioc, std::string host, std::string port, RequestType req,
+        CallbackType cb, ErrCallbackType err_cb = [](std::string err) { DEBUG_LOG(err); })
+        : m_resolver(boost::asio::make_strand(*ioc)),
+          m_stream(boost::asio::make_strand(*ioc)),
+          m_host(std::move(host)),
+          m_port(std::move(port)),
+          m_req(std::move(req)),
+          m_cb(std::move(cb)),
+          m_err_cb(std::move(err_cb)) {}
 
     // Start the asynchronous operation
     void run() {
         // Look up the domain name
         m_resolver.async_resolve(
-            m_host.c_str(),
-            m_port.c_str(),
-            boost::beast::bind_front_handler(
-                &HttpRequest::on_resolve,
-                this->shared_from_this()));
+            m_host.c_str(), m_port.c_str(),
+            boost::beast::bind_front_handler(&HttpRequest::on_resolve, this->shared_from_this()));
     }
 
 private:
@@ -65,15 +57,11 @@ private:
         }
 
         // Set a timeout on the operation
-        boost::beast::get_lowest_layer(m_stream)
-                .expires_after(std::chrono::seconds(30));
+        boost::beast::get_lowest_layer(m_stream).expires_after(std::chrono::seconds(30));
 
         // Make the connection on the IP address we get from a lookup
-        m_stream.async_connect(
-            results,
-            boost::beast::bind_front_handler(
-                &HttpRequest::on_connect,
-                this->shared_from_this()));
+        m_stream.async_connect(results, boost::beast::bind_front_handler(&HttpRequest::on_connect,
+                                                                         this->shared_from_this()));
     }
 
     void on_connect(boost::beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
@@ -83,12 +71,10 @@ private:
         }
 
         // Send the request to the remote host
-        boost::beast::http::async_write(m_stream, m_req,
-            boost::beast::bind_front_handler(
-                &HttpRequest::on_write,
-                this->shared_from_this()));
+        boost::beast::http::async_write(
+            m_stream, m_req,
+            boost::beast::bind_front_handler(&HttpRequest::on_write, this->shared_from_this()));
     }
-
 
     void on_write(boost::beast::error_code ec, std::size_t bytes_transferred) {
         boost::ignore_unused(bytes_transferred);
@@ -99,12 +85,10 @@ private:
         }
 
         // Receive the HTTP response
-        boost::beast::http::async_read(m_stream, m_buffer, m_res,
-             boost::beast::bind_front_handler(
-                 &HttpRequest::on_read,
-                 this->shared_from_this()));
+        boost::beast::http::async_read(
+            m_stream, m_buffer, m_res,
+            boost::beast::bind_front_handler(&HttpRequest::on_read, this->shared_from_this()));
     }
-
 
     void on_read(boost::beast::error_code ec, std::size_t bytes_transferred) {
         boost::ignore_unused(bytes_transferred);
@@ -121,29 +105,21 @@ private:
         m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
 
         // not_connected happens sometimes so don't bother reporting it.
-        if(ec && ec != boost::beast::errc::not_connected) {
+        if (ec && ec != boost::beast::errc::not_connected) {
             m_err_cb(ec.what());
             return;
         }
 
         // If we get here then the connection is closed gracefully
     }
-
 };
 
 class HttpClient {
-
     static boost::asio::io_context* get_io_context();
 
 public:
-
-    template<class RequestType, class CallbackType, class ErrCallbackType>
-    void request(
-        std::string host,
-        RequestType req,
-        CallbackType cb,
-        ErrCallbackType err_cb
-    ) {
+    template <class RequestType, class CallbackType, class ErrCallbackType>
+    void request(std::string host, RequestType req, CallbackType cb, ErrCallbackType err_cb) {
         std::string port = "80";
         const auto colon_pos = host.find(':');
         if (colon_pos != std::string::npos) {
@@ -157,24 +133,17 @@ public:
             }
         }
 
-        DEBUG_LOG("FETCH: " <<req.method_string() <<" http://" <<host <<":" <<port <<req.target());
+        DEBUG_LOG("FETCH: " << req.method_string() << " http://" << host << ":" << port
+                            << req.target());
 
         std::make_shared<HttpRequest<RequestType, CallbackType, ErrCallbackType>>(
-            get_io_context(),
-            std::move(host),
-            std::move(port),
-            std::move(req),
-            std::move(cb),
-            std::move(err_cb)
-        )->run();
+            get_io_context(), std::move(host), std::move(port), std::move(req), std::move(cb),
+            std::move(err_cb))
+            ->run();
     }
 
-    template<class RequestType, class CallbackType>
-    void request(
-        std::string host,
-        RequestType req,
-        CallbackType cb
-    ) {
-        request(host, req, cb, [](std::string err){ DEBUG_LOG(err); });
+    template <class RequestType, class CallbackType>
+    void request(std::string host, RequestType req, CallbackType cb) {
+        request(host, req, cb, [](std::string err) { DEBUG_LOG(err); });
     }
 };

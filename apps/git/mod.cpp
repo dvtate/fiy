@@ -35,7 +35,7 @@ static void handle_request(fiy_request_t* request, fiy_callback_t callback) {
 
     std::string_view path = request->path;
 
-    path.remove_prefix(1); // remove leading /
+    path.remove_prefix(1);  // remove leading /
     auto slash_pos = path.find('/');
     std::string_view component = path.substr(0, slash_pos);
 
@@ -45,20 +45,12 @@ static void handle_request(fiy_request_t* request, fiy_callback_t callback) {
     } else if (component == "new") {
         // new repo endpoint
         goto respond;
-    } else if (
-        component == "issues"
-        || component == "notifications"
-        || component == ""
-    ) {
+    } else if (component == "issues" || component == "notifications" || component == "") {
         goto respond;
     }
 
-    resp = {
-        .status=404,
-        .body="not found"
-    };
+    resp = {.status = 404, .body = "not found"};
 
 respond:
     callback(&resp);
 }
-

@@ -11,11 +11,11 @@
 #include "Contact.hpp"
 
 namespace DB {
-    using Exception = SQLite::Exception;
+using Exception = SQLite::Exception;
 
-    SQLite::Database& connection();
+SQLite::Database& connection();
 
-    std::vector<Contact> get_contacts(const std::string_view owner);
-    bool get_user_profile(const std::string_view user, int level, Contact& c);
-    Contact get_contact_by_id(int64_t id);
-} // namespace DB
+std::vector<Contact> get_contacts(const std::string_view owner);
+bool get_user_profile(const std::string_view user, int level, Contact& c);
+Contact get_contact_by_id(int64_t id);
+}  // namespace DB

@@ -6,9 +6,7 @@
 
 #include "Contact.hpp"
 
-std::vector<std::pair<std::string, std::string>> vcard_fields {
-    {  }
-};
+std::vector<std::pair<std::string, std::string>> vcard_fields{{}};
 
 std::string Contact::vcard() {
     std::string ret = "BEGIN:VCARD\nVERSION:4.0\n";
@@ -19,18 +17,17 @@ std::string Contact::vcard() {
 
 std::string Contact::json() {
     nlohmann::json::array_t fields;
-    for (auto& [k , v] : m_fields)
-        fields.emplace_back(nlohmann::json::array({ k, v }));
+    for (auto& [k, v] : m_fields)
+        fields.emplace_back(nlohmann::json::array({k, v}));
 
     nlohmann::json ret = {
-        { "name", m_name },
-        { "name", m_fiy_user },
-        { "fields", std::move(fields) },
+        {"name", m_name},
+        {"name", m_fiy_user},
+        {"fields", std::move(fields)},
     };
 
     return ret.dump();
 }
-
 
 Contact Contact::json(const std::string& json_str) {
     // TODO

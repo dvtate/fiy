@@ -6,71 +6,66 @@
 
 #include "../App.hpp"
 
-#include "Session.hpp"
 #include "Router.hpp"
+#include "Session.hpp"
 
-inline std::pair<std::string, std::string> parse_app_request_get(const std::shared_ptr<Session>& conn) {
+inline std::pair<std::string, std::string> parse_app_request_get(
+    const std::shared_ptr<Session>& conn) {
     auto path = conn->req().target();
     if (path.starts_with("/mods")) {
         path.remove_prefix(5);
         if (path[0] == '/')
             path.remove_prefix(1);
-        return { path, conn->req().at("Fiy-Path") };
+        return {path, conn->req().at("Fiy-Path")};
     }
 
     auto hostname = conn->req()["Host"];
     if (!hostname.empty()) {
         std::string_view hhn = g_app->m_config.m_hostname;
-        if (hostname.ends_with(hhn) && hhn.size() != hostname.size() && hostname.size() - hhn.size() > 1) {
+        if (hostname.ends_with(hhn) && hhn.size() != hostname.size() &&
+            hostname.size() - hhn.size() > 1) {
             // Subdomain app  app.example.com/uri/path
-            return {
-                hostname.substr(0, hostname.size() - hhn.size() - 1),
-                path
-            };
+            return {hostname.substr(0, hostname.size() - hhn.size() - 1), path};
         } else if (hostname != hhn) {
             // Invalid request to different host?
-//            Session::DynamicResponse res;
-//            res.result(400);
-//            boost::beast::ostream(res.body())
-//                    << "Wrong host? Expected host to be "
-//                    << hhn.data()
-//                    << " but host was "
-//                    << hostname
-//                    << '\n';
-//            conn->respond(res);
-            std::cerr << "Received request for invalid hostname: expected "
-                      << hhn.data()
-                      << " but host was "
-                      << hostname
-                      << '\n';
+            //            Session::DynamicResponse res;
+            //            res.result(400);
+            //            boost::beast::ostream(res.body())
+            //                    << "Wrong host? Expected host to be "
+            //                    << hhn.data()
+            //                    << " but host was "
+            //                    << hostname
+            //                    << '\n';
+            //            conn->respond(res);
+            std::cerr << "Received request for invalid hostname: expected " << hhn.data()
+                      << " but host was " << hostname << '\n';
         }
     }
 
     // Not a subdomain app  example.com/app/uri/path
     const auto slash_idx = path.find('/', 1);
     if (slash_idx == std::string_view::npos)
-        return { path.empty() ? "" : path.substr(1), "/" };
+        return {path.empty() ? "" : path.substr(1), "/"};
     else
-        return { path.empty() ? "" : path.substr(1, slash_idx - 1), path.substr(slash_idx) };
+        return {path.empty() ? "" : path.substr(1, slash_idx - 1), path.substr(slash_idx)};
 }
 
 inline static void app_send_msg(std::shared_ptr<Session> conn) {
     // Get app
-    auto [ app, uri ] = parse_app_request_get(conn);
+    auto [app, uri] = parse_app_request_get(conn);
 
     // Forward to apps
     Mod* m = g_app->m_mods.get_mod(app);
     if (m == nullptr) {
         Session::DynamicResponse res;
         res.result(404);
-        boost::beast::ostream(res.body())
-                <<"App '" <<app <<"' not found\n";
+        boost::beast::ostream(res.body()) << "App '" << app << "' not found\n";
         res.set(boost::beast::http::field::content_type, "text/html");
         conn->respond(conn->prep(std::move(res)));
-        DEBUG_LOG("Invalid apps: " <<app <<" : " <<uri);
+        DEBUG_LOG("Invalid apps: " << app << " : " << uri);
         return;
     }
-    DEBUG_LOG("Calling App " <<app <<" : " << uri);
+    DEBUG_LOG("Calling App " << app << " : " << uri);
 
     conn->req().target(uri);
     m->m_ipc->handle_request(std::move(conn));
@@ -101,19 +96,28 @@ inline bool str_is_alphanum(const std::string& str) {
 }
 
 void signup_post(std::shared_ptr<Session>&& conn) {
-    static const auto resp_bad_username = signup_page(400, "Username should contain only alphanumeric characters");
-    static const auto resp_username_taken = signup_page(400, "Username is taken, try a different one");
+    static const auto resp_bad_username =
+        signup_page(400, "Username should contain only alphanumeric characters");
+    static const auto resp_username_taken =
+        signup_page(400, "Username is taken, try a different one");
     static const auto resp_bad_form = signup_page(400, "Form Error");
-    static const auto resp_long_username = signup_page(400, "Username must be less than " + std::to_string(LocalUser::USERNAME_MAX_LENGTH) +  " characters");
-    static const auto resp_long_name = signup_page(400, "Name must be less than " + std::to_string(LocalUser::NAME_MAX_LENGTH) +  " characters");
-    static const auto resp_long_contact = signup_page(400, "Contact info must be less than " + std::to_string(LocalUser::EMAIL_MAX_LENGTH) + " characters");
-    static const auto resp_server_error = signup_page(500, "Failed to create account, try again later");
+    static const auto resp_long_username =
+        signup_page(400, "Username must be less than " +
+                             std::to_string(LocalUser::USERNAME_MAX_LENGTH) + " characters");
+    static const auto resp_long_name =
+        signup_page(400, "Name must be less than " + std::to_string(LocalUser::NAME_MAX_LENGTH) +
+                             " characters");
+    static const auto resp_long_contact =
+        signup_page(400, "Contact info must be less than " +
+                             std::to_string(LocalUser::EMAIL_MAX_LENGTH) + " characters");
+    static const auto resp_server_error =
+        signup_page(500, "Failed to create account, try again later");
 
     // Parse form body
     std::deque<std::pair<std::string, std::string>> form;
     if (!WebUtils::parse_form_url_encoded(conn->req().body(), form)) {
         conn->respond(conn->prep(resp_bad_form));
-        DEBUG_LOG("invalid body: '" <<conn->req().body() <<"'");
+        DEBUG_LOG("invalid body: '" << conn->req().body() << "'");
         return;
     }
     std::string username, password, contact, name;
@@ -127,9 +131,9 @@ void signup_post(std::shared_ptr<Session>&& conn) {
         else if (k == "name")
             name = std::move(v);
         else
-            DEBUG_LOG("invalid form field: " <<k);
+            DEBUG_LOG("invalid form field: " << k);
     }
-    LOG("Creating local user: " << username <<"  | " << contact);
+    LOG("Creating local user: " << username << "  | " << contact);
 
     // Validate username
     if (!str_is_alphanum(username)) {
@@ -164,7 +168,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
             return;
         }
     } catch (const DB::Exception& e) {
-        LOG_ERR("Failed to create new user: Database Error: " <<e.what());
+        LOG_ERR("Failed to create new user: Database Error: " << e.what());
     }
 
     auto auth_token = g_app->m_users.login_user(username, password);
@@ -172,16 +176,11 @@ void signup_post(std::shared_ptr<Session>&& conn) {
     Session::EmptyResponse res;
     res.result(boost::beast::http::status::temporary_redirect);
     res.set(boost::beast::http::field::set_cookie,
-        WebUtils::serialize_cookie(
-            "fiy_auth",
-            auth_token.m_token,
-            {   .encode_fn=nullptr,
-                .max_age=LocalUser::AuthToken::SESSION_LIFETIME,
-                .path="/",
-                .http_only=true
-            }
-        )
-    );
+            WebUtils::serialize_cookie("fiy_auth", auth_token.m_token,
+                                       {.encode_fn = nullptr,
+                                        .max_age = LocalUser::AuthToken::SESSION_LIFETIME,
+                                        .path = "/",
+                                        .http_only = true}));
     res.set(boost::beast::http::field::location, "/portal");
     conn->clear_cookie_cache();
     conn->respond(conn->prep(std::move(res)));
@@ -196,56 +195,50 @@ void login_post(std::shared_ptr<Session>&& conn) {
     std::deque<std::pair<std::string, std::string>> form;
     if (!WebUtils::parse_form_url_encoded(conn->req().body(), form)) {
         conn->respond(conn->prep(resp_bad_form));
-        DEBUG_LOG("invalid body: '" <<conn->req().body() <<"'");
+        DEBUG_LOG("invalid body: '" << conn->req().body() << "'");
         return;
     }
     std::string username, password;
-    for (auto&& [k, v]: std::move(form)) {
+    for (auto&& [k, v] : std::move(form)) {
         if (k == "username")
             username = std::move(v);
         else if (k == "password")
             password = std::move(v);
         else {
-            DEBUG_LOG("invalid form field: " << k );
+            DEBUG_LOG("invalid form field: " << k);
         }
     }
 
     // root user?
-//    if (username.empty()) {
-//        callback(m_response_invalid_body);
-//        DEBUG_LOG("empty username");
-//        return;
-//    }
-//    if (password.empty()) {
-//        callback(resp_bad_form);
-//        DEBUG_LOG("empty password");
-//        return;
-//    }
-
+    //    if (username.empty()) {
+    //        callback(m_response_invalid_body);
+    //        DEBUG_LOG("empty username");
+    //        return;
+    //    }
+    //    if (password.empty()) {
+    //        callback(resp_bad_form);
+    //        DEBUG_LOG("empty password");
+    //        return;
+    //    }
 
     // Get auth token for user
     auto auth_token = g_app->m_users.login_user(username, std::move(password));
     if (auth_token.m_user == nullptr) {
         conn->respond(conn->prep(resp_bad_creds));
-        DEBUG_LOG("wrong username/password for user " <<username);
+        DEBUG_LOG("wrong username/password for user " << username);
         return;
     }
 
     // Log user in and send them to portal home
     Session::EmptyResponse res;
-    res.result(boost::beast::http::status::see_other); // 303 - redirect them with get request
+    res.result(boost::beast::http::status::see_other);  // 303 - redirect them with get request
     res.set(boost::beast::http::field::location, "/portal");
     res.set(boost::beast::http::field::set_cookie,
-        WebUtils::serialize_cookie(
-            "fiy_auth",
-            auth_token.m_token,
-            {   .encode_fn=nullptr,
-                .max_age=LocalUser::AuthToken::SESSION_LIFETIME,
-                .path="/",
-                .http_only=true
-            }
-        )
-    );
+            WebUtils::serialize_cookie("fiy_auth", auth_token.m_token,
+                                       {.encode_fn = nullptr,
+                                        .max_age = LocalUser::AuthToken::SESSION_LIFETIME,
+                                        .path = "/",
+                                        .http_only = true}));
     conn->clear_cookie_cache();
     conn->respond(conn->prep(std::move(res)));
 }
@@ -259,10 +252,7 @@ auto server_error(const Str& what) {
     return res;
 }
 
-std::vector<std::string> split_string(
-    const std::string_view str,
-    const std::string& delimiter
-) {
+std::vector<std::string> split_string(const std::string_view str, const std::string& delimiter) {
     std::vector<std::string> ret;
 
     std::string::size_type pos = 0;
@@ -285,7 +275,7 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
     auto domain = parts[0];
     auto token = parts[1];
 
-    std::cout <<"New peer: " <<domain <<" : " <<token <<std::endl;
+    std::cout << "New peer: " << domain << " : " << token << std::endl;
 
     // Add peer with unique auth token
     std::shared_ptr<Peer> p;
@@ -305,22 +295,18 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
     // 3. Send token + symkey, encrypted with the other peer's pubkey
 
     // Decrypt body
-//    auto encryptedBody = drogon::utils::base64Decode(req->body()); // may contain \0
+    //    auto encryptedBody = drogon::utils::base64Decode(req->body()); // may contain \0
 
     // Get relevant public key
-//    auto client = drogon::HttpsClient::newHttpClient(remote_peer);
-//    client.request();
-
+    //    auto client = drogon::HttpsClient::newHttpClient(remote_peer);
+    //    client.request();
 }
 
 void route_request(std::shared_ptr<Session> conn) {
     auto path = conn->req().target();
 
     // Logging
-    DEBUG_LOG("Req: "
-        <<boost::beast::http::to_string(conn->req().method())
-        <<" -- "
-        <<path);
+    DEBUG_LOG("Req: " << boost::beast::http::to_string(conn->req().method()) << " -- " << path);
 
     switch (conn->req().method()) {
         case boost::beast::http::verb::get:
@@ -335,11 +321,9 @@ void route_request(std::shared_ptr<Session> conn) {
                 } else if (path.starts_with("/main.js")) {
                     // Send cached file contents
                     static const char subpath[] = "/main.js";
-                    Session::StringResponse res{
-                        boost::beast::http::status::ok,
-                        conn->req().version(),
-                        g_app->m_pages->file_contents<subpath>()
-                    };
+                    Session::StringResponse res{boost::beast::http::status::ok,
+                                                conn->req().version(),
+                                                g_app->m_pages->file_contents<subpath>()};
                     res.set(boost::beast::http::field::content_type, "text/javascript");
                     conn->respond(conn->prep(std::move(res)));
                     return;
@@ -363,19 +347,18 @@ void route_request(std::shared_ptr<Session> conn) {
                     conn->respond(conn->prep(std::move(res)));
                     return;
                 } else {
-                    std::cerr <<"404 -- GET /portal : " <<path <<std::endl;
+                    std::cerr << "404 -- GET /portal : " << path << std::endl;
                     Session::StringResponse res;
                     res.body() = "404 not found!\n";
                     res.result(404);
                     conn->respond(conn->prep(std::move(res)));
-                    DEBUG_LOG("404 - " <<conn->req().target());
+                    DEBUG_LOG("404 - " << conn->req().target());
                     return;
                 }
             } else if (path == "/peer/key") {
                 // Cache file contents
-                static const std::string contents = FileCache::load_file_as_string(
-                    g_app->m_config.m_data_dir + "/auth/key"
-                );
+                static const std::string contents =
+                    FileCache::load_file_as_string(g_app->m_config.m_data_dir + "/auth/key");
 
                 // Send contents
                 Session::StringResponse res;
@@ -398,7 +381,7 @@ void route_request(std::shared_ptr<Session> conn) {
                     signup_post(std::move(conn));
                     return;
                 } else {
-                    std::cerr <<"404 -- POST /portal : " <<path <<std::endl;
+                    std::cerr << "404 -- POST /portal : " << path << std::endl;
                     Session::StringResponse res;
                     res.body() = "404 not found!\n";
                     res.result(404);

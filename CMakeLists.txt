@@ -115,3 +115,32 @@ add_library(oauth_mod SHARED
     modlib/fediymodpp.hpp
     apps/oauth/mod.cpp
 )
+
+# Code formatting with clang-format
+find_program(CLANG_FORMAT "clang-format")
+if(CLANG_FORMAT)
+    # Get all C++ source files
+    file(GLOB_RECURSE ALL_SOURCE_FILES
+        "*.cpp"
+        "*.hpp"
+        "*.h"
+        "*.c"
+    )
+    
+    # Exclude third_party directory
+    list(FILTER ALL_SOURCE_FILES EXCLUDE REGEX "third_party/.*")
+    
+    add_custom_target(format
+        COMMAND ${CLANG_FORMAT} -i ${ALL_SOURCE_FILES}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running clang-format on all source files"
+    )
+    
+    add_custom_target(format-check
+        COMMAND ${CLANG_FORMAT} --dry-run --Werror ${ALL_SOURCE_FILES}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Checking clang-format on all source files"
+    )
+else()
+    message(WARNING "clang-format not found. Install clang-format to enable code formatting.")
+endif()

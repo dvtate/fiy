@@ -16,13 +16,12 @@ protected:
      * Also need fast iteration over mods
      *Don't care about insertion time
      */
-    RWMutex m_mtx; // TODO compare performance of just using std::mutex
+    RWMutex m_mtx;  // TODO compare performance of just using std::mutex
 
     std::vector<Mod*> m_mods;
     std::unordered_map<std::string, Mod*> m_mods_lookup;
 
 public:
-
     Mods() = default;
     ~Mods() {
         clear();
@@ -38,7 +37,7 @@ public:
 #ifndef FEDIY_DEBUG
             if (m != nullptr)
 #endif
-            delete m;
+                delete m;
     }
 
     Mod* get_mod(const std::string& path) {
@@ -52,7 +51,7 @@ public:
 
     inline std::vector<Mod*> get_mods() {
         RWMutex::LockForRead lock{m_mtx};
-        return m_mods; // copy
+        return m_mods;  // copy
     }
 
     /// Get json list of installed apps for the user portal

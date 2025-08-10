@@ -26,9 +26,10 @@ void Mods::find_modules() {
     // Add lookup by path (prevent overlap)
     for (size_t i = 0; i < mod_count; i++) {
         if (m_mods_lookup.contains(m_mods[i]->m_path)) {
-            DEBUG_LOG("Duplicate module path " << m_mods[i]->m_path <<" for module " <<m_mods[i]->m_id << " ignored");
+            DEBUG_LOG("Duplicate module path " << m_mods[i]->m_path << " for module "
+                                               << m_mods[i]->m_id << " ignored");
             auto m = m_mods_lookup[m_mods[i]->m_path];
-            DEBUG_LOG("Module path " << m_mods[i]->m_path <<" already used by module " <<m->m_id);
+            DEBUG_LOG("Module path " << m_mods[i]->m_path << " already used by module " << m->m_id);
         } else {
             m_mods_lookup[m_mods[i]->m_path] = m_mods[i];
         }
@@ -40,20 +41,19 @@ void Mods::find_modules() {
 bool Mods::start_all() {
     bool ret = true;
 
-    for (auto* mod: m_mods) {
+    for (auto* mod : m_mods) {
         if (!mod->m_loaded)
             continue;
         DEBUG_LOG("Starting module: " + mod->m_id + "...");
         if (!mod->start()) {
-            LOG("Failed to start module " + mod->m_id <<".");
+            LOG("Failed to start module " + mod->m_id << ".");
             ret = false;
         } else {
-            LOG("Successfully started module " + mod->m_id <<".");
+            LOG("Successfully started module " + mod->m_id << ".");
         }
     }
     return ret;
 }
-
 
 bool Mods::stop_all() {
     bool ret = true;

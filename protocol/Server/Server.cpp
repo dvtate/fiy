@@ -2,22 +2,22 @@
 // Created by tate on 6/25/25.
 //
 
+#include <boost/asio.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
-#include <boost/asio.hpp>
 
 #include "App.hpp"
 
+#include "App.hpp"
 #include "Server.hpp"
 #include "Session.hpp"
-#include "App.hpp"
 
 namespace {
-namespace beast = boost::beast;         // from <boost/beast.hpp>
-namespace http = beast::http;           // from <boost/beast/http.hpp>
-namespace net = boost::asio;            // from <boost/asio.hpp>
-using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+namespace beast = boost::beast;    // from <boost/beast.hpp>
+namespace http = beast::http;      // from <boost/beast/http.hpp>
+namespace net = boost::asio;       // from <boost/asio.hpp>
+using tcp = boost::asio::ip::tcp;  // from <boost/asio/ip/tcp.hpp>
 
 // Report a failure
 void fail(beast::error_code ec, char const* what) {
@@ -31,8 +31,7 @@ class Listener : public std::enable_shared_from_this<Listener> {
 
 public:
     Listener(net::io_context& ioc, tcp::endpoint&& endpoint)
-        : m_ioc(ioc), m_acceptor(net::make_strand(ioc))
-    {
+        : m_ioc(ioc), m_acceptor(net::make_strand(ioc)) {
         beast::error_code ec;
 
         // Open the acceptor
@@ -74,15 +73,13 @@ private:
         // The new connection gets its own strand
         m_acceptor.async_accept(
             net::make_strand(m_ioc),
-            beast::bind_front_handler(
-                &Listener::on_accept,
-                shared_from_this()));
+            beast::bind_front_handler(&Listener::on_accept, shared_from_this()));
     }
 
     void on_accept(beast::error_code ec, tcp::socket socket) {
         if (ec) {
             fail(ec, "accept");
-            return; // To avoid infinite loop
+            return;  // To avoid infinite loop
         } else {
             // Create the session and run it
             std::make_shared<Session>(std::move(socket))->run();
@@ -93,18 +90,14 @@ private:
     }
 };
 
-} // namespace {}
-
+}  // namespace
 
 void Server::start() {
     auto const address = net::ip::make_address("127.0.0.1");
     auto const port = static_cast<unsigned short>(g_app->m_config.m_port);
 
     // Start listening
-    std::make_shared<Listener>(
-        *g_app->m_ioc,
-        tcp::endpoint{address, port}
-    )->run();
+    std::make_shared<Listener>(*g_app->m_ioc, tcp::endpoint{address, port})->run();
 
     // App::start() runs the io_context
 }

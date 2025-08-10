@@ -5,9 +5,9 @@
 #ifndef FEDIY_BASE64_HPP
 #define FEDIY_BASE64_HPP
 
-#include <string>
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
+#include <string>
 
-#endif //FEDIY_BASE64_HPP
+#endif  // FEDIY_BASE64_HPP

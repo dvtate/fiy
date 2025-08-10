@@ -1,21 +1,20 @@
 #pragma once
 
-#include <unordered_map>
-#include <string>
-#include <memory>
 #include <algorithm>
-#include <variant>
-#include <thread>
 #include <functional>
+#include <memory>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <variant>
 
-#include "globals.hpp"
 #include "../util/RWMutex.hpp"
+#include "globals.hpp"
 
-#include "Peer.hpp"
 #include "LocalUser.hpp"
+#include "Peer.hpp"
 
 #include "../modlib/fediymod.h"
-
 
 class Peers {
     RWMutex m_mtx;
@@ -31,7 +30,7 @@ class Peers {
 public:
     Peers();
 
-//    void load_peers_from_db();
+    //    void load_peers_from_db();
 
     void prune();
 
@@ -42,21 +41,12 @@ public:
 
     void new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb);
 
-    static void request_peer(
-        const std::shared_ptr<Peer>& peer,
-        const std::string& appid,
-        const fiy_request_t* req,
-        void* context,
-        void (*callback)(const fiy_response_t*, void*)
-    );
-    void request_peer(
-        const std::string& domain,
-        const std::string& appid,
-        const fiy_request_t* req,
-        void* context,
-        void (*callback)(const fiy_response_t*, void*)
-    );
+    static void request_peer(const std::shared_ptr<Peer>& peer, const std::string& appid,
+                             const fiy_request_t* req, void* context,
+                             void (*callback)(const fiy_response_t*, void*));
+    void request_peer(const std::string& domain, const std::string& appid, const fiy_request_t* req,
+                      void* context, void (*callback)(const fiy_response_t*, void*));
 
-//    void request_peer(std::shared_ptr<Peer> peer, const std::string& local_user, T& req, callback
-
+    //    void request_peer(std::shared_ptr<Peer> peer, const std::string& local_user, T& req,
+    //    callback
 };

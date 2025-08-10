@@ -18,24 +18,24 @@ mustache::mustache Pages::open_mustache_file(std::string&& path) {
     return std::regex_replace(ret, std::regex("\\{\\{domain\\}\\}"), g_app->m_config.m_hostname);
 }
 
-Pages::Pages(): FileCache(g_app->m_config.m_data_dir + "/pages/" ) {
-//    mustache::data global_data;
-//    global_data.set("domain", g_app->m_config.m_hostname);
+Pages::Pages() : FileCache(g_app->m_config.m_data_dir + "/pages/") {
+    //    mustache::data global_data;
+    //    global_data.set("domain", g_app->m_config.m_hostname);
 
     // Load templates with global data already filled in
     const auto dir = prefix();
-    m_portal_apps_template = open_mustache_file(dir + "home.html");//.render(global_data);
-    m_portal_settings_template = open_mustache_file(dir + "settings.html");//.render(global_data);
-    m_login_template = open_mustache_file(dir + "login.html");//.render(global_data);
-    m_signup_template = open_mustache_file(dir + "signup.html");//.render(global_data);
+    m_portal_apps_template = open_mustache_file(dir + "home.html");          //.render(global_data);
+    m_portal_settings_template = open_mustache_file(dir + "settings.html");  //.render(global_data);
+    m_login_template = open_mustache_file(dir + "login.html");               //.render(global_data);
+    m_signup_template = open_mustache_file(dir + "signup.html");             //.render(global_data);
 }
 
 std::string Pages::login_page(const std::string& fail_reason) {
-    return m_login_template.render({ "fail_reason", fail_reason });
+    return m_login_template.render({"fail_reason", fail_reason});
 }
 
 std::string Pages::signup_page(const std::string& fail_reason) {
-    return m_signup_template.render({ "fail_reason", fail_reason });
+    return m_signup_template.render({"fail_reason", fail_reason});
 }
 
 std::string Pages::portal_apps(const LocalUser& user) {

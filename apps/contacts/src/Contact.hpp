@@ -21,7 +21,7 @@ struct Contact {
     /// Relevant fields
     std::vector<std::pair<std::string, std::string>> m_fields;
 
-//    static constexpr std::vector<std::pair<std::string, std::string>> FieldOptions;
+    //    static constexpr std::vector<std::pair<std::string, std::string>> FieldOptions;
 
     std::string vcard();
 
@@ -30,7 +30,7 @@ struct Contact {
     static Contact json(const std::string& json_str);
     static Contact vcard(const std::string& vcard_str);
 
-    template<class IterableContainer>
+    template <class IterableContainer>
     static std::string json_list(const IterableContainer& contacts) {
         std::string ret = "[";
         for (Contact c : contacts) {

@@ -1,6 +1,6 @@
 #include <dlfcn.h>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
 #include "nlohmann/json.hpp"
 
@@ -21,7 +21,7 @@ Mod::Mod(std::string id) {
         m_error += reason;
         m_error += '\n';
         m_loaded = false;
-        LOG_ERR(m_id << ": " <<m_error);
+        LOG_ERR(m_id << ": " << m_error);
     };
 
     // Load json from file
@@ -30,8 +30,8 @@ Mod::Mod(std::string id) {
         err("missing module.json");
         return;
     }
-    std::ifstream ifs{ mp / "module.json"};
-    auto conf = nlohmann::json::parse( ifs );
+    std::ifstream ifs{mp / "module.json"};
+    auto conf = nlohmann::json::parse(ifs);
     if (!conf.is_object()) {
         err("module.json: should be an object");
         return;
@@ -124,7 +124,7 @@ Mod::Mod(std::string id) {
         } else if (ts == "socket") {
             if (ipc_uri.empty())
                 ipc_uri = mp / "ipc.socket";
-//            m_ipc = std::make_unique<ModSockIPC>(ipc_uri);
+            //            m_ipc = std::make_unique<ModSockIPC>(ipc_uri);
         }
     }
 
@@ -166,7 +166,7 @@ Mod::Mod(std::string id) {
     try {
         m_install_ts = last_write_time(mp);
     } catch (const std::filesystem::filesystem_error& e) {
-        LOG_ERR("Mod::load: failed to get fs::last_write_time" <<e.what());
+        LOG_ERR("Mod::load: failed to get fs::last_write_time" << e.what());
     }
 
     m_loaded = true;
@@ -192,49 +192,49 @@ std::string Mod::json() {
         // Identifier specifying the protocol the app implements
         // Multiple apps can have the same id only if they're compatible
         //      ie - chat.v3
-        { "id", m_id },
+        {"id", m_id},
 
         // This is the path that the users can use to access the mod (locally unique)
-        { "path", m_path },
+        {"path", m_path},
 
         // App version of the form X.y or just X
-        { "version", m_version.str() },
+        {"version", m_version.str()},
 
         // User-readable name for the app
-        { "name", m_name },
+        {"name", m_name},
 
         // User-readable description of the app and what it does
-        { "description", m_description },
+        {"description", m_description},
 
         // App icon
-        { "icon", m_icon },
+        {"icon", m_icon},
 
         // User can disable apps they don't want
-        { "enabled", m_enabled },
+        {"enabled", m_enabled},
 
         //
-        { "ipc", m_ipc->ipc_type() == ModIPC::IPCType::NETWORK
-            ? "tcp" : m_ipc->ipc_type() == ModIPC::IPCType::SHARED_LIBRARY
-            ? "shared_object" : "socket" },
-        { "ipc_uri", m_ipc->m_ipc_uri },
-        { "daemon", m_daemon },
+        {"ipc", m_ipc->ipc_type() == ModIPC::IPCType::NETWORK          ? "tcp"
+                : m_ipc->ipc_type() == ModIPC::IPCType::SHARED_LIBRARY ? "shared_object"
+                                                                       : "socket"},
+        {"ipc_uri", m_ipc->m_ipc_uri},
+        {"daemon", m_daemon},
     };
     return json.dump();
 }
 
 std::string Mod::user_json() {
     nlohmann::json json = {
-        { "id", m_id },
-        { "path", m_path },
-        { "version", m_version.str() },
-        { "name", m_name },
-        { "description", m_description },
-//        { "icon", m_icon },
-        { "status", status() }, // TODO give string instead
-        { "loaded", m_loaded },
-        { "enabled", m_enabled },
-        { "running", m_running },
-        { "error", m_error },
+        {"id", m_id},
+        {"path", m_path},
+        {"version", m_version.str()},
+        {"name", m_name},
+        {"description", m_description},
+        //        { "icon", m_icon },
+        {"status", status()},  // TODO give string instead
+        {"loaded", m_loaded},
+        {"enabled", m_enabled},
+        {"running", m_running},
+        {"error", m_error},
     };
     return json.dump();
 }
@@ -242,7 +242,7 @@ std::string Mod::user_json() {
 void Mod::save() {
     // Mutex should be locked before this operation
     std::ofstream out(appdir() / "module.json");
-    out <<json();
+    out << json();
     out.close();
 }
 

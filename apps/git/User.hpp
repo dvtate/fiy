@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
-#include <vector>
 #include <variant>
+#include <vector>
 
 #include "Repo.hpp"
 
@@ -42,16 +42,12 @@ public:
     std::string m_username;
     std::string m_name;
     std::string m_about;
-
 };
 
 class UserCache {
     std::mutex m_mtx;
 
     // domain -> username -> user |
-    std::unordered_map<std::string,
-        std::unordered_map<std::string,
-            std::variant<Org, User>>> m_cache;
-
-
+    std::unordered_map<std::string, std::unordered_map<std::string, std::variant<Org, User>>>
+        m_cache;
 };

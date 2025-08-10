@@ -4,9 +4,9 @@
 
 #pragma once
 
+#include <ctime>
 #include <string>
 #include <vector>
-#include <ctime>
 
 class Mail {
 public:
@@ -17,13 +17,13 @@ public:
     time_t m_date;
     size_t m_index;
 
-    Mail(std::string from, std::vector<std::string> to, std::string subject, std::string body, time_t ts = std::time(nullptr)):
-        m_from_user(std::move(from)),
-        m_recipients(std::move(to)),
-        m_subject(std::move(subject)),
-        m_body(std::move(body)),
-        m_date(ts)
-    {}
+    Mail(std::string from, std::vector<std::string> to, std::string subject, std::string body,
+         time_t ts = std::time(nullptr))
+        : m_from_user(std::move(from)),
+          m_recipients(std::move(to)),
+          m_subject(std::move(subject)),
+          m_body(std::move(body)),
+          m_date(ts) {}
 
     [[nodiscard]] std::string short_view() const {
         std::string ret = "<tr>";
@@ -64,6 +64,7 @@ public:
 
 class MailBox {
     std::vector<Mail> m_mail;
+
 public:
     std::vector<Mail> get_inbox(const std::string& local_user) {
         std::vector<Mail> ret;

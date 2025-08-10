@@ -28,12 +28,14 @@ public:
     void read_to_write() {
         m_mtx.lock();
         m_readers--;
-        while (m_readers > 0); // spinlock is kinda ugly but eh
+        while (m_readers > 0)
+            ;  // spinlock is kinda ugly but eh
     }
 
     void write_lock() {
         m_mtx.lock();
-        while (m_readers > 0); // spinlock is kinda ugly but eh
+        while (m_readers > 0)
+            ;  // spinlock is kinda ugly but eh
     }
     void write_unlock() {
         m_mtx.unlock();
@@ -42,7 +44,7 @@ public:
     /// Scoped write_lock + write_unlock
     struct LockForWrite {
         RWMutex& m_mtx;
-        explicit LockForWrite(RWMutex& mtx): m_mtx(mtx) {
+        explicit LockForWrite(RWMutex& mtx) : m_mtx(mtx) {
             mtx.write_lock();
         }
         ~LockForWrite() {
@@ -53,7 +55,7 @@ public:
     /// Scoped read_lock + read_unlock
     struct LockForRead {
         RWMutex& m_mtx;
-        explicit LockForRead(RWMutex& mtx): m_mtx(mtx) {
+        explicit LockForRead(RWMutex& mtx) : m_mtx(mtx) {
             mtx.read_lock();
         }
         ~LockForRead() {

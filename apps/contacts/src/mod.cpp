@@ -2,17 +2,16 @@
 // Created by tate on 7/30/25.
 //
 
-
 #include "../../../modlib/fediymodpp.hpp"
 
+#include "Contact.hpp"
 #include "DB.hpp"
 #include "Pages.hpp"
-#include "Contact.hpp"
 
 const fiy_host_info_t* g_host_info;
 
 void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
-    auto& req = *(fiy::Request*) request;
+    auto& req = *(fiy::Request*)request;
 
     std::string_view path{req.path};
 
@@ -25,10 +24,7 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         // 1 - user on same instance
         // 2 - user on different instance
         // 3 - public/unknown/bot user
-        int origin = req.user == path ? 0
-            : req.is_local() ? 1
-            : req.user != nullptr ? 2
-            : 3;
+        int origin = req.user == path ? 0 : req.is_local() ? 1 : req.user != nullptr ? 2 : 3;
 
         auto success = DB::get_user_profile(path, origin, profile);
     }
@@ -39,13 +35,10 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         return;
     }
 
-
     if (path.starts_with("/main.css")) {
         static const char css_file[] = "/main.css";
-        req.respond(cb, 200,
-            Pages::file_contents<css_file>(),
-            "Content-Type: text/css\nCache-Control: max-age=604800"
-        );
+        req.respond(cb, 200, Pages::file_contents<css_file>(),
+                    "Content-Type: text/css\nCache-Control: max-age=604800");
         return;
     }
 
@@ -53,20 +46,19 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         Pages::index_html(req.user);
     }
 
-//    - Add contact
-//    - Edit contact
-//    - Delete contact
-//    - List contacts
-//    - Search contacts
-//    - Web interface + API
+    //    - Add contact
+    //    - Edit contact
+    //    - Delete contact
+    //    - List contacts
+    //    - Search contacts
+    //    - Web interface + API
 }
-
 
 extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
     static fiy_mod_info_t mod_info = {
-        .on_request=handle_request,
-        .on_peer_domain_changed=nullptr,
-        .on_username_changed=nullptr,
+        .on_request = handle_request,
+        .on_peer_domain_changed = nullptr,
+        .on_username_changed = nullptr,
     };
     g_host_info = host_info;
     return &mod_info;

@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
-#include <fstream>
 #include <cctype>
 #include <cinttypes>
-#include <filesystem>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <regex>
+#include <string>
 
 #include "globals.hpp"
 
@@ -86,4 +86,3 @@ protected:
      * ssl=true
      */
 };
-
