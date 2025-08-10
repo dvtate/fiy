@@ -21,7 +21,7 @@ inline std::pair<std::string, std::string> parse_app_request_get(const std::shar
     auto hostname = conn->req()["Host"];
     if (!hostname.empty()) {
         std::string_view hhn = g_app->m_config.m_hostname;
-        if (hostname.ends_with(hhn) && hhn.size() != hostname.size()) {
+        if (hostname.ends_with(hhn) && hhn.size() != hostname.size() && hostname.size() - hhn.size() > 1) {
             // Subdomain app  app.example.com/uri/path
             return {
                 hostname.substr(0, hostname.size() - hhn.size() - 1),
@@ -49,9 +49,9 @@ inline std::pair<std::string, std::string> parse_app_request_get(const std::shar
     // Not a subdomain app  example.com/app/uri/path
     const auto slash_idx = path.find('/', 1);
     if (slash_idx == std::string_view::npos)
-        return { path.substr(1), "/" };
+        return { path.empty() ? "" : path.substr(1), "/" };
     else
-        return { path.substr(1, slash_idx - 1), path.substr(slash_idx) };
+        return { path.empty() ? "" : path.substr(1, slash_idx - 1), path.substr(slash_idx) };
 }
 
 inline static void app_send_msg(std::shared_ptr<Session> conn) {

@@ -20,6 +20,11 @@ $ cmake ..
 $ make -j`nproc`
 ```
 
+Optionally, build with ability to debug
+```
+cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make -j$(nproc)
+```
+
 ## Install
 Run the installation script
 
