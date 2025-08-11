@@ -2,7 +2,7 @@
 #include <string>
 
 
-#include "../../modlib/fediymodpp.hpp"
+#include "../../modlib/fediymod.hpp"
 
 
 

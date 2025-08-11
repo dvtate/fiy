@@ -5,45 +5,44 @@
 --  2. contacts created for other users
 --      all fields visible for themselves
 
-
-CREATE TABLE Contacts (
+CREATE TABLE Cards (
     -- unique id for the contact
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     -- fediy user who owns this contact
     owner TEXT NOT NULL,
 
-    -- display name for the contact
-    name TEXT NOT NULL,
-
     -- fediy user that this contact corresponds to
-    user TEXT
+    user TEXT DEFAULT NULL
 );
 
-CREATE TABLE ContactFields (
+-- card properties
+CREATE TABLE Properties (
     -- Relevant contact
-    contactId INTEGER REFERENCES Contacts,
+--     cardId INTEGER REFERENCES Cards,
+    id INTEGER PRIMARY KEY,
 
     -- Field type
     name TEXT,
-    vcardName TEXT,
+
+    params TEXT,
 
     -- Field value
     value TEXT
 );
 
-CREATE TABLE ProfileContactFields (
-    contactId INTEGER
+CREATE TABLE CardProperties (
+    cardId INTEGER REFERENCES Cards,
+    propertyId INTEGER REFERENCES Properties,
+    UNIQUE(cardId, propertyId)
+);
 
-    -- Field type
-    name TEXT,
-    vcardName TEXT,
-
-    -- Field value
-    value TEXT
+CREATE TABLE ProfileCardProperties (
+    cardId INTEGER REFERENCES Cards,
+    propertyId INTEGER REFERENCES Properties,
 
     -- Who can see this field?
-    -- 0 = only me
+    -- 0 = only me/people I share to
     -- 1 = users on my instance
     -- 2 = users on other instances
     -- 3 = public
@@ -51,17 +50,66 @@ CREATE TABLE ProfileContactFields (
 );
 
 -- entry required for both sending and receiving instances
-CREATE TABLE SharedContacts (
-    contactId INTEGER,
-    sendingUser TEXT,
+CREATE TABLE SharedCards (
+    cardId INTEGER,
+    sendingUser TEXT, -- could be remote user
     acceptUser TEXT
 );
 
 -- query planning
 
 -- delete a contact
-DELETE FROM ProfileContactFields WHERE contactId = ?;
-DELETE FROM SharedContacts WHERE contactId = ?;
-DELETE FROM Contacts WHERE id = ?;
+DELETE FROM CardProperties WHERE cardId=?;
+DELETE FROM ProfileCardProperties WHERE cardId=?;
+DELETE FROM Properties WHERE NOT EXISTS(
+    SELECT 1 from CardProperties WHERE propertyId = id
+) AND NOT EXISTS(
+    SELECT 1 from ProfileCardProperties WHERE propertyId = id
+);
+DELETE FROM Cards WHERE id=?;
 
---
+-- get user public profile
+-- :visibility 2 or 3
+SELECT name, params, value FROM Properties WHERE id IN (
+    SELECT propertyId AS id FROM ProfileCardProperties
+    WHERE cardId=(SELECT id FROM Cards WHERE owner = user AND user=:profile_user)
+      AND visibility >= :visibility
+);
+
+-- get user profile or contact
+-- :visibility 1 or 2
+SELECT name, params, value FROM Properties WHERE id IN (
+    SELECT propertyId AS id FROM ProfileCardProperties
+    WHERE cardId=(SELECT id FROM Cards WHERE owner = user AND user=:profile_user)
+      AND visibility >= :visibility
+
+    UNION
+
+    SELECT propertyId AS id FROM CardProperties WHERE cardId IN (
+        SELECT id AS cardId FROM Cards
+        WHERE owner=:request_user AND user=:profile_user
+    )
+);
+
+-- get user public pfp
+-- visibility 2 or 3
+SELECT name, params, value FROM Properties WHERE id IN (
+    SELECT propertyID AS id FROM ProfileCardProperties
+    WHERE cardId=(SELECT id FROM Cards WHERE owner=user AND user=:profile_user)
+) AND name = 'PHOTO';
+
+
+
+-- visibility 2 or 3
+SELECT name, params, value FROM Properties WHERE id IN (
+    SELECT propertyId AS id FROM ProfileCardProperties
+    WHERE cardId=(SELECT id FROM Cards WHERE owner = user AND user=:profile_user)
+      AND visibility >= :visibility
+
+    UNION
+
+    SELECT propertyId AS id FROM CardProperties WHERE cardId IN (
+        SELECT id AS cardId FROM Cards
+        WHERE owner=:request_user AND user=:profile_user
+    )
+) AND name = 'PHOTO';

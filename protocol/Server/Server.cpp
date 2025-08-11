@@ -97,7 +97,10 @@ private:
 
 
 void Server::start() {
-    auto const address = net::ip::make_address("127.0.0.1");
+    // 127.0.0.1 for ssl because we expect ssl to be handled by nginx
+    auto const address = net::ip::make_address(
+        g_app->m_config.m_ssl ? "127.0.0.1" : "0.0.0.0"
+    );
     auto const port = static_cast<unsigned short>(g_app->m_config.m_port);
 
     // Start listening

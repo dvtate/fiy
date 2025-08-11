@@ -1,6 +1,10 @@
 # Contacts app
 Manage contacts for federated users. 
 
+## Implementation details
+- All cards are converted into vcard 4.0 format
+
+
 ## Features Planning
 ### Stage 1
 - Add contact

@@ -41,7 +41,7 @@
         const contacts = [
             {   id: 112312321,
                 name: 'Dustin Van Tate Testa',
-                user: 'dvtt@fiy.bodge.dev',
+                user: 'dvtt@bodge.dev',
                 fields: [
                     ['Email', 'dvtt@example.com'],
                     ['Phone', '5555555555'],
@@ -86,6 +86,11 @@
         const sidebar = document.querySelector(".sidebar");
         const detailsView = document.querySelector(".details-view");
 
+        let uidCounter = 0;
+        function uid(templateStr = '') {
+            return templateStr + uidCounter++;
+        }
+
         function renderContacts(filter = "") {
             contactList.innerHTML = "";
             contacts
@@ -99,10 +104,42 @@
                 });
         }
 
-        const fieldOptions = [
-            "Website", "Email", "Phone", "Address",
-            "Home Phone", "Cell Phone", "Photo"
-        ];
+        window.getFieldValues = [];
+
+
+        function inputTypes(element, type) {
+            const fieldOptions = [
+                "Website", "Email", "Phone", "Address",
+                "Home Phone", "Cell Phone", "Photo"
+            ];
+
+            const fieldTypes = [
+                "Website", "Email", "Phone", "Address", "Nickname", "Date", "Comment", "Organization"
+                // TODO "Name pronounciation", "Relations", "Circles"
+            ];
+
+            const id = uid();
+
+            switch (type) {
+                case 'Email': {
+
+                    element.innerHTML += `
+<label>Email</label>
+<input type="email" id="cf-field-${id}" />
+<input type="text" id="cf-label-${id}" />
+<script>
+    window.getFieldValues.push(() => {
+        auto email = document.getElementById("cf-field-${id}").value;
+        auto label = document.getElementById("cf-label-${id}").value;
+
+    });
+<\/script>`;
+                    break;
+                }
+
+            }
+
+        }
 
         function newContactClicked() {
             // TODO make it prepopulated with common fields with option to add more custom fields
@@ -117,14 +154,18 @@
 
                 <button id="nc-add-field"><i class="fa fa-plus"></i>Add field</button>
             </fieldset>
-            <button>Save</button><button>Cancel</button>`;
+            <button id="nc-save-new">Save</button><button>Cancel</button>`;
 
             document.getElementById('nc-add-field').addEventListener('click', e => {
-               document.getElementById('nc-fields').innerHTML += '<label'
+               document.getElementById('nc-fields').innerHTML +=
+                   '<label for="nc-name">Name:</label><input type="text" id="nc-name" required />';
+            });
+            document.getElementById('nc-save-new').addEventListener('click', e => {
+                document.getElementsByClassName();
             });
         }
 
-        function newContactFinalize() {
+        function newContactSave() {
 
         }
 

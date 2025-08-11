@@ -23,7 +23,7 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t callbac
         "Hello, @%s@%s! <br/>Action: %s %s",
         request->user == NULL ? "null" : request->user,
         request->domain == NULL ? "null" : request->domain,
-        fiy_http_verb_string(request->method),
+        fiy_http_verb_strings[request->method],
         request->path == NULL ? "null" : request->path
     );
 

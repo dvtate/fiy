@@ -49,7 +49,7 @@ inline std::pair<std::string, std::string> parse_app_request_get(const std::shar
     // Not a subdomain app  example.com/app/uri/path
     const auto slash_idx = path.find('/', 1);
     if (slash_idx == std::string_view::npos)
-        return { path.substr(1), "/" };
+        return { path.empty() ? "" : path.substr(1), "/" };
     else
         return { path.substr(1, slash_idx - 1), path.substr(slash_idx) };
 }

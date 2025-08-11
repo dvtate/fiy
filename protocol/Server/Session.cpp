@@ -40,7 +40,7 @@ std::map<std::string, std::string>& Session::get_cookies() {
         auto cookie_header = m_req["Cookie"];
         if (!cookie_header.empty()) {
             m_cookies = WebUtils::parse_cookies(cookie_header);
-            std::cout << "Cookies: " << cookie_header << ": " << m_cookies.size() << std::endl;
+//            std::cout << "Cookies: " << cookie_header << ": " << m_cookies.size() << std::endl;
         }
     }
     return m_cookies;
