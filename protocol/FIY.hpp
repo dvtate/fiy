@@ -2,7 +2,7 @@
 
 #include <ctime>
 
-#include "globals.hpp"
+#include "defs.hpp"
 
 #include "Peers.hpp"
 #include "DB.hpp"
@@ -17,13 +17,13 @@
 /**
  * Global protocol server app singleton
  */
-class App {
+class FIY {
     volatile std::time_t m_now;
 
 public:
     boost::asio::io_context* m_ioc;
 
-    AppConfig m_config;
+    FediyConfig m_config;
     Peers m_peers;
     Mods m_mods;
     std::unique_ptr<Pages> m_pages;
@@ -31,9 +31,8 @@ public:
     HttpClient m_http;
     HttpsClient m_https;
 
-
-    App() = default;
-    explicit App(const std::string& config_path):
+    FIY() = default;
+    explicit FIY(const std::string& config_path):
         m_config(config_path)
     {}
 
@@ -45,4 +44,4 @@ public:
 };
 
 // Global Singleton set in main.c
-extern App* g_app;
+extern FIY* g_fiy;

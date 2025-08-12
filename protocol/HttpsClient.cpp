@@ -7,13 +7,13 @@
 #include <openssl/x509_vfy.h>
 #include <openssl/ssl.h>
 
-#include "App.hpp"
+#include "FIY.hpp"
 
 #include "HttpsClient.hpp"
 
 
 boost::asio::io_context* HttpsClient::get_io_context() {
-    return g_app->m_ioc;
+    return g_fiy->m_ioc;
 }
 
 void HttpsClient::prep_ssl() {

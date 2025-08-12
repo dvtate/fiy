@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-#include "globals.hpp"
+#include "defs.hpp"
 
 template<class BoostHttpMessage>
 inline std::string get_headers_string(const BoostHttpMessage& res) {

@@ -10,7 +10,7 @@
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/strand.hpp>
 
-#include "globals.hpp"
+#include "defs.hpp"
 
 
 template<class RequestType, class CallbackType, class ErrCallbackType>

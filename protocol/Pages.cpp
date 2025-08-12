@@ -6,7 +6,7 @@
 
 #include "nlohmann/json.hpp"
 
-#include "App.hpp"
+#include "FIY.hpp"
 
 #include "Pages.hpp"
 
@@ -15,10 +15,10 @@ using namespace kainjow;
 mustache::mustache Pages::open_mustache_file(std::string&& path) {
     std::string ret = load_file_as_string(std::move(path));
     // TODO fix or replace mustache instead of this
-    return std::regex_replace(ret, std::regex("\\{\\{domain\\}\\}"), g_app->m_config.m_hostname);
+    return std::regex_replace(ret, std::regex("\\{\\{domain\\}\\}"), g_fiy->m_config.m_hostname);
 }
 
-Pages::Pages(): FileCache(g_app->m_config.m_data_dir + "/pages/" ) {
+Pages::Pages(): FileCache(g_fiy->m_config.m_data_dir + "/pages/" ) {
 //    mustache::data global_data;
 //    global_data.set("domain", g_app->m_config.m_hostname);
 
@@ -41,7 +41,7 @@ std::string Pages::signup_page(const std::string& fail_reason) {
 std::string Pages::portal_apps(const LocalUser& user) {
     mustache::data d;
     d.set("user_data", user.json());
-    d.set("installed_apps", g_app->m_mods.get_mods_json());
+    d.set("installed_apps", g_fiy->m_mods.get_mods_json());
     return m_portal_apps_template.render(d);
 }
 

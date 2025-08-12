@@ -1,12 +1,12 @@
 
 
-#include "App.hpp"
+#include "FIY.hpp"
 
 // Global App singleton
-App* g_app;
+FIY* g_fiy;
 
 int main(int argc, char** argv) {
     // Start services
-    g_app = (argc >= 2) ? new App(argv[1]) : new App(); // specify path to config file
-    g_app->start();
+    g_fiy = (argc >= 2) ? new FIY(argv[1]) : new FIY(); // specify path to config file
+    g_fiy->start();
 }

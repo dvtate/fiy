@@ -7,11 +7,11 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio.hpp>
 
-#include "App.hpp"
+#include "FIY.hpp"
 
 #include "Server.hpp"
 #include "Session.hpp"
-#include "App.hpp"
+#include "FIY.hpp"
 
 namespace {
 namespace beast = boost::beast;         // from <boost/beast.hpp>
@@ -97,15 +97,16 @@ private:
 
 
 void Server::start() {
-    // 127.0.0.1 for ssl because we expect ssl to be handled by nginx
+    // If hostname includes a colon it's being used for testing.
+    // Otherwise, we expect to be behind a reverse proxy that adds SSL
     auto const address = net::ip::make_address(
-        g_app->m_config.m_ssl ? "127.0.0.1" : "0.0.0.0"
+        strchr(g_fiy->m_config.m_hostname, ':') != nullptr ? "127.0.0.1" : "0.0.0.0"
     );
-    auto const port = static_cast<unsigned short>(g_app->m_config.m_port);
+    auto const port = static_cast<unsigned short>(g_fiy->m_config.m_port);
 
     // Start listening
     std::make_shared<Listener>(
-        *g_app->m_ioc,
+        *g_fiy->m_ioc,
         tcp::endpoint{address, port}
     )->run();
 

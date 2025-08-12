@@ -10,7 +10,7 @@
 
 #include <boost/beast.hpp>
 
-#include "globals.hpp"
+#include "defs.hpp"
 
 #include "../modlib/fediymod.h"
 
@@ -19,17 +19,17 @@
 class Mod;
 
 /**
- * Abstract class that handles communication between the protocol host and the apps apps
+ * Abstract class that handles communication between the protocol host and mods
  */
-class ModIPC {
+class ModConnector {
 public:
     /// Relevant apps
     Mod* m_mod{nullptr};
 
-    std::string m_ipc_uri;
+    std::string m_uri;
 
-    ModIPC(Mod* mod, std::string path): m_mod(mod), m_ipc_uri(std::move(path)) {}
-    virtual ~ModIPC() = default;
+    ModConnector(Mod* mod, std::string path): m_mod(mod), m_uri(std::move(path)) {}
+    virtual ~ModConnector() = default;
 
     /// Initialize the app
     virtual bool start() = 0;
@@ -46,33 +46,33 @@ public:
     ) = 0;
 
     // IPC interface
-    enum class IPCType {
+    enum class Type {
         SHARED_LIBRARY,     // .so file
         SOCKET,             // unix socket connection
         NETWORK             // tcp connection
     };
 
-    [[nodiscard]] virtual IPCType ipc_type() = 0;
+    [[nodiscard]] virtual Type type() = 0;
 };
 
 
 // Communicates with the module by dynamically linking
 struct ModDLLHostInfo;
 
-class ModDLLIPC : public ModIPC {
+class ModDLLConnector : public ModConnector {
     void* m_dl_handle{nullptr};
     fiy_mod_info_t* m_mod_info{nullptr};
     ModDLLHostInfo* m_host_info{nullptr};
 
 public:
-    ModDLLIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
+    ModDLLConnector(Mod* mod, std::string path): ModConnector(mod, std::move(path)) {}
 
-    ~ModDLLIPC() {
-        ModDLLIPC::stop();
+    ~ModDLLConnector() {
+        ModDLLConnector::stop();
     }
 
-    IPCType ipc_type() override {
-        return IPCType::SHARED_LIBRARY;
+    Type type() override {
+        return Type::SHARED_LIBRARY;
     }
 
     bool stop() override;
@@ -86,13 +86,13 @@ public:
 };
 
 // IPC over the network
-class ModNetIPC : public ModIPC {
+class ModNetConnector : public ModConnector {
     std::string m_auth_secret;
 public:
-    ModNetIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
+    ModNetConnector(Mod* mod, std::string path): ModConnector(mod, std::move(path)) {}
 
-    IPCType ipc_type() final {
-        return IPCType::NETWORK;
+    Type type() final {
+        return Type::NETWORK;
     }
 
     virtual bool start() override;

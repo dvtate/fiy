@@ -2,9 +2,9 @@
 
 #include "Server/Server.hpp"
 
-#include "App.hpp"
+#include "FIY.hpp"
 
-bool App::start() {
+bool FIY::start() {
     // Note: order is important
 
     if (m_config.m_error) {

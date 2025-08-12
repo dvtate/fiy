@@ -6,10 +6,10 @@
 
 #include "Mod.hpp"
 
-#include "App.hpp"
+#include "FIY.hpp"
 
-[[nodiscard]] inline std::filesystem::path Mod::appdir() const {
-    return g_app->m_config.m_data_dir + "/apps/" + m_id;
+[[nodiscard]] inline std::filesystem::path Mod::dir() const {
+    return g_fiy->m_config.m_data_dir + "/mods/" + m_id;
 }
 
 Mod::Mod(std::string id) {
@@ -25,7 +25,7 @@ Mod::Mod(std::string id) {
     };
 
     // Load json from file
-    std::filesystem::path mp = appdir();
+    std::filesystem::path mp = dir();
     if (!std::filesystem::exists(mp / "module.json")) {
         err("missing module.json");
         return;
@@ -46,7 +46,7 @@ Mod::Mod(std::string id) {
 
         auto new_id = conf_id.get<std::string>();
         if (m_id != new_id)
-            err("module.json: \"id\" field does not match directory name, the app may not work");
+            err("module.json: \"id\" field does not match directory name, the mod may not work");
         m_id = new_id;
     }
 
@@ -94,37 +94,37 @@ Mod::Mod(std::string id) {
     }
 
     // Set up IPC (order matters)
-    std::string ipc_uri;
-    if (conf.contains("ipc_uri")) {
-        auto p = conf.at("ipc_uri");
+    std::string connector_uri;
+    if (conf.contains("connector_uri")) {
+        auto p = conf.at("connector_uri");
         if (!p.is_string()) {
-            err("module.json: \"ipc_uri\" should be a string");
+            err("module.json: \"connector_uri\" should be a string");
         }
-        ipc_uri = p.get<std::string>();
+        connector_uri = p.get<std::string>();
     }
-    if (!conf.contains("ipc")) {
-        err("module.json: missing key: ipc");
+    if (!conf.contains("connector")) {
+        err("module.json: missing key: connector");
     } else {
-        auto t = conf.at("ipc");
+        auto t = conf.at("connector");
         if (!t.is_string()) {
-            err("module.json: \"ipc\" should be either \"shared_object\", \"socket\" or \"tcp\"");
+            err("module.json: \"connector\" should be either \"shared_object\", \"socket\" or \"tcp\"");
         }
 
         auto ts = t.get<std::string>();
         if (ts == "tcp") {
-            if (ipc_uri.empty()) {
-                err("module.json: \"ipc_uri\" must be defined when \"ipc\" is set to \"tcp\"");
+            if (connector_uri.empty()) {
+                err("module.json: \"connector_uri\" must be defined when \"ipc\" is set to \"tcp\"");
             } else {
-                m_ipc = std::make_unique<ModNetIPC>(this, ipc_uri);
+                m_ipc = std::make_unique<ModNetConnector>(this, connector_uri);
             }
         } else if (ts == "shared_object") {
-            if (ipc_uri.empty())
-                ipc_uri = mp / "module.so";
-            m_ipc = std::make_unique<ModDLLIPC>(this, ipc_uri);
+            if (connector_uri.empty())
+                connector_uri = mp / "module.so";
+            m_ipc = std::make_unique<ModDLLConnector>(this, connector_uri);
         } else if (ts == "socket") {
-            if (ipc_uri.empty())
-                ipc_uri = mp / "ipc.socket";
-//            m_ipc = std::make_unique<ModSockIPC>(ipc_uri);
+            if (connector_uri.empty())
+                connector_uri = mp / "ipc.socket";
+//            m_ipc = std::make_unique<ModSockIPC>(connector_uri);
         }
     }
 
@@ -189,34 +189,34 @@ bool Mod::stop() {
 
 std::string Mod::json() {
     nlohmann::json json = {
-        // Identifier specifying the protocol the app implements
-        // Multiple apps can have the same id only if they're compatible
+        // Identifier specifying the protocol the mod implements
+        // Multiple mods can have the same id only if they're compatible
         //      ie - chat.v3
         { "id", m_id },
 
         // This is the path that the users can use to access the mod (locally unique)
         { "path", m_path },
 
-        // App version of the form X.y or just X
+        // Mod version of the form X.y or just X
         { "version", m_version.str() },
 
-        // User-readable name for the app
+        // User-readable name for the mod
         { "name", m_name },
 
-        // User-readable description of the app and what it does
+        // User-readable description of the mod and what it does
         { "description", m_description },
 
-        // App icon
+        // Mod icon
         { "icon", m_icon },
 
-        // User can disable apps they don't want
+        // User can disable mods they don't want
         { "enabled", m_enabled },
 
         //
-        { "ipc", m_ipc->ipc_type() == ModIPC::IPCType::NETWORK
-            ? "tcp" : m_ipc->ipc_type() == ModIPC::IPCType::SHARED_LIBRARY
+        { "ipc", m_ipc->type() == ModConnector::Type::NETWORK
+            ? "tcp" : m_ipc->type() == ModConnector::Type::SHARED_LIBRARY
             ? "shared_object" : "socket" },
-        { "ipc_uri", m_ipc->m_ipc_uri },
+        { "connector_uri", m_ipc->m_uri },
         { "daemon", m_daemon },
     };
     return json.dump();
@@ -241,7 +241,7 @@ std::string Mod::user_json() {
 
 void Mod::save() {
     // Mutex should be locked before this operation
-    std::ofstream out(appdir() / "module.json");
+    std::ofstream out(dir() / "module.json");
     out <<json();
     out.close();
 }

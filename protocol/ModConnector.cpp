@@ -4,22 +4,19 @@
 
 #include <ranges>
 
-#include "ModIPC.hpp"
+#include "ModConnector.hpp"
 
 #include "LocalUser.hpp"
-#include "App.hpp"
+#include "FIY.hpp"
 
 #include "Server/util.hpp"
 
-
-
-
 // Message passed to shared library
-class ModDllIpcRequest : public fiy_request_t {
+class ModDllConnectorRequest : public fiy_request_t {
 public:
     std::shared_ptr<Session> m_conn;
 
-    explicit ModDllIpcRequest(std::shared_ptr<Session> conn):
+    explicit ModDllConnectorRequest(std::shared_ptr<Session> conn):
         m_conn(std::move(conn))
     {
         auto user = m_conn->find_user();
@@ -37,7 +34,7 @@ public:
         this->headers = nullptr;
     }
 
-    virtual ~ModDllIpcRequest() {
+    virtual ~ModDllConnectorRequest() {
         delete[] this->body;
         delete[] this->path;
         delete[] this->user;
@@ -76,12 +73,13 @@ struct ModDLLHostInfo : fiy_host_info_t {
             std::cout <<"Mod: " <<s <<std::endl;
         };
 
-        m_base_uri = std::string(g_app->m_config.m_ssl ? "https://" : "http://")
-                               + g_app->m_config.m_hostname + '/' + mod->m_path;
+        m_base_uri = std::string(
+            strchr(g_fiy->m_config.m_hostname, ':') != nullptr ? "https://" : "http://"
+            ) + g_fiy->m_config.m_hostname + '/' + mod->m_path;
 
         this->base_uri = m_base_uri.c_str();
         this->request = ModDLLHostInfo::request_impl;
-        this->domain = g_app->m_config.m_hostname;
+        this->domain = g_fiy->m_config.m_hostname;
         this->app_id = mod->m_id.c_str(); // safe assuming the mod isn't moved
         this->local_login = ModDLLHostInfo::local_login_impl;
         this->user_info = ModDLLHostInfo::user_info_impl;
@@ -110,7 +108,7 @@ struct ModDLLHostInfo : fiy_host_info_t {
         void (*callback)(const struct fiy_response_t*, void*)
     ) {
         // Send request to peer
-        g_app->m_peers.request_peer(request->domain, app_id, request, context, callback);
+        g_fiy->m_peers.request_peer(request->domain, app_id, request, context, callback);
     }
 
     /**
@@ -165,7 +163,7 @@ struct ModDLLHostInfo : fiy_host_info_t {
     }
 };
 
-bool ModDLLIPC::stop() {
+bool ModDLLConnector::stop() {
     if (m_dl_handle == nullptr)
         return true;
     auto ret = dlclose(m_dl_handle);
@@ -178,14 +176,14 @@ bool ModDLLIPC::stop() {
     return ret == 0;
 }
 
-bool ModDLLIPC::start() {
+bool ModDLLConnector::start() {
     if (m_host_info != nullptr)
         delete m_host_info;
     m_host_info = new ModDLLHostInfo(m_mod);
     if (m_dl_handle != nullptr) {
         DEBUG_LOG("Handle replaced!");
     }
-    m_dl_handle = dlopen(m_ipc_uri.c_str(), RTLD_LAZY | RTLD_LOCAL);
+    m_dl_handle = dlopen(m_uri.c_str(), RTLD_LAZY | RTLD_LOCAL);
     if (m_dl_handle == nullptr)
         return false;
 
@@ -195,26 +193,26 @@ bool ModDLLIPC::start() {
 }
 
 
-void ModDLLIPC::handle_request(std::shared_ptr<Session> conn) {
-    fiy_request_t* r = new ModDllIpcRequest(conn);
+void ModDLLConnector::handle_request(std::shared_ptr<Session> conn) {
+    fiy_request_t* r = new ModDllConnectorRequest(conn);
     m_mod_info->on_request(
         r,
         [](
             const fiy_request_t* req,
             const fiy_response_t* resp
         ){
-            ((ModDllIpcRequest*) req)->callback(resp);
+            ((ModDllConnectorRequest*) req)->callback(resp);
         }
     );
 }
 
-void ModDLLIPC::handle_request(
+void ModDLLConnector::handle_request(
     const fiy_request_t* req,
     void* context,
     void (*callback)(const struct fiy_response_t*, void*)
 ) {
-    struct ModDllIpcRequestWrapper : public fiy_request_t {
-        ModDllIpcRequestWrapper(
+    struct ModDllConnectorRequestWrapper : public fiy_request_t {
+        ModDllConnectorRequestWrapper(
             const fiy_request_t& req,
             void (*callback)(const fiy_response_t*, void* context),
             void* context
@@ -230,20 +228,20 @@ void ModDLLIPC::handle_request(
         void* m_context;
     };
 
-    fiy_request_t* r = new ModDllIpcRequestWrapper(*req, callback, context);
+    fiy_request_t* r = new ModDllConnectorRequestWrapper(*req, callback, context);
     m_mod_info->on_request(
         r,
         [](
             const fiy_request_t* req,
             const fiy_response_t* resp
         ){
-            ((ModDllIpcRequestWrapper*) req)->callback(resp);
+            ((ModDllConnectorRequestWrapper*) req)->callback(resp);
         }
     );
 }
 
 
-bool ModNetIPC::start() {
+bool ModNetConnector::start() {
 
     // if server uri is localhost/127.0.0.1 then start the server
 
@@ -256,46 +254,17 @@ bool ModNetIPC::start() {
     return true;
 }
 
-bool ModNetIPC::stop() {
+bool ModNetConnector::stop() {
     return true;
 }
 
-void ModNetIPC::handle_request(std::shared_ptr<Session> conn) {
+void ModNetConnector::handle_request(std::shared_ptr<Session> conn) {
     conn->req().set("Fediy-User", conn->find_user().str());
-    g_app->m_http.request(
-        m_ipc_uri,
+    g_fiy->m_http.request(
+        m_uri,
         conn->req(),
         [session = std::move(conn)] (auto resp) {
             session->respond(std::move(resp));
         }
     );
 }
-
-//    virtual void handle_request(
-//            const drogon::HttpRequestPtr& req,
-//            User&& user,
-//            std::function<void(const drogon::HttpResponsePtr&)>&& callback
-//    ) override {
-//        auto client = drogon::HttpsClient::newHttpClient(m_ipc_uri);
-//        req->addHeader("fediy-user", user.user + '@' + user.domain);
-//        client->sendRequest(
-//            req,
-//            [
-//                this,
-//                cb = std::move(callback)
-//            ](
-//                drogon::ReqResult status,
-//                const drogon::HttpResponsePtr& resp
-//            ) {
-////                if (status == drogon::ReqResult::Ok) {
-//                if (resp != nullptr) {
-//                    resp->setPassThrough(true);
-//                    cb(resp);
-//                } else {
-//                    auto r = drogon::HttpResponse::newHttpResponse();
-//                    r->setStatusCode(drogon::k500InternalServerError);
-//                    cb(r);
-//                }
-//            }
-//        );
-//    }

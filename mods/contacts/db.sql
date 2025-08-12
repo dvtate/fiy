@@ -13,7 +13,9 @@ CREATE TABLE Cards (
     owner TEXT NOT NULL,
 
     -- fediy user that this contact corresponds to
-    user TEXT DEFAULT NULL
+    user TEXT DEFAULT NULL,
+
+    updateTs INTEGER
 );
 
 -- card properties

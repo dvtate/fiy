@@ -7,7 +7,7 @@
 // TODO refactor so that it handles ids and path lookups better
 
 /**
- * Interface and cache for managing the installed apps
+ * Interface and cache for managing the installed fediy mods/apps
  */
 class Mods {
 protected:

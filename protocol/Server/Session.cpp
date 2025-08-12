@@ -2,7 +2,7 @@
 // Created by tate on 7/24/25.
 //
 #include "../util/WebUtils.hpp"
-#include "../App.hpp"
+#include "../FIY.hpp"
 
 #include "Router.hpp"
 #include "Session.hpp"
@@ -54,7 +54,7 @@ Session::User Session::find_user() {
     // Local User authentication
     auto user_auth_token = cookies.find("fiy_auth");
     if (user_auth_token != cookies.end()) {
-        auto user = g_app->m_users.auth_user(user_auth_token->second);
+        auto user = g_fiy->m_users.auth_user(user_auth_token->second);
         if (user == nullptr)
             return unauthenticated;
         else
@@ -68,7 +68,7 @@ Session::User Session::find_user() {
 //        std::cout << "missing auth token\n";
         return unauthenticated;
     }
-    auto peer = g_app->m_peers.get_peer_from_token(it->value());
+    auto peer = g_fiy->m_peers.get_peer_from_token(it->value());
     if (!peer) {
         DEBUG_LOG("Invalid peer auth token: " << it->value());
         return unauthenticated;
@@ -85,6 +85,6 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
     }
     auto user_auth_token = cookies.find("fiy_auth");
     if (user_auth_token != cookies.end())
-        return g_app->m_users.auth_user(user_auth_token->second);
+        return g_fiy->m_users.auth_user(user_auth_token->second);
     return nullptr;
 }

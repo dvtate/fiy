@@ -5,6 +5,6 @@
   "description": "Manage your public profile and contacts",
   "icon": "icon.png",
   "enabled": false,
-  "ipc": "shared_object",
+  "connector": "shared_object",
   "path": "contacts"
 }

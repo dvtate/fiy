@@ -7,7 +7,7 @@ These might be worth doing eventually
 
 ## App Ideas
 ### Builtin
-See [built-in apps in /apps](../apps).
+See [built-in apps in /apps](../mods).
 
 ### Installable Apps
 - Git-IY: GitLab killer

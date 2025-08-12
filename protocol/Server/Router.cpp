@@ -4,7 +4,7 @@
 
 #include "../util/WebUtils.hpp"
 
-#include "../App.hpp"
+#include "../FIY.hpp"
 
 #include "Session.hpp"
 #include "Router.hpp"
@@ -20,7 +20,7 @@ inline std::pair<std::string, std::string> parse_app_request_get(const std::shar
 
     auto hostname = conn->req()["Host"];
     if (!hostname.empty()) {
-        std::string_view hhn = g_app->m_config.m_hostname;
+        std::string_view hhn = g_fiy->m_config.m_hostname;
         if (hostname.ends_with(hhn) && hhn.size() != hostname.size()) {
             // Subdomain app  app.example.com/uri/path
             return {
@@ -59,7 +59,7 @@ inline static void app_send_msg(std::shared_ptr<Session> conn) {
     auto [ app, uri ] = parse_app_request_get(conn);
 
     // Forward to apps
-    Mod* m = g_app->m_mods.get_mod(app);
+    Mod* m = g_fiy->m_mods.get_mod(app);
     if (m == nullptr) {
         Session::DynamicResponse res;
         res.result(404);
@@ -81,14 +81,14 @@ inline Session::StringResponse signup_page(unsigned status = 200, const std::str
     Session::StringResponse res;
     res.result(status);
     res.set(boost::beast::http::field::content_type, "text/html");
-    res.body() = g_app->m_pages->signup_page(err);
+    res.body() = g_fiy->m_pages->signup_page(err);
     return res;
 }
 inline Session::StringResponse login_page(unsigned status = 200, const std::string& err = "") {
     Session::StringResponse res;
     res.result(status);
     res.set(boost::beast::http::field::content_type, "text/html");
-    res.body() = g_app->m_pages->login_page(err);
+    res.body() = g_fiy->m_pages->login_page(err);
     return res;
 }
 
@@ -140,7 +140,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
         conn->respond(conn->prep(resp_long_username));
         return;
     }
-    if (g_app->m_users.get_username(username) != nullptr) {
+    if (g_fiy->m_users.get_username(username) != nullptr) {
         conn->respond(conn->prep(resp_username_taken));
         return;
     }
@@ -156,7 +156,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
     }
 
     // Create user
-    LocalUser user{username, false, username, contact, "en", g_app->now()};
+    LocalUser user{username, false, username, contact, "en", g_fiy->now()};
     try {
         if (!DB::add_user(user, password)) {
             LOG_ERR("Failed to create user?");
@@ -167,7 +167,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
         LOG_ERR("Failed to create new user: Database Error: " <<e.what());
     }
 
-    auto auth_token = g_app->m_users.login_user(username, password);
+    auto auth_token = g_fiy->m_users.login_user(username, password);
 
     Session::EmptyResponse res;
     res.result(boost::beast::http::status::temporary_redirect);
@@ -224,7 +224,7 @@ void login_post(std::shared_ptr<Session>&& conn) {
 
 
     // Get auth token for user
-    auto auth_token = g_app->m_users.login_user(username, std::move(password));
+    auto auth_token = g_fiy->m_users.login_user(username, std::move(password));
     if (auth_token.m_user == nullptr) {
         conn->respond(conn->prep(resp_bad_creds));
         DEBUG_LOG("wrong username/password for user " <<username);
@@ -291,7 +291,7 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
     std::shared_ptr<Peer> p;
     do {
         p = std::make_shared<Peer>(domain, PeerAuth{"symkey", token});
-    } while (!g_app->m_peers.add_peer(domain, p));
+    } while (!g_fiy->m_peers.add_peer(domain, p));
 
     // Respond with token
     Session::StringResponse res;
@@ -338,7 +338,7 @@ void route_request(std::shared_ptr<Session> conn) {
                     Session::StringResponse res{
                         boost::beast::http::status::ok,
                         conn->req().version(),
-                        g_app->m_pages->file_contents<subpath>()
+                        g_fiy->m_pages->file_contents<subpath>()
                     };
                     res.set(boost::beast::http::field::content_type, "text/javascript");
                     conn->respond(conn->prep(std::move(res)));
@@ -358,7 +358,7 @@ void route_request(std::shared_ptr<Session> conn) {
                     // Send them to portal home
                     Session::StringResponse res;
                     res.result(200);
-                    res.body() = g_app->m_pages->portal_apps(*user);
+                    res.body() = g_fiy->m_pages->portal_apps(*user);
                     res.set(boost::beast::http::field::content_type, "text/html");
                     conn->respond(conn->prep(std::move(res)));
                     return;
@@ -374,7 +374,7 @@ void route_request(std::shared_ptr<Session> conn) {
             } else if (path == "/peer/key") {
                 // Cache file contents
                 static const std::string contents = FileCache::load_file_as_string(
-                    g_app->m_config.m_data_dir + "/auth/key"
+                    g_fiy->m_config.m_data_dir + "/auth/key"
                 );
 
                 // Send contents

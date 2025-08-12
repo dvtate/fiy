@@ -5,6 +5,6 @@
   "description": "Send and receive mail",
   "icon": "icon.png",
   "enabled": false,
-  "ipc":"shared_object",
+  "connector":"shared_object",
   "path":"mail"
 }

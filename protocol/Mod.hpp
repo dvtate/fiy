@@ -3,14 +3,14 @@
 #include <string>
 #include <filesystem>
 
-#include "globals.hpp"
+#include "defs.hpp"
 
-#include "ModIPC.hpp"
+#include "ModConnector.hpp"
 
 class Mods;
 
 /**
- * Installed app interface
+ * Installed mod interface
  *
  * @note Apps and Mods refer to the same thing but referred to as Mods in the code to reduce ambiguity
  */
@@ -78,7 +78,7 @@ public:
     std::string m_daemon; // make it a BackgroundProcess ?
 
     // Communicate with mod
-    std::unique_ptr<ModIPC> m_ipc{nullptr};
+    std::unique_ptr<ModConnector> m_ipc{nullptr};
 
     Mod() = default;
     explicit Mod(std::string id);
@@ -114,7 +114,7 @@ public:
     std::string user_json();
     void save();
 
-    inline std::filesystem::path appdir() const;
+    inline std::filesystem::path dir() const;
 
     friend class Mods;
 };

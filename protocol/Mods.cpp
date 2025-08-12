@@ -1,15 +1,15 @@
 #include <filesystem>
 
-#include "App.hpp"
+#include "FIY.hpp"
 
 #include "Mods.hpp"
 
 void Mods::find_modules() {
-    auto apps_dir = g_app->m_config.m_data_dir + "/apps";
+    auto mods_dir = g_fiy->m_config.m_data_dir + "/mods";
     std::string fail_reason;
 
     // TODO parallel
-    for (auto& p : std::filesystem::directory_iterator(apps_dir))
+    for (auto& p : std::filesystem::directory_iterator(mods_dir))
         if (p.is_directory()) {
             auto&& id = p.path().filename().string();
             m_mods.emplace_back(new Mod(id));
@@ -34,7 +34,7 @@ void Mods::find_modules() {
         }
     }
 
-    DEBUG_LOG("Found " + std::to_string(m_mods.size()) + " apps");
+    DEBUG_LOG("Found " + std::to_string(m_mods.size()) + " mods");
 }
 
 bool Mods::start_all() {

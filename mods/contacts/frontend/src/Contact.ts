@@ -1,10 +1,8 @@
-import ICAL from "ical.js";
-
 
 import { VCProperty } from "./VCProperty";
 
 
-class VCard {
+export default class VCard {
     public static readonly BEGIN_TOKEN = "BEGIN:VCARD";
     public static readonly END_TOKEN = "END:VCARD";
 

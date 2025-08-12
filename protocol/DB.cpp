@@ -2,7 +2,7 @@
 
 #include "DB.hpp"
 
-#include "App.hpp"
+#include "FIY.hpp"
 
 namespace DB {
 
@@ -16,7 +16,7 @@ namespace DB {
     SQLite::Database& connection() {
         // By the time the db gets used the config should already be initialized
         static thread_local SQLite::Database db{
-            g_app->m_config.m_data_dir + "/db.db3",
+            g_fiy->m_config.m_data_dir + "/db.db3",
             SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE
         };
         return db;
@@ -54,7 +54,7 @@ namespace DB {
         // Hash provided password
         // TODO switch to argon2 or something better
         unsigned char hashed_password[SHA512_DIGEST_LENGTH];
-        password += g_app->m_config.m_salt;
+        password += g_fiy->m_config.m_salt;
         unsigned char* hp = SHA512((unsigned char*) password.data(), password.size(), hashed_password);
 
         // Verify that password is correct
@@ -107,7 +107,7 @@ namespace DB {
 
         // Hash provided password
         unsigned char hashed_password[SHA512_DIGEST_LENGTH];
-        password += g_app->m_config.m_salt;
+        password += g_fiy->m_config.m_salt;
         unsigned char* hp = SHA512((unsigned char*) password.c_str(), password.size(), hashed_password);
         // TODO could this error?
 

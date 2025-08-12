@@ -20,7 +20,7 @@ bool Config::parse(const std::string& path) {
     );
 }
 
-bool AppConfig::set_key(const char* section, const char* key, const char* value) {
+bool FediyConfig::set_key(const char* section, const char* key, const char* value) {
     // No section
     if (section[0] != '\0')
         return false;
@@ -46,13 +46,6 @@ bool AppConfig::set_key(const char* section, const char* key, const char* value)
         // Apply
         m_hostname = (char*) malloc(strlen(value) + 1);
         strcpy(m_hostname, value);
-    } else if (strcmp(key, "ssl") == 0) {
-        int b = parse_bool(value);
-        if (b == -1) {
-            LOG_ERR("Config file: ssl should be set to true if the server can be accessed via https. Otherwise set it to false.");
-            b = 1; // use default of true
-        }
-        m_ssl = b;
     } else if (strcmp(key, "salt") == 0) {
         m_salt = value;
     } else if (strcmp(key, "port") == 0) {

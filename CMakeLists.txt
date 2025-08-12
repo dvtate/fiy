@@ -13,6 +13,10 @@ file(GLOB protocol_server_sources protocol/*.cpp)
 
 add_executable(protocol_server ${protocol_server_sources}
     third_party/inih/ini.c
+    modlib/fediymod.h
+    protocol/defs.hpp
+    protocol/FIY.hpp
+    protocol/FIY.cpp
     protocol/Mod.cpp
     protocol/Mod.hpp
     protocol/Mods.cpp
@@ -20,9 +24,8 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/LocalUser.cpp
     protocol/Pages.cpp
     protocol/Pages.hpp
-    modlib/fediymod.h
-    protocol/ModIPC.cpp
-    protocol/ModIPC.hpp
+    protocol/ModConnector.cpp
+    protocol/ModConnector.hpp
     protocol/Server/Server.cpp
     protocol/Server/Server.hpp
     protocol/Server/Router.hpp
@@ -94,8 +97,8 @@ target_link_libraries(demo_mod_cpp PRIVATE fediymod)
 add_library(demo_mod_mail SHARED
     modlib/fediymod.h
     modlib/fediymod.hpp
-    apps/mail_mod/MailBox.hpp
-    apps/mail_mod/mod.cpp
+    mods/mail/MailBox.hpp
+    mods/mail/mod.cpp
 )
 target_link_libraries(demo_mod_mail PRIVATE fediymod)
 
@@ -103,12 +106,12 @@ target_link_libraries(demo_mod_mail PRIVATE fediymod)
 add_library(contacts_mod SHARED
     modlib/fediymod.h
     modlib/fediymod.hpp
-    apps/contacts/src/mod.cpp
-    apps/contacts/src/Contact.cpp
-    apps/contacts/src/Contact.hpp
-    apps/contacts/src/DB.cpp
-    apps/contacts/src/DB.hpp
-    apps/contacts/src/Pages.hpp
+    mods/contacts/src/mod.cpp
+    mods/contacts/src/Contact.cpp
+    mods/contacts/src/Contact.hpp
+    mods/contacts/src/DB.cpp
+    mods/contacts/src/DB.hpp
+    mods/contacts/src/Pages.hpp
 )
 target_link_libraries(contacts_mod
     PRIVATE fediymod
@@ -126,6 +129,6 @@ target_include_directories(contacts_mod PUBLIC
 add_library(oauth_mod SHARED
     modlib/fediymod.h
     modlib/fediymod.hpp
-    apps/oauth/mod.cpp
+    mods/oauth/mod.cpp
 )
 target_link_libraries(demo_mod_mail PRIVATE fediymod)

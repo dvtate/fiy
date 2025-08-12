@@ -1,6 +1,5 @@
-import ICAL from "ical.js";
 import {VCDT} from "./VCDT";
-import {CustomInput} from "./CustomInput";
+import {CustomDateInput, CustomInput} from "./CustomInput";
 
 const capitalized = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
 
@@ -310,6 +309,7 @@ const vCardProperties = {
         description: 'Sort',
         type: 'text',
         versions: ['3.0'],
+        // We don't do this
     },
     'SOUND': {
         name: 'Name Pronounciation',
@@ -347,11 +347,6 @@ const vCardProperties = {
         type: 'uri',
         versions: true,
     },
-
-    // more from wikipedia
-
-
-
     'VERSION': {
         name: 'vCard Version',
         description: 'vCard File Version',
@@ -515,12 +510,35 @@ export class VCProperty {
 
     input?: CustomInput;
 
+    label() {
+        return vCardProperties[this.name].name || this.name;
+    }
+
     showHtml() {
-        const label = vCardProperties[this.name].name;
+        const label = this.label();
     }
 
-    editHtml() {
-        // get custom input corresponding to relevant value type
+    inputHtml(e: HTMLElement) {
+        if (this.input) {
+            this.input.html(e);
+            return;
+        }
+
+        switch (this.name) {
+            case 'BDAY':
+            case 'ANNIVERSARY':
+                this.input = new CustomDateInput(this);
+                break;
+
+            // Otherwise not editable
+            default:
+                return
+        }
+        this.input.html(e);
     }
 
+    getInput() {
+        if (this.input)
+            this.input.loadValue();
+    }
 }

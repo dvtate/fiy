@@ -4,7 +4,7 @@
 
 #include "LocalUser.hpp"
 
-#include "App.hpp"
+#include "FIY.hpp"
 
 LocalUser::AuthToken::AuthToken(
     std::shared_ptr<LocalUser> user,
@@ -17,15 +17,15 @@ LocalUser::AuthToken::AuthToken(
 {}
 
 LocalUser::AuthToken::AuthToken(std::shared_ptr<LocalUser> user, std::string token):
-    LocalUser::AuthToken(std::move(user), std::move(token), g_app->now() + SESSION_LIFETIME)
+    LocalUser::AuthToken(std::move(user), std::move(token), g_fiy->now() + SESSION_LIFETIME)
 {}
 
 LocalUser::AuthToken::AuthToken(std::shared_ptr<LocalUser> user):
-    LocalUser::AuthToken(std::move(user), Crypto::get_token_string<LocalUser::AuthToken::TOKEN_LEN>(), g_app->now() + SESSION_LIFETIME)
+    LocalUser::AuthToken(std::move(user), Crypto::get_token_string<LocalUser::AuthToken::TOKEN_LEN>(), g_fiy->now() + SESSION_LIFETIME)
 {}
 
 bool LocalUser::AuthToken::is_expired() {
-    return is_expired(g_app->now());
+    return is_expired(g_fiy->now());
 }
 
 std::string LocalUser::json() const {

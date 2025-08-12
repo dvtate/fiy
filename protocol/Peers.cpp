@@ -1,5 +1,5 @@
 
-#include "App.hpp"
+#include "FIY.hpp"
 
 #include "Server/util.hpp"
 
@@ -58,7 +58,7 @@ std::shared_ptr<Peer> Peers::get_peer_from_token(const std::string& token) {
 
 void Peers::prune() {
     RWMutex::LockForWrite lock{m_mtx};
-    const auto now = g_app->now();
+    const auto now = g_fiy->now();
     std::erase_if(m_peers_in, [this, now](const auto& item) {
         const auto& [domain, peer] = item;
         if (peer->m_auth.is_expired(now)) {
@@ -91,7 +91,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         req.method(boost::beast::http::verb::post);
         req.target("/peer/handshake");
         // TODO this is just a placeholder for now, actual algorithm in Server/Router.cpp
-        req.body() = g_app->m_config.m_hostname + std::string("\n") + tok;
+        req.body() = g_fiy->m_config.m_hostname + std::string("\n") + tok;
         req.keep_alive(false);
         req.prepare_payload();
 
@@ -125,9 +125,9 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
 
         bool use_https = domain.find(':') == std::string::npos;
         if (use_https) {
-            g_app->m_https.request(domain, std::move(req), handshake_cb);
+            g_fiy->m_https.request(domain, std::move(req), handshake_cb);
         } else {
-            g_app->m_http.request(domain, std::move(req), handshake_cb);
+            g_fiy->m_http.request(domain, std::move(req), handshake_cb);
         }
     };
 
@@ -142,9 +142,9 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
     };
     bool use_https = domain.find(':') == std::string::npos;
     if (use_https) {
-        g_app->m_https.request(domain, std::move(key_req), with_key_cb, err_key_cb);
+        g_fiy->m_https.request(domain, std::move(key_req), with_key_cb, err_key_cb);
     } else {
-        g_app->m_http.request(domain, std::move(key_req), with_key_cb, err_key_cb);
+        g_fiy->m_http.request(domain, std::move(key_req), with_key_cb, err_key_cb);
     }
 }
 
@@ -194,9 +194,9 @@ void Peers::request_peer(
     void* context,
     void (*callback)(const fiy_response_t*, void*)
 ) {
-    if (domain == g_app->m_config.m_hostname) {
+    if (domain == g_fiy->m_config.m_hostname) {
         std::cout <<"request_peer(localhost)\n";
-        g_app->m_mods.get_mod(appid)->m_ipc->handle_request(req, context, callback);
+        g_fiy->m_mods.get_mod(appid)->m_ipc->handle_request(req, context, callback);
     }
 
     auto p = get_peer_for_domain(domain);
@@ -247,7 +247,7 @@ void Peers::request_peer(
     request.set("Fiy-Peer", peer->m_auth.m_bearer_token_we_send);
     request.set("Fiy-User", user);
     request.set("Fiy-Path", path);
-    std::string now_str = std::to_string(g_app->now());
+    std::string now_str = std::to_string(g_fiy->now());
     request.set("Fiy-Now", now_str);
     request.set("Authorization", "FIY1 " + peer->sig(appid, path, user, req->body_len, now_str));
     request.set(boost::beast::http::field::host, req->domain);
@@ -270,8 +270,8 @@ void Peers::request_peer(
 
     bool use_https = std::string_view(peer->m_domain).find(':') == std::string_view::npos;
     if (use_https) {
-        g_app->m_https.request(peer->m_domain, std::move(request), std::move(cb));
+        g_fiy->m_https.request(peer->m_domain, std::move(request), std::move(cb));
     } else {
-        g_app->m_http.request(peer->m_domain, std::move(request), std::move(cb));
+        g_fiy->m_http.request(peer->m_domain, std::move(request), std::move(cb));
     }
 }

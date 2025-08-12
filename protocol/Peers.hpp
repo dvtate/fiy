@@ -8,7 +8,7 @@
 #include <thread>
 #include <functional>
 
-#include "globals.hpp"
+#include "defs.hpp"
 #include "../util/RWMutex.hpp"
 
 #include "Peer.hpp"

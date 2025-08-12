@@ -20,14 +20,6 @@ struct LocalUser {
   - additional data would be handled by apps
     - For example, their display name would be handled by the contacts app
 
-## Naming consistency
-- "Apps" -> "Mods"
-- Rename ModIPC/IPC -> Connector
-- Rename class App -> class Globals
-- Rename globals.hpp -> defs.hpp 
-
-
-
 ## Much later
 - How to handle websockets/webrtc?
   - I guess mods have to start their own servers (bad)

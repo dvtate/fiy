@@ -2,7 +2,7 @@
 // Created by tate on 7/8/25.
 //
 
-#include "App.hpp"
+#include "FIY.hpp"
 
 #include "LocalUsers.hpp"
 
@@ -56,7 +56,7 @@ void LocalUsers::cron() {
 
     // Remove expired auth tokens
     std::erase_if(m_token_cache,
-        [now = g_app->now()] (const LocalUser::AuthToken& t) {
+        [now = g_fiy->now()] (const LocalUser::AuthToken& t) {
             return t.is_expired(now);
         }
     );

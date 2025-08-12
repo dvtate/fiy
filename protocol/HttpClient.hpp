@@ -9,7 +9,7 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio/strand.hpp>
 
-#include "globals.hpp"
+#include "defs.hpp"
 
 // TODO callback for errors?
 
