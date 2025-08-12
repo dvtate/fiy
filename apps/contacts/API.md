@@ -17,7 +17,6 @@ vCard user profile
 ## GET `/cards?users=csv,users,list`
 Same as `/profile/{user}` but combines requests
 
-
 ## GET `/pfp/{local user}`
 Sends the user's profile picture as a png
 

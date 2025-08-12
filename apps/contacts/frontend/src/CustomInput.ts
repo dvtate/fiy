@@ -1,42 +1,6 @@
 import ICAL from "ical.js";
 import { VCProperty } from "./VCProperty";
 
-
-
-
-class VCDateTime {
-    date = {
-        year: null,
-        month: null,
-        day: null,
-    };
-    time = {
-        hours: null,
-        minutes: null,
-        seconds: null,
-    };
-
-    static dateFromDate(date: Date) {
-
-    }
-
-    fromTime(str: string) {
-        // hhmmss.sss
-        // hhmmss
-        // hhmm
-        // hh
-    }
-    fromDate(str: string) {
-
-    }
-    fromTimestamp(str: string) {
-
-    }
-    fromDateAndOrTime(value: string) {
-
-    }
-}
-
 /*
 
 +------------------+-------------------------+
@@ -65,7 +29,7 @@ class CustomInputValue {
     }
 }
 
-abstract class CustomInput {
+export abstract class CustomInput {
 
     protected static _uuid = 0;
     static uid(): string {
@@ -84,7 +48,7 @@ abstract class CustomInput {
     abstract value(): CustomInputValue;
 }
 
-abstract class CustomDateInput extends CustomInput{
+export abstract class CustomDateInput extends CustomInput{
     constructor(property: VCProperty) {
         super(property);
     }

@@ -1,58 +1,38 @@
 import ICAL from "ical.js";
 
 
-
-const vcardPropertyTypes =
-{
-    "fn": "text",
-    "bday": "date",
-    "anniversary": "text",
-    "gender": "sex",
-    "lang": "language-tag",
-    "tel": "uri",
-    "geo": "geo",
-    "key": "uri",
-    "photo": "uri",
-    "impp": "uri",
-    "logo": "img",
-    "member": "uri",
-    "related": "uri",
-    "rev": "timestamp",
-    "sound": "uri",
-    "uid": "uri",
-    "url": "uri",
-    "fburl": "uri",
-    "caladruri": "uri",
-    "caluri": "uri",
-    "source": "uri",
-    "adr": "text",
-    "n": "name"
-};
+import { VCProperty } from "./VCProperty";
 
 
 class VCard {
     public static readonly BEGIN_TOKEN = "BEGIN:VCARD";
     public static readonly END_TOKEN = "END:VCARD";
 
-    version: '2.1' | '3.0' | '4.0' | string = '4.0';
+    properties: VCProperty[] = [];
 
-    properties: VCardProperty[] = [];
-
-    constructor(fields) {
-        fields.forEach(f => {
-            if (f)
-        })
-    }
-
-    addProperty(property: VCardProperty) {
-        if (property.name === 'VERSION')
-            this.version = property.value;
+    addProperty(property: VCProperty) {
         this.properties.push(property);
     }
 
-    static parse()
+    static parseCard(vc: string) {
+        // Not a vcard
+        if (!vc.startsWith('BEGIN:VCARD'))
+            return null;
 
-    cardString() {
+        const ret = new VCard();
+        const props = vc.split(/\r\n|\n\S/);
+        props.forEach(p => {
+            const vcp = VCProperty.fromLine(p);
+            if (vcp != null)
+                ret.properties.push(vcp);
+        });
 
+        return ret;
     }
-};
+
+    static parseCards(vcf: string) {
+        return vcf.split('END:VCARD')
+            .map(s => VCard.parseCard(s.trim()));
+    }
+
+}

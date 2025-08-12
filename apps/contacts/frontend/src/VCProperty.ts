@@ -1,5 +1,6 @@
 import ICAL from "ical.js";
-
+import {VCDT} from "./VCDT";
+import {CustomInput} from "./CustomInput";
 
 const capitalized = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
 
@@ -62,8 +63,22 @@ interface VCParams {
     MEDIATYPE?: string;
 
     CALSCALE?: string;
-
 };
+
+const vcDefaultParams = [
+    'LANGUAGE',
+    'VALUE',
+    'PREF',
+    'ALTID',
+    'PID',
+    'TYPE',
+    'MEDIATYPE',
+    'CALSCALE',
+    'SORT-AS',
+    'GEO',
+    'TZ',
+];
+
 
 const vCardFieldNames = [
     'VERSION',          // vcard version
@@ -296,6 +311,42 @@ const vCardProperties = {
         type: 'text',
         versions: ['3.0'],
     },
+    'SOUND': {
+        name: 'Name Pronounciation',
+        description: 'How to pronounce their name',
+        type: 'text',
+        versions: true,
+    },
+    'TEL': {
+        name: 'Phone Number',
+        description: 'Phone number',
+        type: 'text',
+        versions: true,
+    },
+    'TITLE': {
+        name: 'Job Title',
+        description: 'Job title, position, or function',
+        type: 'text',
+        versions: true,
+    },
+    'TZ': {
+        name: 'Timezone',
+        description: 'Associated timezone',
+        type: 'timezone',
+        versions: true,
+    },
+    'UID': { // assigned by server
+        name: 'Contact ID',
+        description: 'instance unique contact id',
+        type: 'text',
+        versions: true,
+    },
+    'URL': {
+        name: 'Website',
+        description: 'URL to website that represents the contact',
+        type: 'uri',
+        versions: true,
+    },
 
     // more from wikipedia
 
@@ -315,8 +366,6 @@ interface VCProp {
     toVcard(): string,
     validate(): boolean,
 }
-
-
 
 export class VCProperty {
 
@@ -359,6 +408,29 @@ export class VCProperty {
         }\r\n`;
     }
 
+    static fromLine(line: string): VCProperty | null {
+        const colon = line.indexOf(':');
+        const value = line.slice(colon+1);
+        const [key, ...paramStrs] = line
+            .slice(0, colon)
+            .split(';')
+            .map(s => s.trim());
+        if (key === 'VCARD')
+            return null;
+
+        const params: VCParams = {};
+
+        paramStrs.forEach(p => {
+            const [k,v] = p.split('=');
+            if (v)
+                params[k] = v;
+            else if (!vcDefaultParams.includes(k))
+                params['TYPE'] = k;
+        });
+
+        return new VCProperty(key, params, value);
+    }
+
     ////
     // Value methods
     ////
@@ -392,12 +464,11 @@ export class VCProperty {
     }
 
     toDateObject() {
-        return {};
+        return VCDT.parse(this.value);
     }
 
     toDateString() {
-        const o = this.toDateObject();
-
+        const o = this.toDateObject().toUserString();
     }
 
     /**
@@ -442,28 +513,14 @@ export class VCProperty {
     // UI methods
     ////
 
-    getLabel() {
-        return vCardProperties[this.name].name;        
-    }
+    input?: CustomInput;
 
     showHtml() {
-        return `<div class="input-group">
-        <label for="${this.id}">${}</label>
-            <input type="date" id="${this.id}" value={this.initialValue}></input>
-        </div>`;
+        const label = vCardProperties[this.name].name;
     }
 
     editHtml() {
-
+        // get custom input corresponding to relevant value type
     }
 
-    getInput(id: string): string {
-        
-    }
-
-    getDisplay(): string {
-
-    }
-
-    static VCParam
 }
