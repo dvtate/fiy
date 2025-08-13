@@ -16,21 +16,16 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
 
     std::string_view path{req.path};
 
+    // Get user profile
     if (path.starts_with("/profile/")) {
         path.remove_prefix(9);
-        Contact profile;
-
-        // Trust level for the request
-        // 0 - same user
-        // 1 - user on same instance
-        // 2 - user on different instance
-        // 3 - public/unknown/bot user
-        int origin = req.user == path ? 0
-            : req.is_local() ? 1
-            : req.user != nullptr ? 2
-            : 3;
-
-        auto success = DB::get_user_profile(path, origin, profile);
+        // TODO split user on @ and if it's remote call remote server instead
+        auto card = DB::get_profile(std::string(path), req.user, req.domain);
+        if (card.empty())
+            req.respond(cb, 401, "Not found");
+        else
+            req.respond(cb, 200, card, "Content-Type:text/vcard");
+        return;
     }
 
     // Everything here requires a login
