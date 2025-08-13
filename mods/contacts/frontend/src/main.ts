@@ -13,6 +13,7 @@ let contacts: VC[];
 
 API.getUserContacts().then(vcf => {
     contacts = VC.parseCards(vcf);
+    contacts.sort((a,b) => a.getDisplayName().localeCompare(b.getDisplayName()));
 
     // Initial render
     const queryParams = new URL(document.location.toString()).searchParams;

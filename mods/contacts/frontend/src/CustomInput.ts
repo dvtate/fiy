@@ -51,7 +51,7 @@ export abstract class CustomInput {
     abstract loadValue(): void;
 }
 
-export class CustomDateInput extends CustomInput{
+export class CustomDateInput extends CustomInput {
     constructor(property: VCProperty) {
         super(property);
     }
@@ -91,6 +91,39 @@ export class CustomDateInput extends CustomInput{
         this.property.value = e.value.replaceAll('-','');
     }
 }
+
+
+export class CustomEmailInput extends CustomInput {
+   validate(): string | undefined {
+       const e = document.getElementById(this.id) as HTMLInputElement;
+       if (!/[^\s@]@[^\s@]/.test(e.value.trim())) {
+           return 'Invalid email';
+       }
+   }
+
+   html(e: HTMLElement) {
+       e.innerHTML += `<div class="input-group">
+<label for="${this.id}">Email</label>
+<input id="${this.id}" type="email" value="${this.property.value || ''}" />
+</div><div class="input-group">
+<label for="${this.id}-type">Type</label>
+<select id="${this.id}-type">
+<option value="PERSONAL">Personal</option>
+<option value="WORK">Work</option>
+<option value="HOME">Home</option>
+<option value="OTHER">Other</option>
+</select>
+</div>`
+   }
+
+   loadValue() {
+       const v = document.getElementById(this.id) as HTMLInputElement;
+       const t = document.getElementById(this.id + '-type') as HTMLInputElement;
+       this.property.value = v.value;
+       this.property.params.TYPE = t.value;
+   }
+}
+
 
 // TODO
 // CustomImageInput

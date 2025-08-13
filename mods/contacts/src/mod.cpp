@@ -66,7 +66,29 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     }
 
     if (path == "/" || (path.size() > 1 && path[1] == '?')) {
-        Pages::index_html(req.user);
+        static const std::string page = Pages::index_html(req.user);
+        req.respond(cb, 200, page, "Content-Type: text/html");
+        return;
+    }
+
+    if (path.starts_with("/profile/")) {
+        path.remove_prefix(9);
+
+        // Get user components
+        const auto iat = path.find('@');
+        std::string_view p_user, p_domain;
+        if (iat != std::string_view::npos) {
+            p_user = path.substr(0, iat);
+            p_domain = path.substr(iat+1);
+        } else {
+            p_user = path;
+            p_domain = "";
+        }
+
+
+
+
+
     }
 
 //    - Add contact

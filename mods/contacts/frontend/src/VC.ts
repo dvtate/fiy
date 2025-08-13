@@ -68,4 +68,64 @@ export default class VC {
             .map(s => VC.parseCard(s.trim()))
             .filter(vc => !!vc);
     }
+
+    convertInternal() {
+        // TODO this logic should also be on the backend
+
+        // Remove some properties
+        this.properties = this.properties.filter(p =>
+            ![
+                // Obsolete/pointless
+                'AGENT',
+                'CLASS',
+                'MAILER',
+                'PROFILE',
+                'SORT-STRING',
+
+                // Not supported
+                'CLIENTPIDMAP',
+
+                // Internal only
+                'UID',
+            ].includes(p.name)
+        );
+
+        // Convert LABEL into ADR;LABEL:
+        this.properties
+            .filter(p => p.name === 'LABEL')
+            .forEach(p => {
+                p.name = 'ADR';
+                if (p.params.TYPE)
+                    p.params.TYPE += ',LABEL';
+                else
+                    p.params.TYPE = 'LABEL';
+            });
+
+        const version = this.properties.find(p => p.name === 'VERSION');
+        let oldVersion = '4.0';
+        if (!version) {
+            this.properties.push(new VCProperty('VERSION', {}, '4.0'));
+        } else {
+            oldVersion = version.value;
+            version.value = '4.0';
+        }
+
+        // If it's really old, only include known properties
+        if (!['4.0', '3.0'].includes(oldVersion))
+            this.properties = this.properties.filter(p => VCProperty.known[p.name]);
+
+        return this;
+    }
+
+    vCardString() {
+        const version = this.properties.find(p => p.name === 'VERSION');
+
+        let ret = 'BEGIN:VCARD\r\n';
+        ret += version.toLine();
+        ret += this.properties
+            .map(p => p.name === 'VERSION' ? '' : p.toLine())
+            .join('\r\n');
+        ret += '\r\nEND:VCARD';
+        return ret;
+    }
 }

@@ -1,8 +1,6 @@
 import {VCDateTime} from "./VCDateTime";
 import {CustomDateInput, CustomInput} from "./CustomInput";
 
-const capitalized = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
-
 type VCValueType = 'boolean' | 'DATE' | 'DATE-AND-OR-TIME' | 'DATE-TIME' | 'FLOAT' | 'INTEGER' | 'LANGUAGE-TAG' | 'TEXT' | 'TIME' | 'TIMESTAMP' | 'URI' | 'UTC-OFFSET' | string;
 
 /// Params for a property
@@ -64,6 +62,7 @@ interface VCParams {
     CALSCALE?: string;
 };
 
+// These are in the spec
 const vcDefaultParams = [
     'LANGUAGE',
     'VALUE',
@@ -78,39 +77,7 @@ const vcDefaultParams = [
     'TZ',
 ];
 
-
-const vCardFieldNames = [
-    'VERSION',          // vcard version
-    'ADR',              // address
-    'AGENT',                // person who acts on their behalf (ie - secretary)
-    'BDAY',             // birthday
-    'CATEGORIES',            // tags that describe object
-    'CLASS',                 // describes sensitivity contact info
-    'LABEL',            // what to put on a shipping label
-    'EMAIL',            // email address
-    'FN',               // Full name
-    'GEO',                   // lat+long location
-    'KEY',              // cryptographic key
-    'LOGO',                  // logo image
-    'MAILER',                // email program used
-    'N',                // structured name
-// Family Name, Given Name, Additional/Middle Names, Honorific Prefixes, and Honorific Suffixes
-
-    'NICKNAME',         // nickname
-    'NOTE',             // additional info
-    'ORG',              // company/organization
-    'PHOTO',            // pfp
-    'PRODID',           // product that created the vcard (ie - fediy)
-    'REV',              // timestamp last time vcard was updated
-    'ROLE',             // role/occupation/business category (ie - within ORG)
-    'SORT-STRING',      // used when application sorts, instead use SORT-AS parameter of N/ORG
-    'SOUND',            // name pronounciation sound
-    'TEL',              // phone number
-    'TZ',               // Timezone (ie - America/New York
-    'TITLE',            // job title
-    'URL',              // website
-];
-
+/// Various valid vcard properties
 const vCardProperties = {
     'ADR': {
         name: 'Address',
@@ -276,13 +243,13 @@ const vCardProperties = {
         description: 'Product that created this card',
         type: 'text',
         internal: true,
+        const: true,
         versions: ['3.0','4.0'],
     },
     'PROFILE': {
         name: 'File type',
         description: 'vcard',
         type: 'text', // vcard
-        internal: true,
         versions: ['3.0'],
     },
     'RELATED': {
@@ -297,6 +264,7 @@ const vCardProperties = {
         description: 'Last time this contact was edited',
         type: 'timestamp',
         versions: true,
+        const: true,
     },
     'ROLE': {
         name: 'Role',
@@ -309,7 +277,12 @@ const vCardProperties = {
         description: 'Sort',
         type: 'text',
         versions: ['3.0'],
-        // We don't do this
+    },
+    'SOURCE': {
+        name: 'vCard Source',
+        description: 'Where to download this vCard contact file',
+        type: 'uri',
+        versions: ['3.0','4.0'],
     },
     'SOUND': {
         name: 'Name Pronounciation',
@@ -335,11 +308,12 @@ const vCardProperties = {
         type: 'timezone',
         versions: true,
     },
-    'UID': { // assigned by server
+    'UID': {
         name: 'Contact ID',
         description: 'instance unique contact id',
         type: 'text',
         versions: true,
+        const: true,
     },
     'URL': {
         name: 'Website',
@@ -371,6 +345,9 @@ interface VCProp {
 }
 
 export class VCProperty {
+
+    static known = vCardProperties;
+
     /**
      * @param name vcard property name
      * @param params vcard parameters
@@ -418,8 +395,6 @@ export class VCProperty {
 
         if (["BEGIN", "END"].includes(key))
             return null;
-
-        console.log(line, key, paramStrs, value);
 
         if (key === 'VCARD')
             return null;
@@ -548,6 +523,12 @@ export class VCProperty {
             case 'timestamp':
                 return VCDateTime.parse(this.value).toUserString();
 
+            case 'img':
+                if (this.value.startsWith('http')) {
+                    return `<img src="${this.value}" alt="PHOTO" />`;
+                } else {
+                    return `<img src="data:${this.params.TYPE};base64, ${this.value}" alt="PHOTO" />`;
+                }
             // TODO img, address, key
 
             case 'sex':
