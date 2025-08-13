@@ -1,7 +1,7 @@
 /**
  * vCard DateTime
  */
-export class VCDT {
+export class VCDateTime {
     year?: string;
     month?: string;
     day?: string;
@@ -12,12 +12,12 @@ export class VCDT {
 
     static parse(str: string, bareTime = false) {
         // Start with null datetime
-        const ret = new VCDT();
+        const ret = new VCDateTime();
 
         // TODO replace this with something more performant
         const dateRegex =
             /(?:^(?<year>[0-9]{4})(?<month>[01][0-9])(?<day>[0-3][0-9])$)/.source
-            + /|(?:^(?<year>[0-9]{4})-(?<month>[01][0-9])-(?<day>[0-3][0-9])$)/.source
+            + /|(?:^(?<year>(?:\+[0-9]+)?[0-9]{4})-(?<month>[01][0-9])-(?<day>[0-3][0-9])$)/.source
             + /|(?:^--(?<month>[01][0-9])(?<day>[0-3][0-9])$)/.source
             + /|(?:^---(?<day>[0-3][0-9])$)/.source
             + /|(?:^(?<year>[0-9]{4})-(?<month>[01][0-9])$)/.source
@@ -88,7 +88,9 @@ export class VCDT {
 
         let ret = '';
         if (!this.year)
-            ret += "Every ";
+            ret += 'Every ';
+        else
+            ret += this.year + ' ';
         if (this.month)
             ret += monthNames[parseInt(this.month)];
         if (this.day) {

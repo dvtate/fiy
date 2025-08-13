@@ -1,4 +1,4 @@
-import {VCDT} from "./VCDT";
+import {VCDateTime} from "./VCDateTime";
 import {CustomDateInput, CustomInput} from "./CustomInput";
 
 const capitalized = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
@@ -213,7 +213,7 @@ const vCardProperties = {
     'LABEL': {
         name: 'Shipping Address',
         description: 'Text that should go on a mailing label',
-        type: 'adr', // same as ADR property
+        type: 'address', // same as ADR property
         versions: ['2.1', '3.0'],
         // version 4.0: ADR;LABEL: ...
     },
@@ -350,9 +350,17 @@ const vCardProperties = {
     'VERSION': {
         name: 'vCard Version',
         description: 'vCard File Version',
-        type: 'string',
+        type: 'text',
         versions: true,
     },
+
+    // TODO X-SOCIALPROFILE
+    'X-SOCIALPROFILE': {
+        name: 'Social Media Profile',
+        description: 'Link to social media profile page',
+        type: 'uri',
+        versions: true,
+    }
 };
 
 interface VCProp {
@@ -363,9 +371,6 @@ interface VCProp {
 }
 
 export class VCProperty {
-
-    underlyingValue: any = null;
-
     /**
      * @param name vcard property name
      * @param params vcard parameters
@@ -410,6 +415,12 @@ export class VCProperty {
             .slice(0, colon)
             .split(';')
             .map(s => s.trim());
+
+        if (["BEGIN", "END"].includes(key))
+            return null;
+
+        console.log(line, key, paramStrs, value);
+
         if (key === 'VCARD')
             return null;
 
@@ -429,7 +440,6 @@ export class VCProperty {
     ////
     // Value methods
     ////
-
 
     fromJSDate(d: Date) {
         this.fromVCDate(
@@ -458,12 +468,24 @@ export class VCProperty {
         this.value = ret;
     }
 
-    toDateObject() {
-        return VCDT.parse(this.value);
-    }
-
-    toDateString() {
-        const o = this.toDateObject().toUserString();
+    /**
+     * Converts a N property value to a human readable string
+     */
+    nameToString() {
+        const [
+            surnames,
+            givenNames,
+            additionalNames,
+            prefixes,
+            suffixes
+        ] = this.value
+            .split(';')
+            .map(n => n.split(','));
+        return (prefixes?.join(' ') || '')
+            + (givenNames?.join(' ') || '')
+            + (additionalNames?.join(' ') || '')
+            + (surnames?.join(' ') || '')
+            + (suffixes?.join(' ') || '');
     }
 
     /**
@@ -511,11 +533,43 @@ export class VCProperty {
     input?: CustomInput;
 
     label() {
-        return vCardProperties[this.name].name || this.name;
+        return vCardProperties[this.name]?.name || this.name;
+    }
+
+    valueHtml() {
+
+        switch (vCardProperties[this.name]?.type) {
+            case 'uri':
+                return `<a href="${this.value}">${this.value}</a>`;
+            case 'name':
+                return this.nameToString();
+
+            case 'date-and-or-time':
+            case 'timestamp':
+                return VCDateTime.parse(this.value).toUserString();
+
+            // TODO img, address, key
+
+            case 'sex':
+            case 'text':
+            case 'timezone':
+            case 'lang':
+            default:
+                return this.value;
+        }
     }
 
     showHtml() {
-        const label = this.label();
+        let paramsHtml = "";
+        if (this.params.TYPE)
+            paramsHtml += `<br/><label>Type:</label> <span>${this.params.TYPE}</span>`;
+
+        return `<div class="input-group">
+    <label>${this.label()}</label>
+    <span>${this.valueHtml()}</span>
+    ${paramsHtml}
+</div>`
+        return "";
     }
 
     inputHtml(e: HTMLElement) {

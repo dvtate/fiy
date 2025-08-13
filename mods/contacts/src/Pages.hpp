@@ -13,7 +13,7 @@
 #include "Contact.hpp"
 #include "DB.hpp"
 
-extern const fiy_host_info_t* g_host_info;
+extern fiy::HostInfo g_host_info;
 
 namespace Pages {
 
@@ -23,7 +23,7 @@ namespace Pages {
         if (!f.is_open()) {
             std::string log_msg = "Error: Could not open file ";
             log_msg += file_path;
-            g_host_info->log(1, log_msg.c_str());
+            g_host_info.log(1, log_msg.c_str());
             return ""; // Return an empty string on failure
         }
 
@@ -43,7 +43,7 @@ namespace Pages {
     template<const char* FileSubPath>
     const std::string& file_contents() {
         static const std::string contents = load_file_as_string(
-            std::string(g_host_info->data_dir) + FileSubPath
+            std::string(g_host_info.data_dir) + FileSubPath
         );
         return contents;
     }

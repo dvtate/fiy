@@ -9,7 +9,7 @@
 #include "Pages.hpp"
 #include "Contact.hpp"
 
-const fiy_host_info_t* g_host_info;
+fiy::HostInfo g_host_info;
 
 void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     auto& req = *(fiy::Request*) request;
@@ -35,16 +35,32 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
 
     // Everything here requires a login
     if (req.user == nullptr) {
-        req.respond(cb, 401);
+        static const fiy::Response no_auth_resp{
+            303, nullptr, 0,
+            "Location: " + g_host_info.host_base_uri() + "/portal/login"
+        };
+        req.respond(cb, no_auth_resp);
         return;
     }
-
 
     if (path.starts_with("/main.css")) {
         static const char css_file[] = "/main.css";
         req.respond(cb, 200,
             Pages::file_contents<css_file>(),
             "Content-Type: text/css\nCache-Control: max-age=604800"
+        );
+        return;
+    }
+    if (path.starts_with("/main.js")) {
+        static const char js_file[] = "/main.bundle.js";
+        static const std::string js_file_contents = Pages::replace_all(
+            Pages::file_contents<js_file>(),
+            "{{fediy_contacts_base_uri}}",
+            g_host_info->base_uri
+        );
+        req.respond(cb, 200,
+            js_file_contents,
+            "Content-Type: text/javascript\nCache-Control: max-age=604800"
         );
         return;
     }
@@ -68,6 +84,6 @@ extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
         .on_peer_domain_changed=nullptr,
         .on_username_changed=nullptr,
     };
-    g_host_info = host_info;
+    g_host_info = *host_info;
     return &mod_info;
 }

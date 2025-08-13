@@ -160,14 +160,18 @@ namespace WebUtils {
 
             // Get cookie value
             start = equals_pos + 1;
-            end = (cookie_end == std::string_view::npos) ? header.size() - 1 : cookie_end;
-            while ((header[start] == 0x20 || header[start] == 0x09) && start < cookie_end)
-                ++start;
-            while ((header[end] == 0x20 || header[end] == 0x09) && end >= start)
-                --end;
-            auto value = header.substr(start, end - start + 1);
+            if (start < header.size()) {
+                end = (cookie_end == std::string_view::npos) ? header.size() - 1 : cookie_end;
+                while ((header[start] == 0x20 || header[start] == 0x09) && start < cookie_end)
+                    ++start;
+                while ((header[end] == 0x20 || header[end] == 0x09) && end >= start)
+                    --end;
 
-            ret[std::string(name)] = value;
+                if (end > start) {
+                    auto value = header.substr(start, end - start + 1);
+                    ret[std::string(name)] = value;
+                }
+            }
 
             // Next if any
             if (cookie_end == std::string_view::npos)

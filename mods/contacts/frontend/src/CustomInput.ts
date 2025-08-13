@@ -1,5 +1,5 @@
 import { VCProperty } from "./VCProperty";
-import {VCDT} from "./VCDT";
+import {VCDateTime} from "./VCDateTime";
 
 /*
 
@@ -64,7 +64,7 @@ export class CustomDateInput extends CustomInput{
 
     initialValue() {
         if (this.property.value) {
-            const o = VCDT.parse(this.property.value);
+            const o = VCDateTime.parse(this.property.value);
             const today = new Date().toISOString().slice(0,10);
             if (!o.year)
                 o.year = today.slice(0,4);

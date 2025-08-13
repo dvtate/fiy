@@ -170,7 +170,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
     auto auth_token = g_fiy->m_users.login_user(username, password);
 
     Session::EmptyResponse res;
-    res.result(boost::beast::http::status::temporary_redirect);
+    res.result(boost::beast::http::status::see_other);
     res.set(boost::beast::http::field::set_cookie,
         WebUtils::serialize_cookie(
             "fiy_auth",
@@ -349,7 +349,7 @@ void route_request(std::shared_ptr<Session> conn) {
                     if (user == nullptr) {
                         DEBUG_LOG("User not logged in");
                         Session::EmptyResponse res;
-                        res.result(boost::beast::http::status::temporary_redirect);
+                        res.result(boost::beast::http::status::see_other);
                         res.set(boost::beast::http::field::location, "/portal/login");
                         conn->respond(conn->prep(std::move(res)));
                         return;

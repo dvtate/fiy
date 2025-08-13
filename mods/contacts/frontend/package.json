@@ -15,8 +15,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "DEPLOY_ENV=development webpack && cp static/* dist",
-    "build": "DEPLOY_ENV=production webpack && cp static/* dist"
+    "dev": "cp static/* dist && DEPLOY_ENV=development webpack",
+    "build": "cp static/* dist && DEPLOY_ENV=production webpack"
   },
   "devDependencies": {
     "ts-loader": "^9.5.2",

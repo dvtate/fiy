@@ -56,6 +56,9 @@ For example, this nginx.conf should work:
 ```
 Run install.sh.
 
+## Security
+Consider running the fediy server as a dedicated user that only has access to files in the install dir.
+
 ## Notes
 - Your system clock must be accurate in order to interact with other instances
 

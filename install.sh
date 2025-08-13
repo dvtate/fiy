@@ -53,7 +53,6 @@ echo
 # Make data dir
 mkdir "$INSTALL_PATH" || echo "Couldn't mkdir $INSTALL_PATH"
 mkdir "$INSTALL_PATH/mods"
-mkdir "$INSTALL_PATH/pages"
 mkdir "$INSTALL_PATH/auth"
 chmod -R 777 "$INSTALL_PATH"
 
@@ -91,6 +90,14 @@ cp $CP_INSTALL_FLAG "$(realpath ./build/protocol_server)" "$INSTALL_PATH/server"
 cp $CP_INSTALL_FLAG "$(realpath ./build/libfediymod.so)" "$INSTALL_PATH/libfediymod.so"
 echo "Installed binaries"
 
+if [ "$DEVEL_INSTALL" -eq 1 ]; then
+    cp -r $CP_INSTALL_FLAG "$(realpath ./portal_frontend)" "$INSTALL_PATH/pages"
+else
+    mkdir "$INSTALL_PATH/pages"
+    cp ./portal_frontend/* "$INSTALL_PATH/pages"
+fi
+echo "Installed Portal Frontend"
+
 # Generate and install GPG keys
 echo "Generating server key pair..."
 GPG_BATCH_CONF="$(mktemp)"
@@ -114,6 +121,7 @@ rm "$GPG_BATCH_CONF"
 rm -rf "$GPG_TMP_HOME"
 echo "Generated server key pair."
 
+chmod -R 777 "$INSTALL_PATH"
 
 echo
 echo
