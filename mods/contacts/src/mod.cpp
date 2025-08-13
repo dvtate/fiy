@@ -56,7 +56,7 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         static const std::string js_file_contents = Pages::replace_all(
             Pages::file_contents<js_file>(),
             "{{fediy_contacts_base_uri}}",
-            g_host_info->base_uri
+            g_host_info.base_uri
         );
         req.respond(cb, 200,
             js_file_contents,
