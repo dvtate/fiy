@@ -44,30 +44,22 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     }
 
     if (path.starts_with("/main.css")) {
-        static const char css_file[] = "/main.css";
         req.respond(cb, 200,
-            Pages::file_contents<css_file>(),
+            Pages::main_css(),
             "Content-Type: text/css\nCache-Control: max-age=604800"
         );
         return;
     }
     if (path.starts_with("/main.js")) {
-        static const char js_file[] = "/main.bundle.js";
-        static const std::string js_file_contents = Pages::replace_all(
-            Pages::file_contents<js_file>(),
-            "{{fediy_contacts_base_uri}}",
-            g_host_info.base_uri
-        );
         req.respond(cb, 200,
-            js_file_contents,
+            Pages::main_js(),
             "Content-Type: text/javascript\nCache-Control: max-age=604800"
         );
         return;
     }
 
     if (path == "/" || (path.size() > 1 && path[1] == '?')) {
-        static const std::string page = Pages::index_html(req.user);
-        req.respond(cb, 200, page, "Content-Type: text/html");
+        req.respond(cb, 200, Pages::index_html(), "Content-Type: text/html");
         return;
     }
 

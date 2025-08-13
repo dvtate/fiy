@@ -8,14 +8,14 @@
 
 #include "../../../third_party/SQLiteCpp/include/SQLiteCpp/SQLiteCpp.h"
 
-#include "Contact.hpp"
-
 namespace DB {
     using Exception = SQLite::Exception;
 
     SQLite::Database& connection();
 
-    std::vector<Contact> get_contacts(const std::string_view owner);
-    bool get_user_profile(const std::string_view user, int level, Contact& c);
-    Contact get_contact_by_id(int64_t id);
+    std::string get_profile(
+        const std::string& user,
+        const std::string& req_user,
+        const std::string& req_domain
+    );
 } // namespace DB

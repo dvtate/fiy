@@ -8,36 +8,29 @@
 #include <utility>
 #include <vector>
 
-struct Contact {
+struct VC {
+    struct Prop {
+        int64_t id;
+        std::string name, params, value;
+    };
+
     /// Unique ID
-    int64_t m_id;
+    int64_t id{-1};
 
-    /// Full name
-    std::string m_name;
+    /// fediy user that owns the vcard
+    std::string owner;
 
-    /// Relevant fediy user
-    std::string m_fiy_user;
+    /// fediy user represented by the card
+    std::string user;
 
-    /// Relevant fields
-    std::vector<std::pair<std::string, std::string>> m_fields;
+    /// last edited timestamp
+    time_t update_ts{0};
 
-//    static constexpr std::vector<std::pair<std::string, std::string>> FieldOptions;
+    /// vCard properties
+    std::vector<Prop> props;
 
-    std::string vcard();
+    /// Convert to vCard text
+    std::string to_vcard();
 
-    std::string json();
-
-    static Contact json(const std::string& json_str);
-    static Contact vcard(const std::string& vcard_str);
-
-    template<class IterableContainer>
-    static std::string json_list(const IterableContainer& contacts) {
-        std::string ret = "[";
-        for (Contact c : contacts) {
-            ret += c.json();
-            ret += ',';
-        }
-        ret[ret.size() - 1] = ']';
-        return ret;
-    }
+    bool parse(const std::string& vc);
 };

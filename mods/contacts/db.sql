@@ -60,6 +60,13 @@ CREATE TABLE SharedCards (
 
 -- query planning
 
+-- get all of user's contacts
+
+
+-- update a contact
+-- DELETE FROM CardProperties WHERE cardId=?;
+-- INSERT INTO Properties ()
+
 -- delete a contact
 DELETE FROM CardProperties WHERE cardId=?;
 DELETE FROM ProfileCardProperties WHERE cardId=?;
@@ -72,15 +79,15 @@ DELETE FROM Cards WHERE id=?;
 
 -- get user public profile
 -- :visibility 2 or 3
-SELECT name, params, value FROM Properties WHERE id IN (
+SELECT id, name, params, value FROM Properties WHERE id IN (
     SELECT propertyId AS id FROM ProfileCardProperties
     WHERE cardId=(SELECT id FROM Cards WHERE owner = user AND user=:profile_user)
       AND visibility >= :visibility
 );
 
 -- get user profile or contact
--- :visibility 1 or 2
-SELECT name, params, value FROM Properties WHERE id IN (
+-- :visibility 0 or 1
+SELECT id, name, params, value FROM Properties WHERE id IN (
     SELECT propertyId AS id FROM ProfileCardProperties
     WHERE cardId=(SELECT id FROM Cards WHERE owner = user AND user=:profile_user)
       AND visibility >= :visibility

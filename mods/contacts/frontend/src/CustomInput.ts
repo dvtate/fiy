@@ -101,6 +101,17 @@ export class CustomEmailInput extends CustomInput {
        }
    }
 
+   typeOptionsHtml() {
+       const selected = this.property.value;
+       if (!selected) {
+           return `<option value="PERSONAL">Personal</option>
+<option value="WORK">Work</option>
+<option value="HOME">Home</option>
+<option value="OTHER">Other</option>`;
+       }
+
+   }
+
    html(e: HTMLElement) {
        e.innerHTML += `<div class="input-group">
 <label for="${this.id}">Email</label>
@@ -108,10 +119,7 @@ export class CustomEmailInput extends CustomInput {
 </div><div class="input-group">
 <label for="${this.id}-type">Type</label>
 <select id="${this.id}-type">
-<option value="PERSONAL">Personal</option>
-<option value="WORK">Work</option>
-<option value="HOME">Home</option>
-<option value="OTHER">Other</option>
+
 </select>
 </div>`
    }

@@ -10,9 +10,23 @@ const detailsView = document.querySelector(".details-view");
 let uidCounter = 0;
 
 let contacts: VC[];
+let username: string;
+let profileIndex: number;
 
 API.getUserContacts().then(vcf => {
     contacts = VC.parseCards(vcf);
+
+    // Get profile
+    for (let i = 0; i < contacts.length; i++) {
+        const un = contacts[i].isProfileCard();
+        if (typeof un === "string") {
+            profileIndex = i;
+            username = un;
+        }
+    }
+
+    // Sort by display name
+    // vCard has a sort
     contacts.sort((a,b) => a.getDisplayName().localeCompare(b.getDisplayName()));
 
     // Initial render
@@ -27,9 +41,12 @@ API.getUserContacts().then(vcf => {
         showContactDetails(index);
     } else {
         // Show user profile editable
-        // TODO
+        if (profileIndex && profileIndex != -1)
+            showContactDetails(profileIndex);
     }
-
+}).catch(e => {
+    console.error(e);
+    alert('failed to load contacts from the server!!');
 });
 
 function renderContactsList(filter = "") {
@@ -58,14 +75,9 @@ function mobileDetailsView(goBack = false) {
     }
 }
 
-function showContactDetails(index) {
+function showContactDetails(index: number) {
 
-    const contact = contacts[index];
-    contactDetails.innerHTML = `
-<h2>${contact.getDisplayName()}</h2>
-<h3>${contact.getDisplayName()}</h3>
-${contact.properties.map(p => p.showHtml()).join('<hr>')}
-<hr>
+    contactDetails.innerHTML = `${contacts[index].showHtml()}<hr>
 <button title="Download" id="contact-download"><i class="fa fa-download"></i></button>
 <button title="Share"><i class="fa fa-share" id="contact-share"></i></button>
 <button title="Edit"><i class="fa fa-pencil" id="contact-edit"></i></button>

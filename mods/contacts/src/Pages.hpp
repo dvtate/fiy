@@ -16,8 +16,16 @@
 extern fiy::HostInfo g_host_info;
 
 namespace Pages {
+    //////
+    // Simple Templating engine
+    /////
 
-    std::string load_file_as_string(std::string&& file_path) {
+    /**
+     * Read the entire contents of given file path into a string
+     * @param file_path path to file
+     * @return contents of file
+     */
+    std::string load_file_as_string(const std::string& file_path) {
         // Open the file
         std::ifstream f{file_path};
         if (!f.is_open()) {
@@ -39,7 +47,11 @@ namespace Pages {
         return ret;
     }
 
-    /// Get cached contents of file as a string
+    /**
+     * Get cached contents of file as a string
+     * @tparam FileSubPath static const char* data dir subpath
+     * @return string contents of the file
+     */
     template<const char* FileSubPath>
     const std::string& file_contents() {
         static const std::string contents = load_file_as_string(
@@ -65,12 +77,42 @@ namespace Pages {
         return haystack;
     }
 
-    std::string index_html(const std::string& user) {
-        static const char path[] = "/index.html";
-        return replace_one(
-            file_contents<path>(),
-            "{{contacts_json}}",
-            Contact::json_list(DB::get_contacts(user))
+    std::string replace_all(
+        std::string template_string,
+        const std::vector<std::pair<std::string_view, std::string_view>>& replacements
+    ) {
+        for (const auto [ from, to ] : replacements)
+            template_string = replace_all(std::move(template_string), from, to);
+        return template_string;
+    }
+
+    //////
+    // Cached Static Pages
+    //////
+
+
+    const std::string& main_js() {
+        static const std::string contents = Pages::replace_all(
+            load_file_as_string(std::string(g_host_info.data_dir) + "/main.bundle.js"),
+            {
+                {   "{{fediy_contacts_base_uri}}",
+                    g_host_info.base_uri
+                }, {
+                    "{{fediy_contacts_domain}}",
+                    g_host_info.domain
+                }
+            }
         );
+        return contents;
+    }
+
+    const std::string& index_html() {
+        static const char path[] = "/index.html";
+        return file_contents<path>();
+    }
+
+    const std::string& main_css() {
+        static const char path[] = "/main.css";
+        return file_contents<path>();
     }
 };

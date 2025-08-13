@@ -9,9 +9,11 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 #else
 #include <cstdint>
 #include <string>
+#include <ctime>
 #endif
 
 /// String versions of http verb
@@ -196,6 +198,11 @@ struct fiy_host_info_t {
      *  -1 error
      */
     int (*user_info)(const char* local_user_name, struct fiy_local_user_info_t* ret);
+
+    /**
+     * Gets the current time according to the host
+     */
+    time_t (*now)();
 };
 
 typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host_info_t*);

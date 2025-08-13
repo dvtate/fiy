@@ -2,11 +2,15 @@
 // Created by tate on 7/30/25.
 //
 
-#include "DB.hpp"
-
 #include <nlohmann/json.hpp>
 
 #include "../../../modlib/fediymod.hpp"
+
+#include "Contact.hpp"
+
+#include "DB.hpp"
+
+
 
 extern const fiy_host_info_t* g_host_info;
 
@@ -18,42 +22,101 @@ SQLite::Database& connection() {
     return db;
 }
 
-std::vector<Contact> DB::get_contacts(const std::string_view owner) {
-    static thread_local SQLite::Statement query{connection(), "SELECT * FROM Contacts WHERE ownerUserName=?"};
-    std::vector<Contact> ret;
-
-    // TODO make issue string_view support in SQLiteCpp
-    query.bind(1, std::string(owner.data(), owner.size()));
-
-    while (query.executeStep()) {
-        Contact c;
-        c.m_id = query.getColumn(0).getInt64();
-        c.m_name = query.getColumn(2).getString();
-        c.m_fiy_user = query.getColumn(3).getString();
-
-        // TODO FIXME changed schema
-        auto fields_json_str = query.getColumn(4).getString();
-        if (!fields_json_str.empty()) {
-            using namespace nlohmann;
-            auto fields_json = json::parse(std::move(fields_json_str));
-            std::vector<std::pair<std::string, std::string>> fields;
-            if (fields_json.is_array() && !fields_json.empty()) {
-                auto n = fields_json.size();
-                if (n % 2 == 0)
-                    for (int i = 0; i < n; i += 2)
-                        fields.emplace_back(fields_json[i], fields_json[i+1]);
-                else
-                    for (json f : fields_json)
-                        if (f.is_array() && f.size() == 2)
-                            fields.emplace_back(f[0], f[1]);
-                        else
-                            g_host_info->log(1, "Database contains invalid data(3)");
-            } else {
-                g_host_info->log(1, "Database contains invalid data");
-            }
-            c.m_fields = std::move(fields);
-        }
-        ret.emplace_back(std::move(c));
+bool is_profile_card(int64_t card_id) {
+    static thread_local SQLite::Statement query{DB::connection(), "SELECT owner, user FROM Cards WHERE id=?"};
+    query.reset();
+    query.bind(1, card_id);
+    if (query.executeStep()) {
+        return query.getColumn(0).getString() == query.getColumn(1).getString();
+    } else {
+        return false; // invalid contact id === not a profile
     }
-    return ret;
+}
+
+/**
+ * Trust level for the request
+ * @param user
+ * @param req_user
+ * @param req_domain
+ * @return number indicating trust level
+ *  0 - same user
+ *  1 - user on same instance
+ *  2 - user on different instance
+ *  3 - public/unknown/bot user
+ */
+static constexpr int visibility(
+    const std::string& user,
+    const std::string& req_user,
+    const std::string& req_domain
+) {
+    return req_user.empty() ? 3
+        : req_domain.empty()
+        ? (user != req_user ? 1 : 0)
+        : 2;
+}
+
+std::string DB::get_profile(
+    const std::string& user,
+    const std::string& req_user,
+    const std::string& req_domain
+) {
+    int trust_level = visibility(user, req_user, req_domain);
+
+    VC ret;
+    ret.user = user;
+    ret.owner = req_user;
+
+    if (trust_level == 0 || trust_level == 1) {
+        static thread_local SQLite::Statement query{DB::connection(),
+            "SELECT id, name, params, value FROM Properties WHERE id IN ( "
+                "SELECT propertyId AS id FROM ProfileCardProperties "
+                "WHERE cardId=(SELECT id FROM Cards WHERE owner = user AND user=?) "
+                    "AND visibility >= ?"
+
+                " UNION " // this also removes duplicates
+
+                "SELECT propertyId AS id FROM CardProperties WHERE cardId IN ( "
+                    "SELECT id AS cardId FROM Cards "
+                    "WHERE owner=? AND user=?"
+                ")"
+            ");"};
+        query.reset();
+
+        query.bindNoCopy(1, user);
+        query.bind(2, trust_level);
+        query.bindNoCopy(3, req_user);
+        query.bindNoCopy(4, user);
+
+        while (query.executeStep()) {
+            ret.props.emplace_back(VC::Prop{
+                .id=query.getColumn(0).getInt64(),
+                .name=query.getColumn(1).getOriginName(),
+                .params=query.getColumn(2).getOriginName(),
+                .value=query.getColumn(3).getOriginName()
+            });
+        }
+        return ret.props.empty() ? "" : ret.to_vcard();
+    } else {
+        // TODO also get card id?
+        static thread_local SQLite::Statement query{DB::connection(),
+              "SELECT id, name, params, value FROM Properties WHERE id IN ( "
+                  "SELECT propertyId AS id FROM ProfileCardProperties "
+                  "WHERE cardId=(SELECT id FROM Cards WHERE owner = user AND user=?) "
+                    "AND visibility >= ?"
+              ")"};
+        query.reset();
+
+        query.bindNoCopy(1, user);
+        query.bind(2, trust_level);
+
+        while (query.executeStep()) {
+            ret.props.emplace_back(VC::Prop{
+                .id=query.getColumn(0).getInt64(),
+                .name=query.getColumn(1).getOriginName(),
+                .params=query.getColumn(2).getOriginName(),
+                .value=query.getColumn(3).getOriginName()
+            });
+        }
+        return ret.props.empty() ? "" : ret.to_vcard();
+    }
 }

@@ -2,42 +2,79 @@
 // Created by tate on 7/30/25.
 //
 
-#include <nlohmann/json.hpp>
+#include <ctime>
+
+#include "../../../modlib/fediymod.hpp"
 
 #include "Contact.hpp"
 
-std::vector<std::pair<std::string, std::string>> vcard_fields {
-    {  }
-};
+extern fiy::HostInfo g_host_info;
 
-std::string Contact::vcard() {
-    std::string ret = "BEGIN:VCARD\nVERSION:4.0\n";
+inline std::string get_timestamp_str(std::time_t t) {
+    char buf[sizeof "yyyymmddThhmmssZ"];
+    strftime(buf, sizeof buf, "%Y%m%dT%H%M%SZ", gmtime(&t));
+    return buf;
+}
 
+std::string VC::to_vcard() {
+    std::string ret = "BEGIN:VCARD\r\nVERSION:4.0\r\n";
+
+    if (this->id >= 0) {
+        ret += "SOURCE:";
+        ret += g_host_info.base_uri;
+        ret += "/id/";
+        ret += std::to_string(this->id);
+        ret += "\r\n";
+    }
+    if (!this->user.empty() && this->owner == this->user) {
+        ret += "X-FEDIY-PROFILE:";
+        ret += this->user;
+        ret += "\r\n";
+    }
+    if (!this->user.empty()) {
+        ret += "X-SOCIAL-PROFILE;TYPE=fediy:";
+        ret += this->user;
+        ret += "@";
+        ret += g_host_info.domain;
+        ret += "\r\n";
+    }
+    if (this->update_ts) {
+        ret += "REV:";
+        ret += get_timestamp_str(this->update_ts);
+        ret += "\r\n";
+    }
+
+    bool has_name = false;
+    for (const auto& item: this->props) {
+        if (item.name == "N" || item.name == "FN")
+            has_name = true;
+
+        ret += item.name;
+        if (!item.params.empty()) {
+            ret += ';';
+            ret += item.params;
+        }
+        ret += ':';
+        ret += item.value;
+        ret += "\r\n";
+    }
+
+    if (!has_name) {
+        if (!this->user.empty()) {
+            ret += "FN:";
+            ret += this->user;
+            ret += "\r\n";
+        } else {
+            ret += "FN:\r\n";
+        }
+    }
     ret += "END:VCARD";
+
     return ret;
 }
 
-std::string Contact::json() {
-    nlohmann::json::array_t fields;
-    for (auto& [k , v] : m_fields)
-        fields.emplace_back(nlohmann::json::array({ k, v }));
-
-    nlohmann::json ret = {
-        { "name", m_name },
-        { "name", m_fiy_user },
-        { "fields", std::move(fields) },
-    };
-
-    return ret.dump();
-}
-
-
-Contact Contact::json(const std::string& json_str) {
-    // TODO
-    return {};
-}
-
-Contact Contact::vcard(const std::string& vcard_str) {
-    // TODO
-    return {};
+bool VC::parse(const std::string& vc) {
+    if (!vc.starts_with("BEGIN:VCARD"))
+        return false;
+    return false;
 }

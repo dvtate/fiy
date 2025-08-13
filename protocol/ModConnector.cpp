@@ -72,6 +72,7 @@ struct ModDLLHostInfo : fiy_host_info_t {
         this->log = [](int n, const char* s){
             std::cout <<"Mod: " <<s <<std::endl;
         };
+        this->now = []() { return g_fiy->now(); };
 
         m_base_uri = std::string(
             strchr(g_fiy->m_config.m_hostname, ':') != nullptr ? "https://" : "http://"

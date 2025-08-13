@@ -1,15 +1,18 @@
 # API Documentation
 
-## *GET* `/`
+## **GET** `/`
 
-## *GET* `/all`
+## **GET** `/all`
 Responds with a multi-vcard containing all the local user's contacts.
 - 401: if requesting user is not a local user
 
-## *GET* `/id/{contact id}`
+## **GET** `/id/{contact id}`
 Returns vcard for given contact id
 
-## *GET* `/profile/{user}`
+## **POST** `/id/{contact id}`
+Update vcard contact
+
+## **GET** `/profile/{user}`
 Constructs a profile vCard for given user.
 
 Start by requesting user's profile from their host server.
@@ -21,10 +24,10 @@ vCard user profile
 - 200: success
 - 404: no profile for user
 
-## *GET* `/profile?users=csv,users,list`
+## **GET** `/profile?users=csv,users,list`
 Same as `/profile/{user}` but combines requests
 
-## *GET* `/pfp/{local user}`
+## **GET** `/pfp/{local user}`
 Sends the user's profile picture as a png
 
 ## *POST* `/save/{contact id}`

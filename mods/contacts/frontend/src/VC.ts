@@ -12,16 +12,22 @@ export default class VC {
         this.properties.push(property);
     }
 
+    private displayNameCache: string;
+
     getDisplayName() {
+        if (this.displayNameCache)
+            return this.displayNameCache;
+
         let p = this.properties.find(p => p.name === 'FN');
         if (p)
-            return p.value;
+            return this.displayNameCache = p.value;
 
         p = this.properties.find(p => p.name === 'N');
         if (p)
-            return p.nameToString();
+            return this.displayNameCache = p.nameToString();
 
         // Either N or FN is required by the vCard spec
+        // So this card is invalid
         return "invalid";
     }
 
@@ -35,7 +41,7 @@ export default class VC {
 
     getFiyUser() {
         let p = this.properties.find(p => p.name == 'UID');
-        if (!p)
+        if (!p || !p.value.includes('@'))
             return '';
         return p.value;
     }
@@ -69,6 +75,10 @@ export default class VC {
             .filter(vc => !!vc);
     }
 
+    /**
+     * Convert to vCard v4.0 representation
+     * Remove all properties that get set by the server
+     */
     convertInternal() {
         // TODO this logic should also be on the backend
 
@@ -111,7 +121,7 @@ export default class VC {
         }
 
         // If it's really old, only include known properties
-        if (!['4.0', '3.0'].includes(oldVersion))
+        // if (!['4.0', '3.0'].includes(oldVersion))
             this.properties = this.properties.filter(p => VCProperty.known[p.name]);
 
         return this;
@@ -127,5 +137,67 @@ export default class VC {
             .join('\r\n');
         ret += '\r\nEND:VCARD';
         return ret;
+    }
+
+    /**
+     * Returns the user's username if this card is a profile card, otherwise gives false
+     */
+    isProfileCard() {
+        // For the user's profile card, the server sets a special property:
+        //      X-FEDIY-PROFILE: username
+        const p = this.properties.find(p => p.name === 'X-FEDIY-PROFILE');
+        if (!p)
+            return false;
+        return p.value;
+    }
+
+    /**
+     * Gives a representation of the vCard property groups for this card
+     *
+     * @notes I don't want to support contact groups
+     *      but apple,google,etc. abuse them
+     */
+    propertiesGrouped(): { [group: string] : VCProperty | VCProperty[] } {
+        /*
+        {
+            0: property,
+            'group': [ property, property ],
+            3: property,
+            ...
+        }
+         */
+        let ret = {};
+        for (let i = 0; i < this.properties.length; i++) {
+            if (this.properties[i].name.includes('.')) {
+                const group = this.properties[i].name.split('.')[0];
+                if (!ret[group])
+                    ret[group] = [];
+                ret[group].push(this.properties[i]);
+            } else {
+                ret[i] = this.properties[i];
+            }
+        }
+        return ret;
+    }
+
+    showHtml() {
+        const dn = this.isProfileCard()
+            ? 'Your Profile'
+            : this.getDisplayName();
+        const fiyUser = this.getFiyUser();
+        const propsHtml = Object.entries(this.propertiesGrouped())
+            .map(([k, v]) =>
+                v instanceof VCProperty
+                    ? v.showHtml()
+                    : `<fieldset><legend>${k}</legend>${
+                        v.map(v => v.showHtml()).join('<hr/>')
+                        }</fieldset>`
+            ).join('<hr/>');
+
+        return `<h2>${dn}</h2>${
+            fiyUser ? `<h3>${fiyUser}</h3>` : ''
+        }${
+            propsHtml
+        }`;
     }
 }

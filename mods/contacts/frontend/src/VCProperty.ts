@@ -328,21 +328,21 @@ const vCardProperties = {
         versions: true,
     },
 
-    // TODO X-SOCIALPROFILE
     'X-SOCIALPROFILE': {
         name: 'Social Media Profile',
         description: 'Link to social media profile page',
         type: 'uri',
         versions: true,
+    },
+    'X-FEDIY-PROFILE': {
+        name: 'Fediy User Profile',
+        description: 'Fediy user who owns this profile',
+        type: 'text',
+        versions: false,
+        const: true,
     }
 };
 
-interface VCProp {
-    showHtml(): string,
-    editHtml(): string,
-    toVcard(): string,
-    validate(): boolean,
-}
 
 export class VCProperty {
 
@@ -363,6 +363,13 @@ export class VCProperty {
     ////
     // vCard methods
     ////
+
+    /**
+     * Gets the property name, excluding group name
+     */
+    getName() {
+        return this.name.split('.').pop()
+    }
 
     paramsString() {
         return Object.entries(this.params).map(([p, v]) => {
@@ -456,11 +463,12 @@ export class VCProperty {
         ] = this.value
             .split(';')
             .map(n => n.split(','));
-        return (prefixes?.join(' ') || '')
-            + (givenNames?.join(' ') || '')
-            + (additionalNames?.join(' ') || '')
-            + (surnames?.join(' ') || '')
-            + (suffixes?.join(' ') || '');
+        return [(prefixes?.join(' ') || ''),
+            (givenNames?.join(' ') || ''),
+            (additionalNames?.join(' ') || ''),
+            (surnames?.join(' ') || ''),
+            (suffixes?.join(' ') || '')
+        ].filter(n => !!n).join(' ');
     }
 
     /**
@@ -508,12 +516,12 @@ export class VCProperty {
     input?: CustomInput;
 
     label() {
-        return vCardProperties[this.name]?.name || this.name;
+        return vCardProperties[this.getName()]?.name || this.name;
     }
 
     valueHtml() {
 
-        switch (vCardProperties[this.name]?.type) {
+        switch (vCardProperties[this.getName()]?.type) {
             case 'uri':
                 return `<a href="${this.value}">${this.value}</a>`;
             case 'name':
@@ -543,14 +551,9 @@ export class VCProperty {
     showHtml() {
         let paramsHtml = "";
         if (this.params.TYPE)
-            paramsHtml += `<br/><label>Type:</label> <span>${this.params.TYPE}</span>`;
+            paramsHtml += `<h5>Type: ${this.params.TYPE}</h5>`;
 
-        return `<div class="input-group">
-    <label>${this.label()}</label>
-    <span>${this.valueHtml()}</span>
-    ${paramsHtml}
-</div>`
-        return "";
+        return `<h4>${this.label()}</h4>${paramsHtml}${this.valueHtml()}</div>`
     }
 
     inputHtml(e: HTMLElement) {
@@ -559,7 +562,7 @@ export class VCProperty {
             return;
         }
 
-        switch (this.name) {
+        switch (this.getName()) {
             case 'BDAY':
             case 'ANNIVERSARY':
                 this.input = new CustomDateInput(this);
