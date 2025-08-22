@@ -2,6 +2,8 @@
 // Created by tate on 7/30/25.
 //
 
+#include <cstdint>
+#include <string_view>
 
 #include "../../../modlib/fediymod.hpp"
 
@@ -17,7 +19,7 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     std::string_view path{req.path};
 
     // Get user profile
-    if (path.starts_with("/profile/")) {
+    if (req.method == (uint8_t) fiy::Request::Method::GET && path.starts_with("/profile/")) {
         path.remove_prefix(9);
         // TODO split user on @ and if it's remote call remote server instead
         auto card = DB::get_profile(std::string(path), req.user, req.domain);

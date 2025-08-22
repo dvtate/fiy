@@ -79,7 +79,7 @@ export class CustomDateInput extends CustomInput {
     html(e: HTMLElement) {
         e.innerHTML += `<div class="input-group">
     <label for="${this.id}">${this.property.label()}</label>
-    <input type="date" id="${this.id}" value={this.initialValue()}></input>
+    <input type="date" id="${this.id}" value={this.initialValue()}>
 </div>`;
         document.getElementById(this.id).addEventListener('change', this.validate.bind(this));
     }
@@ -103,13 +103,14 @@ export class CustomEmailInput extends CustomInput {
 
    typeOptionsHtml() {
        const selected = this.property.value;
-       if (!selected) {
-           return `<option value="PERSONAL">Personal</option>
+       let ret = '';
+       if (selected)
+           ret += `<option value="${selected}" selected>${selected}</option>`;
+
+       return ret + `<option value="PERSONAL">Personal</option>
 <option value="WORK">Work</option>
 <option value="HOME">Home</option>
 <option value="OTHER">Other</option>`;
-       }
-
    }
 
    html(e: HTMLElement) {
@@ -118,9 +119,7 @@ export class CustomEmailInput extends CustomInput {
 <input id="${this.id}" type="email" value="${this.property.value || ''}" />
 </div><div class="input-group">
 <label for="${this.id}-type">Type</label>
-<select id="${this.id}-type">
-
-</select>
+<select id="${this.id}-type">${this.typeOptionsHtml()}</select>
 </div>`
    }
 
@@ -132,16 +131,92 @@ export class CustomEmailInput extends CustomInput {
    }
 }
 
+export class CustomTextInput extends CustomInput {
 
-// TODO
-// CustomImageInput
-// CustomGenderInput
-// CustomPhoneInput
-// CustomTextInput
-// CustomTextOptionsInput
-// CustomTimezoneInput
-// CustomLangInput
-// CustomUriInput
-// CustomAddressInput
-// CustomNameInput
-// CustomGeoInput
+    getValue() {
+        const e = document.getElementById(this.id) as HTMLInputElement;
+        return e.value;
+    }
+    override validate(): string | null {
+        return this.getValue().length === 0 ? null : "Value cannot be empty";
+    }
+
+    override html(e: HTMLElement): void {
+        e.innerHTML += `<div class="input-group">
+    <label for="${this.id}">${this.property.label()}</label>
+    <input type="text" id="${this.id}" value="${this.property.value ||''}" />
+</div>`;
+    }
+
+    override loadValue(): void {
+        this.property.value = this.getValue();
+    }
+}
+
+export class CustomTextAreaInput extends CustomTextInput {
+    override html(e: HTMLElement): void {
+        e.innerHTML += `<div class="input-group">
+    <label for="${this.id}">${this.property.label()}</label>
+    <textarea id="${this.id}" rows="3">${this.property.value ||''}</textarea>
+</div>`;
+    }
+}
+
+export class CustomUriInput extends CustomTextInput {
+    override html(e: HTMLElement): void {
+        e.innerHTML += `<div class="input-group">
+    <label for="${this.id}">${this.property.label()}</label>
+    <input type="url" id="${this.id}" value="${this.property.value ||''}" />
+</div>`;
+    }
+}
+
+export class CustomPhoneInput extends CustomInput {
+    getValue() {
+        const e = document.getElementById(this.id) as HTMLInputElement;
+        return e.value;
+    }
+
+    override validate(): string | null {
+        return this.getValue().length !== 0 ? null : "Phone number cannot be empty";
+    }
+
+    typeOptionsHtml() {
+        const selected = this.property.value;
+        let ret = '';
+        if (selected)
+            ret += `<option value="${selected}" selected>${selected}</option>`;
+
+        // TODO probably more options
+        return ret + `<option value="PERSONAL">Personal</option>
+<option value="WORK">Work</option>
+<option value="HOME">Home</option>
+<option value="OTHER">Other</option>`;
+    }
+
+    override html(e: HTMLElement) {
+        e.innerHTML += `<div class="input-group">
+    <label for="${this.id}">Phone number</label>
+    <input id="${this.id}" type="tel" placeholder="+15558675309" value="${this.property.value || ''}" />
+</div><div class="input-group">
+    <label for="${this.id}-type">Type</label>
+    <select id="${this.id}-type">${this.typeOptionsHtml()}</select>
+</div>`;
+    }
+
+    loadValue() {
+        const v = document.getElementById(this.id) as HTMLInputElement;
+        const t = document.getElementById(this.id + '-type') as HTMLInputElement;
+        this.property.value = v.value;
+        this.property.params.TYPE = t.value;
+    }
+}
+
+// TODO CustomGenderInput
+// TODO CustomAddressInput
+// TODO CustomGeoInput
+// TODO CustomNameInput
+// TODO CustomImageInput
+// TODO CustomTextOptionsInput
+// TODO CustomTimezoneInput
+// TODO CustomLangInput
