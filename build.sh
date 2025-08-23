@@ -7,8 +7,8 @@ command -v cmake >/dev/null 2>&1 || { echo >&2 "cmake is required but not instal
 function build_cpp {
     mkdir build | :
     cd build
-    if [ "$1" = "debug"]; then
-        cmake .. -DCMAKE_BUILD_TYPE=Debug
+    if [ "$1" = "debug" ]; then
+        cmake -DCMAKE_BUILD_TYPE=Debug ..
     else
         cmake ..
     fi
@@ -26,6 +26,6 @@ function build_contacts_mod {
 }
 
 # Run build tasks in parallel
-build_cpp &
+build_cpp "$1" &
 build_contacts_mod &
 wait
