@@ -2,8 +2,6 @@
 set -e
 
 command -v sqlite3 >/dev/null 2>&1 || { echo >&2 "sqlite3 is required but not installed.  Aborting."; exit 1; }
-command -v npm >/dev/null 2>&1 || { echo >&2 "npm is required but not installed.  Aborting."; exit 1; }
-command -v cmake >/dev/null 2>&1 || { echo >&2 "cmake is required but not installed.  Aborting."; exit 1; }
 command -v gpg >/dev/null 2>&1 || { echo >&2 "gpg is required but not installed.  Aborting."; exit 1; }
 
 

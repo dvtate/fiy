@@ -10,8 +10,9 @@
 
 struct VC {
     struct Prop {
-        int64_t id;
+        int64_t id{-1};
         std::string name, params, value;
+        int8_t visibility{0}; // default to private
     };
 
     /// Unique ID
@@ -32,5 +33,7 @@ struct VC {
     /// Convert to vCard text
     std::string to_vcard();
 
-    bool parse(const std::string& vc);
+    bool parse(std::string vc);
+
+    static VC basic_profile(const std::string& user);
 };

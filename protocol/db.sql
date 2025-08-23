@@ -2,7 +2,7 @@
 
 CREATE TABLE Peers (
     -- domain used to connect to peer
-    domain          VARCHAR(64) PRIMARY KEY,
+    domain          VARCHAR(255) PRIMARY KEY,
 
     -- when we connected with the peer
     connectTs       BIGINT NOT NULL,

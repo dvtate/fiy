@@ -4,7 +4,10 @@ import {CustomDateInput, CustomInput} from "./CustomInput";
 type VCValueType = 'boolean' | 'DATE' | 'DATE-AND-OR-TIME' | 'DATE-TIME' | 'FLOAT' | 'INTEGER' | 'LANGUAGE-TAG' | 'TEXT' | 'TIME' | 'TIMESTAMP' | 'URI' | 'UTC-OFFSET' | string;
 
 /// Params for a property
+
 interface VCParams {
+    [k: string]: any;
+
     // +-----------+-----------+------------------------+
     // | Namespace | Parameter | Reference              |
     // +-----------+-----------+------------------------+
@@ -59,7 +62,12 @@ interface VCParams {
     /// Content-Type
     MEDIATYPE?: string;
 
+    //
     CALSCALE?: string;
+
+    //
+    ENCODING?: string;
+
 };
 
 // These are in the spec
@@ -520,7 +528,6 @@ export class VCProperty {
     }
 
     valueHtml() {
-
         switch (vCardProperties[this.getName()]?.type) {
             case 'uri':
                 return `<a href="${this.value}">${this.value}</a>`;
@@ -537,7 +544,29 @@ export class VCProperty {
                 } else {
                     return `<img src="data:${this.params.TYPE};base64, ${this.value}" alt="PHOTO" />`;
                 }
-            // TODO img, address, key
+            case 'key':
+                /*
+                2.1: KEY;PGP:http://example.com/key.pgp
+                2.1: KEY;PGP;ENCODING=BASE64:[base64-data]
+                3.0: KEY;TYPE=PGP:http://example.com/key.pgp
+                3.0: KEY;TYPE=PGP;ENCODING=b:[base64-data]
+                4.0: KEY;MEDIATYPE=application/pgp-keys:http://example.com/key.pgp
+                4.0: KEY:data:application/pgp-keys;base64,[base64-data]
+                */
+                if (this.value.startsWith('http'))
+                    return `<a href="${this.value}" target="_blank">Download key</a>`;
+                if (this.value.startsWith('data:'))
+                    return `<a href="${this.value}" target="_blank" download="key${
+                        this.value.includes('pgp') ? '.pgp' : ''}">Download key</a>`;
+
+                // Here there be dragons
+                // not sure what content type the file should have
+                // we'll let their system figure it out
+                // Assuming the data is b64 encoded
+                return `<a href="data:application/octet-stream;base64,${
+                    this.value}" target="_blank" download="key">Download key</a>`;
+
+            // TODO img, address
 
             case 'sex':
             case 'text':
