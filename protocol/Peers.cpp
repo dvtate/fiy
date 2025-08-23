@@ -77,6 +77,13 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         [this, domain, cb = std::move(cb)]
         (boost::beast::http::response<boost::beast::http::string_body> res)
     {
+        // Get key from response
+        if (res.result() != boost::beast::http::status::ok || res.body().empty()) {
+            cb(nullptr);
+            return;
+        }
+        const auto key = res.body();
+
         // Generate unique auth token
         auto tok = PeerAuth::get_token_string();
         m_mtx.read_lock();
@@ -91,6 +98,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         req.method(boost::beast::http::verb::post);
         req.target("/peer/handshake");
         // TODO this is just a placeholder for now, actual algorithm in Server/Router.cpp
+        (void)key; // use it to encrypt body
         req.body() = g_fiy->m_config.m_hostname + std::string("\n") + tok;
         req.keep_alive(false);
         req.prepare_payload();

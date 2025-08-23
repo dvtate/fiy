@@ -34,9 +34,11 @@ namespace fiy {
             std::size_t body_len,
             std::string headers_str = ""
         ):
-            fiy_response_t{ .status=status, .body = body, .body_len = body_len },
             m_headers(std::move(headers_str))
         {
+            this->status = status;
+            this->body = body;
+            this->body_len = body_len;
             headers = m_headers.c_str();
         }
 
@@ -91,14 +93,16 @@ namespace fiy {
             const char* domain = nullptr,
             const char* user = nullptr,
             const char* headers = nullptr,
-            const char* body = nullptr
+            const char* body = nullptr,
+            const size_t body_len = 0
         ): fiy_request_t{
             .domain=domain,
             .user=user,
             .path=path,
             .headers=headers,
             .body=body,
-            .method=method,
+            .body_len=body_len,
+            .method=method
         } {
         }
 
@@ -106,7 +110,7 @@ namespace fiy {
 
         [[nodiscard]] std::string user_str(const std::string& anon_name = "anon") const {
             if (user == nullptr)
-                return "anon";
+                return anon_name;
             if (domain == nullptr)
                 return user;
             return std::string(user) + "@" + std::string(domain);

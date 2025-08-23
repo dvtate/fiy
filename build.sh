@@ -5,20 +5,24 @@ command -v npm >/dev/null 2>&1 || { echo >&2 "npm is required but not installed.
 command -v cmake >/dev/null 2>&1 || { echo >&2 "cmake is required but not installed.  Aborting."; exit 1; }
 
 function build_cpp {
-  mkdir build | :
-  cd build
-  cmake ..
-  make -j`nproc`
-  cd ..
+    mkdir build | :
+    cd build
+    if [ "$1" = "debug"]; then
+        cmake .. -DCMAKE_BUILD_TYPE=Debug
+    else
+        cmake ..
+    fi
+    make -j`nproc`
+    cd ..
 }
 
 # Build contacts mod which has uses TS/JS+webpack
 # TODO make a separate cmake module for it and run npm commands from it
 function build_contacts_mod {
-  cd mods/contacts/frontend
-  npm install
-  npm run build
-  cd ../../..
+    cd mods/contacts/frontend
+    npm install
+    npm run build
+    cd ../../..
 }
 
 # Run build tasks in parallel

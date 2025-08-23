@@ -106,7 +106,12 @@ public:
         const fiy_request_t* req,
         void* context,
         void (*callback)(const fiy_response_t*, void*)
-    ) override {}
+    ) override {
+        (void)req;
+        (void)context;
+        (void)callback;
+        // TODO
+    }
 };
 
 // IPC over unix socket

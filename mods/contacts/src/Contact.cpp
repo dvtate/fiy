@@ -22,14 +22,13 @@ inline time_t parse_timestamp_str(const std::string& str) {
     // The server and the date are both expected to be in UTC
     int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
     sscanf(str.c_str(), "%4d%2d%2dT%2d%2d%2d", &year, &month, &day, &hour, &min, &sec);
-    std::tm t {
-        .tm_sec = sec,
-        .tm_min = min,
-        .tm_hour = hour,
-        .tm_mday = day,
-        .tm_mon = month - 1,
-        .tm_year = year - 1900
-    };
+    std::tm t;
+    t.tm_sec = sec;
+    t.tm_min = min;
+    t.tm_hour = hour;
+    t.tm_mday = day;
+    t.tm_mon = month - 1;
+    t.tm_year = year - 1900;
     return std::mktime(&t);
 }
 

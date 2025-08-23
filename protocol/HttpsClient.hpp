@@ -36,7 +36,7 @@ public:
         std::string port,
         RequestType req,
         CallbackType cb,
-        ErrCallbackType err_cb = [](std::string err){ DEBUG_LOG(err); }
+        ErrCallbackType err_cb = [](std::string err){ (void)err; DEBUG_LOG(err); }
     ):  m_resolver(ex),
         m_stream(ex, ssl_ctx),
         m_host(std::move(host)),
@@ -235,6 +235,6 @@ public:
         RequestType req,
         CallbackType cb
     ) {
-        request(host, req, cb, [](std::string err){ DEBUG_LOG(err); });
+        request(host, req, cb, [](std::string err){ (void) err; DEBUG_LOG(err); });
     }
 };

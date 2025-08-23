@@ -68,7 +68,7 @@ void LocalUsers::deauth_token(const std::string& auth_token) {
     m_token_cache.erase(token);
 }
 
-LocalUser::AuthToken LocalUsers::login_user(const std::string& username, const std::string& password) {
+LocalUser::AuthToken LocalUsers::login_user(const std::string& username, std::string password) {
     // Get user from database
     auto user = DB::get_user(username, std::move(password));
     if (user == nullptr)

@@ -97,8 +97,6 @@ typedef void (* fiy_callback_t)(const struct fiy_request_t* request, const struc
 
 /// This is used to provide callbacks to the host
 struct fiy_mod_info_t {
-    const char* remote_app_id;
-
     /// Handle http requests to the module
     void (*on_request)(struct fiy_request_t* request, fiy_callback_t callback);
 
@@ -108,6 +106,12 @@ struct fiy_mod_info_t {
     /// Username changed handler
     /// @note usernames of form user@domain
     void (*on_username_changed)(const char* old_username, const char* new_username);
+
+    const char* remote_app_id
+#ifdef __cplusplus
+        {nullptr};
+#endif
+    ;
 };
 
 struct fiy_local_user_info_t {

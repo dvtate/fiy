@@ -49,7 +49,7 @@ public:
 
     std::shared_ptr<LocalUser> get_username(const std::string& username);
     std::shared_ptr<LocalUser> auth_user(const std::string& auth_token);
-    LocalUser::AuthToken login_user(const std::string& username, const std::string& password);
+    LocalUser::AuthToken login_user(const std::string& username, std::string password);
 
     void cron();
 

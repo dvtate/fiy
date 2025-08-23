@@ -76,19 +76,19 @@ namespace WebUtils {
          * `maxAge` are set, then `maxAge` takes precedence, but it is possible not all clients by obey this,
          * so if both are set, they should point to the same date and time.
          */
-        std::string expires;
+        std::string expires{""};
 
         /**
          * Specifies the value for the [`Domain` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.3).
          * When no domain is set clients consider the cookie to apply to the current domain only.
          */
-        std::string domain;
+        std::string domain{""};
 
         /**
          * Specifies the value for the [`Path` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.4).
          * When no path is set, the path is considered the ["default path"](https://tools.ietf.org/html/rfc6265#section-5.1.4).
          */
-        std::string path;
+        std::string path{""};
 
 
         /**
@@ -122,7 +122,7 @@ namespace WebUtils {
          *
          * More information about priority levels can be found in [the specification](https://tools.ietf.org/html/draft-west-cookie-priority-00#section-4.1).
          */
-        std::string priority;
+        std::string priority{""};
 
         /**
          * Specifies the value for the [`SameSite` `Set-Cookie` attribute](https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-09#section-5.4.7).
@@ -134,7 +134,7 @@ namespace WebUtils {
          *
          * More information about enforcement levels can be found in [the specification](https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-09#section-5.4.7).
          */
-        std::string same_site;
+        std::string same_site{""};
     };
 
     /**

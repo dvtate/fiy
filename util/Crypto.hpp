@@ -64,7 +64,7 @@ struct Crypto {
         std::string ret;
         ret.reserve(TOKEN_LEN);
         ret += '.'; // start with '.' to differentiate from user tokens
-        for (int i = 1; i < TOKEN_LEN; i++)
+        for (size_t i = 1; i < TOKEN_LEN; i++)
             ret += charset[dist(Crypto::rng())];
         return ret;
     }

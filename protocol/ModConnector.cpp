@@ -70,7 +70,16 @@ struct ModDLLHostInfo : fiy_host_info_t {
 
     explicit ModDLLHostInfo(Mod* mod) {
         this->log = [](int n, const char* s){
-            std::cout <<"Mod: " <<s <<std::endl;
+            static const char* types[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG" };
+            const char* type_str;
+            if (n > 5 || n < 0) {
+                std::cerr << "Mod used fiy_host_info.log with invalid log type\n";
+                type_str = "INVALID";
+            } else {
+                type_str = types[n];
+            }
+
+            std::cout <<"Mod: " <<type_str <<": " <<s <<std::endl;
         };
         this->now = []() { return g_fiy->now(); };
 
