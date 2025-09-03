@@ -1,11 +1,28 @@
+#include <clocale>
+
 #include <thread>
+
+#include <gpgme.h>
 
 #include "Server/Server.hpp"
 
 #include "FIY.hpp"
 
+void init_gpgme() {
+    /* Initialize the locale environment.  */
+    setlocale (LC_ALL, "");
+    gpgme_check_version (nullptr);
+    gpgme_set_locale (nullptr, LC_CTYPE, setlocale (LC_CTYPE, nullptr));
+#ifdef LC_MESSAGES
+    gpgme_set_locale (nullptr, LC_MESSAGES, setlocale (LC_MESSAGES, nullptr));
+#endif
+}
+
 bool FIY::start() {
     // Note: order is important
+
+    // Initialize gpgme library
+    init_gpgme();
 
     if (m_config.m_error) {
         LOG_ERR("Failed to parse config file.");

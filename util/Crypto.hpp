@@ -8,15 +8,15 @@
 #include <string_view>
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
 #include <random>
 
-#include "base64.hpp"
 
-
-struct Crypto {
+namespace Crypto {
 
     // TODO instead use one a more performant library
-    static std::string b64enc(const unsigned char* buffer, size_t length) {
+    inline std::string b64enc(const unsigned char* buffer, size_t length) {
         BIO *b64 = BIO_new(BIO_f_base64());
         BIO *bio_mem = BIO_new(BIO_s_mem());
         BIO_push(b64, bio_mem);
@@ -34,7 +34,7 @@ struct Crypto {
     }
 
     /// Cryptographically hash
-    static std::string hmac(const std::string_view key, const std::string_view message, const evp_md_st* evp_md = EVP_sha512_256()) {
+    inline std::string hmac(const std::string_view key, const std::string_view message, const evp_md_st* evp_md = EVP_sha512_256()) {
         unsigned char result[EVP_MAX_MD_SIZE];
         unsigned int len = 0;
         unsigned char* ret = HMAC(
@@ -52,10 +52,10 @@ struct Crypto {
     }
 
     /// Get a random device
-    static std::mt19937& rng();
+    extern std::mt19937& rng(void);
 
     template<std::size_t TOKEN_LEN>
-    static std::string get_token_string() {
+    inline std::string get_token_string() {
         std::uniform_int_distribution<unsigned short> dist(1, 63);
         const char charset[64] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
 
@@ -69,4 +69,7 @@ struct Crypto {
         return ret;
     }
 
-};
+    std::string gpg_encrypt_text(const std::string& pubkey, const std::string& data);
+
+    std::string gpg_sign(const std::string& privkey, const std::string& data);
+}

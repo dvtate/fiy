@@ -4,12 +4,12 @@
 
 #include <ranges>
 
-#include "ModConnector.hpp"
-
+#include "Server/Session.hpp"
 #include "LocalUser.hpp"
 #include "FIY.hpp"
-
 #include "Server/util.hpp"
+
+#include "ModConnector.hpp"
 
 // Message passed to shared library
 class ModDllConnectorRequest : public fiy_request_t {

@@ -80,6 +80,7 @@ target_link_libraries(protocol_server
     dl
     crypto
     ssl
+    gpgme
 )
 
 add_library(fediymod SHARED

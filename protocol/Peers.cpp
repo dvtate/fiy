@@ -1,3 +1,4 @@
+#include <gpgme.h>
 
 #include "FIY.hpp"
 
@@ -70,6 +71,14 @@ void Peers::prune() {
 }
 
 
+static std::string privkey() {
+    static std::string ret = FileCache::load_file_as_string(
+        g_fiy->m_config.m_data_dir + "/_privkey.pgp"
+    );
+    return ret;
+}
+
+
 void Peers::new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb) {
     DEBUG_LOG("Sending message to new peer " << domain);
 
@@ -85,13 +94,28 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         const auto key = res.body();
 
         // Generate unique auth token
-        auto tok = PeerAuth::get_token_string();
-        m_mtx.read_lock();
-        while (m_peers_in.contains(tok))
-            tok = PeerAuth::get_token_string();
-        m_mtx.read_to_write();
-        m_peers_in[tok] = nullptr; // placeholder to prevent another peer from using this token
+        auto bearer_token = PeerAuth::get_token_string();
+        m_mtx.write_lock();
+        while (m_peers_in.contains(bearer_token))
+            bearer_token = PeerAuth::get_token_string();
+        m_peers_in[bearer_token] = nullptr; // placeholder to prevent another peer from using this token
         m_mtx.write_unlock();
+
+        std::string symkey_part1 = PeerAuth::get_token_string();
+
+        std::string payload;
+        // hostname ; bearer token ; symkey part 1 ; unix timestamp
+        payload += g_fiy->m_config.m_hostname;
+        payload += '\n';
+        payload += bearer_token;
+        payload += '\n';
+        payload += symkey_part1;
+        payload += '\n';
+        payload += std::to_string(g_fiy->now());
+        payload += '\n';
+        payload += Crypto::gpg_sign(privkey(), payload);
+        auto encrypted_payload = Crypto::gpg_encrypt_text(key, payload);
+        // TODO use this instead
 
         // Make handshake request
         boost::beast::http::request<boost::beast::http::string_body> req;
@@ -99,12 +123,12 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         req.target("/peer/handshake");
         // TODO this is just a placeholder for now, actual algorithm in Server/Router.cpp
         (void)key; // use it to encrypt body
-        req.body() = g_fiy->m_config.m_hostname + std::string("\n") + tok;
+        req.body() = g_fiy->m_config.m_hostname + std::string("\n") + bearer_token;
         req.keep_alive(false);
         req.prepare_payload();
 
         auto handshake_cb =
-            [this, cb2 = std::move(cb), domain, token = std::move(tok)]
+            [this, cb2 = std::move(cb), domain, token = std::move(bearer_token)]
             (boost::beast::http::response<boost::beast::http::string_body> res)
             mutable
         {

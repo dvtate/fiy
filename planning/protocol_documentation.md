@@ -7,15 +7,21 @@
 ## P2P Communication
 
 ### Handshake
+Maybe instead we should just use TLS?
+
 Two instances connect when an app makes a remote request to that server on behalf of a local user.
 
 The process goes as follows:
 - Instance A (the initiator) gets the public key from Instance B.
 - Instance A uses instance B's public key to send an encrypted message containing the following:
-  - Instance A's domain 
+  - Instance A's domain
+    - Used so that instance B can validate signature
   - a secret that neither server will ever share but can be used to verify identity
+    - Used for p2p comms: verifies identity
   - a bearer token that instance A will use to recognize instance B.
+    - Used for p2p comms: authenticates
   - a digital signature of this message
+    - Prevents DoS
 - Instance B decrypts the message and verifies the digital signature using Instance A's public key
 - Instance B responds to instance A's message with an encrypted response, that contains:
   - a bearer token that it will use to recognize instance A

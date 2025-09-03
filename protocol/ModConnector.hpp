@@ -7,14 +7,14 @@
 #include <string>
 #include <functional>
 #include <dlfcn.h>
-
-#include <boost/beast.hpp>
+#include <memory>
 
 #include "defs.hpp"
 
 #include "../modlib/fediymod.h"
 
-#include "Server/Session.hpp"
+//#include "Server/Session.hpp"
+class Session;
 
 class Mod;
 
@@ -98,7 +98,6 @@ public:
     virtual bool start() override;
     virtual bool stop() override;
         // Invalidate credentials both ways
-
 
     // TODO
     void handle_request(std::shared_ptr<Session>) override;

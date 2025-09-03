@@ -8,4 +8,5 @@ These apps come pre-installed. They integrate with each-other and other apps.
   - From apps for users
 - Chat
   - Federated chat app
-
+- Storage
+  - Internal file storage for apps
