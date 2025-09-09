@@ -70,6 +70,16 @@ export class VCDateTime {
         return ret;
     }
 
+    static now(): VCDateTime {
+        const now = new Date().toISOString();
+        const ret = new VCDateTime();
+        const [d, t] = now.split('T');
+        [ret.year, ret.month, ret.day] = d.split('-');
+        [ret.hour, ret.min, ret.sec] = t.split(':')
+            .map(v => parseInt(v).toString());
+        return ret;
+    }
+
     toUserString() {
         const monthNames = [
             '',

@@ -6,6 +6,8 @@
 
 #include <gpgme.h>
 
+#include <openssl/pem.h>
+
 #include "Crypto.hpp"
 
 #define DEBUG_LOG(X) std::cerr <<X <<std::endl;
@@ -71,11 +73,40 @@ namespace Crypto {
 
 handle_gpgme_error:
         DEBUG_LOG("gpgme error: " <<gpgme_strerror(err));
-        return "";
+        return {};
     }
 
     std::string gpg_sign(const std::string& privkey, const std::string& data) {
         // TODO
-        return "";
+        return {};
     }
+
+    // std::string ssl_encrypt_text(const std::string& pubkey, const std::string& data) {
+    //     // Load key
+    //     BIO* key_buff = BIO_new_mem_buf(pubkey.c_str(), pubkey.size());
+    //     EVP_PKEY* pkey = PEM_read_bio_PUBKEY(key_buff, nullptr, nullptr, nullptr);
+    //
+    //     // Create/initialize context
+    //     EVP_PKEY_CTX* ctx;
+    //     ctx = EVP_PKEY_CTX_new(pkey, nullptr);
+    //     EVP_PKEY_encrypt_init(ctx);
+    //
+    //     // Specify padding: default is PKCS#1 v1.5
+    //     // EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING); // for OAEP with SHA1 for both digests
+    //
+    //     // Encryption
+    //     size_t ciphertextLen;
+    //     EVP_PKEY_encrypt(ctx, nullptr, &ciphertextLen, (const unsigned char*)data.c_str(), data.size());
+    //     unsigned char* ciphertext = (unsigned char*)OPENSSL_malloc(ciphertextLen);
+    //     EVP_PKEY_encrypt(ctx, ciphertext, &ciphertextLen, (const unsigned char*)data.c_str(), data.size());
+    //     std::string ret((char*)ciphertext, ciphertextLen);
+    //
+    //     // Release memory
+    //     EVP_PKEY_free(pkey);
+    //     EVP_PKEY_CTX_free(ctx);
+    //     OPENSSL_free(ciphertext);
+    //
+    //     return ret;
+    // }
+
 }

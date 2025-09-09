@@ -1,5 +1,16 @@
 import {VCDateTime} from "./VCDateTime";
-import {CustomDateInput, CustomInput} from "./CustomInput";
+import {
+    CustomAddressInput,
+    CustomDateInput,
+    CustomEmailInput,
+    CustomGenderInput,
+    CustomInput,
+    CustomPhoneInput,
+    CustomTextAreaInput,
+    CustomTextInput,
+    CustomUriInput,
+    CustomNameInput,
+} from "./CustomInput";
 
 type VCValueType = 'boolean' | 'DATE' | 'DATE-AND-OR-TIME' | 'DATE-TIME' | 'FLOAT' | 'INTEGER' | 'LANGUAGE-TAG' | 'TEXT' | 'TIME' | 'TIMESTAMP' | 'URI' | 'UTC-OFFSET' | string;
 
@@ -595,6 +606,31 @@ export class VCProperty {
             case 'BDAY':
             case 'ANNIVERSARY':
                 this.input = new CustomDateInput(this);
+                break;
+            case 'EMAIL':
+                this.input = new CustomEmailInput(this);
+                break;
+            case 'TEL':
+                this.input = new CustomPhoneInput(this);
+                break;
+            case 'NOTE':
+                this.input = new CustomTextAreaInput(this);
+                break;
+            case 'NICKNAME':
+            case 'FN':
+                this.input = new CustomTextInput(this);
+                break;
+            case 'N':
+                this.input = new CustomNameInput(this);
+                break;
+            case 'URL':
+                this.input = new CustomUriInput(this);
+                break;
+            case 'ADR':
+                this.input = new CustomAddressInput(this);
+                break;
+            case 'SEX':
+                this.input = new CustomGenderInput(this);
                 break;
 
             // Otherwise not editable

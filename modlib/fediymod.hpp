@@ -147,41 +147,7 @@ namespace fiy {
         }
     };
 
-    // TODO Method + path Router
-
-
-//    class Router {
-//    public:
-//        using handler_t = std::function<void(Request&,std::vector<std::string_view>)>;
-//        using nf_handler_t = std::function<void(Request&)>;
-//
-//        std::vector<handler_t> m_handlers;
-//
-//        std::optional<handler_t> m_not_found{std::nullopt};
-//
-//
-//        Router& add_route(
-//            Request::Method method,
-//            std::string_view path,
-//            handler_t handler
-//        ) {
-//            return *this;
-//        }
-//
-//        inline Router& get(std::string_view path, handler_t handler) {
-//            return add_route(Request::Method::GET, path, std::move(handler));
-//        }
-//        inline Router& post(std::string_view path, handler_t handler) {
-//            return add_route(Request::Method::POST, path, std::move(handler));
-//        }
-//
-//        Router& not_found(nf_handler_t handler) {
-////            m_not_found =
-//            return *this;
-//        }
-//    };
-
-    // TODO replace this with a trie-based implementation
+    // TODO replace this with a more performant trie-based implementation
     class Router {
     public:
         using Handler = std::function<void(Request&, fiy_callback_t, std::vector<std::string_view>&&)>;

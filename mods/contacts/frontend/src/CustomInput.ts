@@ -28,7 +28,7 @@ export abstract class CustomInput {
         return 'pg-input' + ++CustomInput._uuid;
     }
 
-    protected constructor(
+    constructor(
         public property: VCProperty,
         public id: string = CustomInput.uid(),
     ) {}
@@ -52,10 +52,6 @@ export abstract class CustomInput {
 }
 
 export class CustomDateInput extends CustomInput {
-    constructor(property: VCProperty) {
-        super(property);
-    }
-
     validate(): string | null {
         // const e = document.getElementById(this.id) as HTMLInputElement;
         // const v = e.value;
@@ -63,6 +59,7 @@ export class CustomDateInput extends CustomInput {
     }
 
     initialValue() {
+        // Use existing value if available
         if (this.property.value) {
             const o = VCDateTime.parse(this.property.value);
             const today = new Date().toISOString().slice(0,10);
@@ -74,6 +71,9 @@ export class CustomDateInput extends CustomInput {
                 o.day = today.slice(8, 10);
             return `${o.year}-${o.month}-${o.day}`;
         }
+
+        // Default to current date
+        return VCDateTime.now().toVCString().split('T')[0];
     }
 
     html(e: HTMLElement) {
@@ -91,7 +91,6 @@ export class CustomDateInput extends CustomInput {
         this.property.value = e.value.replaceAll('-','');
     }
 }
-
 
 export class CustomEmailInput extends CustomInput {
    validate(): string | undefined {
@@ -120,7 +119,9 @@ export class CustomEmailInput extends CustomInput {
 </div><div class="input-group">
 <label for="${this.id}-type">Type</label>
 <select id="${this.id}-type">${this.typeOptionsHtml()}</select>
-</div>`
+</div>`;
+       document.getElementById(this.id)
+           .addEventListener('change', this.validate.bind(this));
    }
 
    loadValue() {
@@ -202,9 +203,11 @@ export class CustomPhoneInput extends CustomInput {
     <label for="${this.id}-type">Type</label>
     <select id="${this.id}-type">${this.typeOptionsHtml()}</select>
 </div>`;
+        document.getElementById(this.id)
+            .addEventListener('change', this.validate.bind(this));
     }
 
-    loadValue() {
+    override loadValue() {
         const v = document.getElementById(this.id) as HTMLInputElement;
         const t = document.getElementById(this.id + '-type') as HTMLInputElement;
         this.property.value = v.value;
@@ -212,10 +215,190 @@ export class CustomPhoneInput extends CustomInput {
     }
 }
 
-// TODO CustomGenderInput
-// TODO CustomAddressInput
+export class CustomGenderInput extends CustomInput {
+    override validate(): string | null {
+        return null; // All genders are valid :)
+    }
+
+    override html(e: HTMLElement): void {
+        const pv = this.property.value.split(';');
+        const sex = (pv[0] || '').toUpperCase();
+        const gender = pv[1] || '';
+
+        // Sex selector
+        const sexSelect = `<div class="input-group">
+        <label for="${this.id}-sex" title="RFC 6350: Sex (biological)">Sex</label>
+        <select id="${this.id}-sex">
+            <option value="" ${sex === '' ? 'selected' : ''}>Select a sex</option>
+            <option value="M" ${sex === 'M' ? 'selected' : ''}>Male</option>
+            <option value="F" ${sex === 'F' ? 'selected' : ''}>Female</option>
+            <option value="O" ${sex === 'O' ? 'selected' : ''}>Other</option>
+            <option value="U" ${sex === 'U' ? 'selected' : ''}>Unknown</option>
+            <option value="N" ${sex === 'N' ? 'selected' : ''}>None</option>
+        </select></div>`;
+
+        // Gender identity
+        const genderInfo = `<div class="input-group">
+            <label for="${this.id}-gender" title="RFC 6350: Gender identity">Gender identity/info</label>
+            <input type='text' id="${this.id}-gender" value="${gender}" />
+        </div>`;
+
+        e.innerHTML += `${sexSelect}${genderInfo}`;
+    }
+
+    override loadValue(): void {
+        const s = document.getElementById(this.id + '-sex') as HTMLInputElement;
+        const g = document.getElementById(this.id + '-gender') as HTMLInputElement;
+        this.property.value = s.value;
+        if (g.value)
+            this.property.value += ';' + g.value;
+    }
+}
+
+export class CustomNameInput extends CustomTextInput {
+    override validate() {
+        return null;
+    }
+
+    override html(e: HTMLElement): void {
+        /*
+       Special note:  The structured property value corresponds, in
+      sequence, to the Family Names (also known as surnames), Given
+      Names, Additional Names, Honorific Prefixes, and Honorific
+      Suffixes.  The text components are separated by the SEMICOLON
+      character (U+003B).  Individual text components can include
+      multiple text values separated by the COMMA character (U+002C).
+      This property is based on the semantics of the X.520 individual
+      name attributes [CCITT.X520.1988].  The property SHOULD be present
+      in the vCard object when the name of the object the vCard
+      represents follows the X.520 model.
+         */
+
+        // Get values from property
+        const v = this.property.value || ';;;;';
+        const names = v.split(';').map(c => c.split(','));
+        const surnames = names[0] && names[0].join(' ') || '';
+        const givenNames = names[1] && names[1].join(' ') || '';
+        const additionalNames = names[2] && names[2].join(' ') || '';
+        const prefixes = names[3] && names[3].join(' ') || '';
+        const suffixes = names[4] && names[4].join(' ') || '';
+
+        // Add form
+        e.innerHTML += `<div class="input-group" title="Family name(s) aka surname(s), separated with spaces">
+            <label for="${this.id}-surnames">Surname(s)</label>
+            <input type="text" id="${this.id}-surnames" value="${surnames}" />
+        </div>`;
+        e.innerHTML += `<div class="input-group" title="Given names">
+            <label for="${this.id}-given">Given Name(s)</label>
+            <input type="text" id="${this.id}-given" value="${givenNames}" />
+        </div>`;
+        e.innerHTML += `<div class="input-group" title="Additional names">
+            <label for="${this.id}-additional">Additional Name(s)</label>
+            <input type="text" id="${this.id}-additional" value="${additionalNames}" />
+        </div>`;
+        e.innerHTML += `<div class="input-group" title="Honorific Prefixes">
+            <label for="${this.id}-prefix">Honorific Prefixes</label>
+            <input type="text" id="${this.id}-prefix" value="${prefixes}" />
+        </div>`;
+        e.innerHTML += `<div class="input-group" title="Honorific Suffixes">
+            <label for="${this.id}-suffix">Honorific Suffixes(s)</label>
+            <input type="text" id="${this.id}-suffix" value="${suffixes}" />
+        </div>`;
+    }
+
+    override loadValue() {
+        const f = document.getElementById(this.id + '-surnames') as HTMLInputElement;
+        const g = document.getElementById(this.id + '-given') as HTMLInputElement;
+        const a = document.getElementById(this.id + '-additional') as HTMLInputElement;
+        const p = document.getElementById(this.id + '-prefix') as HTMLInputElement;
+        const s = document.getElementById(this.id + '-suffix') as HTMLInputElement;
+        this.property.value = [f, g, a, p, s]
+            .map(e => e.value.trim().split(' ').join(','))
+            .join(';');
+    }
+}
+
+export class CustomAddressInput extends CustomTextInput {
+    override html(e: HTMLElement) {
+        /*
+          The structured type value consists of a sequence of
+          address components.  The component values MUST be specified in
+          their corresponding position.  The structured type value
+          corresponds, in sequence, to
+             the post office box;
+             the extended address (e.g., apartment or suite number);
+             the street address;
+             the locality (e.g., city);
+             the region (e.g., state or province);
+             the postal code;
+             the country name (full name in the language specified in
+             Section 5.1).
+
+             For compatibility reasons the first 2 fields should be empty
+         */
+
+        const v = this.property.value || ';;;;;;;;';
+        const components = v.split(';').map(s => s.trim());
+        const poBox = components[0] || '';
+        const extAddr = components[1] || '';
+        const streetAddr = components[2] || '';
+        const city = components[3] || '';
+        const region = components[4] || '';
+        const postCode = components[5] || '';
+        const country = components[6] || '';
+
+        // These 2 fields are deprecated so hidden by default
+        e.innerHTML += `<div class="input-group" ${poBox.length === 0 ? 'hidden' : ''
+            } title="Post Office Box information">
+            <label for="${this.id}-pobox">Post Office Box</label>
+            <input type="text" id="${this.id}-pobox" value="${poBox}" />
+        </div>`;
+        e.innerHTML += `<div class="input-group" ${extAddr.length === 0 ? 'hidden' : ''
+            } title="Extended address information (e.g., apartment or suite number)">
+            <label for="${this.id}-extaddr">Extended Address</label>
+            <input type="text" id="${this.id}-extaddr" value="${extAddr}" />
+        </div>`;
+
+        e.innerHTML += `<div class="input-group" title="Street Address">
+            <label for="${this.id}-street">Street Address</label>
+            <input type="text" id="${this.id}-street" value="${streetAddr}" />
+        </div>`;
+        e.innerHTML += `<div class="input-group" title="Locality (e.g., city)">
+            <label for="${this.id}-city">City</label>
+            <input type="text" id="${this.id}-city" value="${city}" />
+        </div>`;
+        e.innerHTML += `<div class="input-group" title="Region (e.g., state or province)">
+            <label for="${this.id}-region">State/Province</label>
+            <input type="text" id="${this.id}-region" value="${region}" />
+        </div>`;
+        e.innerHTML += `<div class="input-group" title="Postal code (e.g., zip code)">
+            <label for="${this.id}-zip">Postal code</label>
+            <input type="text" id="${this.id}-zip" value="${postCode}" />
+        </div>`;
+        e.innerHTML += `<div class="input-group" title="Country name">
+            <label for="${this.id}-country">Country</label>
+            <input type="text" id="${this.id}-country" value="${country}" />
+        </div>`;
+    }
+
+    override loadValue() {
+        this.property.value = [
+                'pobox',
+                'extaddr',
+                'street',
+                'city',
+                'region',
+                'zip',
+                'country'
+            ]
+            .map(f => this.id + '-' + f)
+            .map(f => document.getElementById(f) as HTMLInputElement)
+            .map(e => e.value.trim())
+            .join(';');
+    }
+}
+
 // TODO CustomGeoInput
-// TODO CustomNameInput
 // TODO CustomImageInput
 // TODO CustomTextOptionsInput
 // TODO CustomTimezoneInput

@@ -70,6 +70,8 @@ namespace Crypto {
     }
 
     std::string gpg_encrypt_text(const std::string& pubkey, const std::string& data);
-
     std::string gpg_sign(const std::string& privkey, const std::string& data);
+
+    // std::string ssl_encrypt_text(const std::string& pubkey, const std::string& data);
+    // std::string ssl_sign(const std::string& privkey, const std::string& data);
 }
