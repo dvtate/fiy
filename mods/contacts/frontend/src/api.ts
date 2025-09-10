@@ -1,5 +1,7 @@
+import VC from "./VC";
 
 export const base_uri = "{{fediy_contacts_base_uri}}";
+export const domain = "{{fediy_contacts_domain}}";
 
 const contactsStrTmp = `BEGIN:VCARD
 VERSION:2.1
@@ -82,3 +84,14 @@ export async function getUserContacts() {
     // return await r.text();
 }
 
+export async function updateContact(contact: VC) {
+
+}
+
+export async function deleteContact(contact: VC) {
+
+}
+
+export async function newContact(contact: VC) {
+
+}

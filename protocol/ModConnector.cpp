@@ -143,19 +143,18 @@ struct ModDLLHostInfo : fiy_host_info_t {
     /**
      * Get information for a given local user
      * @param local_user_name username for relevant user
-     * @param ret struct to put the results into
+     * @param ret struct to put the results into, or null to check existence
      * @return
      *  0 on success
      *  1 if the user does not exist
      *  -1 error
      */
     static int user_info_impl(const char* local_user_name, fiy_local_user_info_t* ret) {
-        if (ret == nullptr)
-            return -1;
-
         auto u = DB::get_user(local_user_name);
         if (u == nullptr)
             return 1;
+        if (ret == nullptr)
+            return 0;
 
         // Check sizes
         if (u->get_name().size() >= sizeof(ret->name) / sizeof(char)

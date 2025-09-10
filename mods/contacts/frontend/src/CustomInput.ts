@@ -77,10 +77,10 @@ export class CustomDateInput extends CustomInput {
     }
 
     html(e: HTMLElement) {
-        e.innerHTML += `<div class="input-group">
+        e.insertAdjacentHTML('beforeend', `<div class="input-group">
     <label for="${this.id}">${this.property.label()}</label>
     <input type="date" id="${this.id}" value={this.initialValue()}>
-</div>`;
+</div>`);
         document.getElementById(this.id).addEventListener('change', this.validate.bind(this));
     }
 
@@ -96,8 +96,11 @@ export class CustomEmailInput extends CustomInput {
    validate(): string | undefined {
        const e = document.getElementById(this.id) as HTMLInputElement;
        if (!/[^\s@]@[^\s@]/.test(e.value.trim())) {
+           e.style.border = '1px solid red';
            return 'Invalid email';
        }
+       e.style.border = 'default';
+       return null;
    }
 
    typeOptionsHtml() {
@@ -113,13 +116,15 @@ export class CustomEmailInput extends CustomInput {
    }
 
    html(e: HTMLElement) {
-       e.innerHTML += `<div class="input-group">
+       e.insertAdjacentHTML(
+           'beforeend',
+           `<div class="input-group">
 <label for="${this.id}">Email</label>
 <input id="${this.id}" type="email" value="${this.property.value || ''}" />
 </div><div class="input-group">
 <label for="${this.id}-type">Type</label>
 <select id="${this.id}-type">${this.typeOptionsHtml()}</select>
-</div>`;
+</div>`);
        document.getElementById(this.id)
            .addEventListener('change', this.validate.bind(this));
    }
@@ -139,14 +144,15 @@ export class CustomTextInput extends CustomInput {
         return e.value;
     }
     override validate(): string | null {
-        return this.getValue().length === 0 ? null : "Value cannot be empty";
+        return this.getValue().length !== 0 ? null : "Value cannot be empty";
     }
 
     override html(e: HTMLElement): void {
-        e.innerHTML += `<div class="input-group">
+        e.insertAdjacentHTML('beforeend',
+            `<div class="input-group">
     <label for="${this.id}">${this.property.label()}</label>
     <input type="text" id="${this.id}" value="${this.property.value ||''}" />
-</div>`;
+</div>`);
     }
 
     override loadValue(): void {
@@ -156,19 +162,19 @@ export class CustomTextInput extends CustomInput {
 
 export class CustomTextAreaInput extends CustomTextInput {
     override html(e: HTMLElement): void {
-        e.innerHTML += `<div class="input-group">
+        e.insertAdjacentHTML('beforeend', `<div class="input-group">
     <label for="${this.id}">${this.property.label()}</label>
     <textarea id="${this.id}" rows="3">${this.property.value ||''}</textarea>
-</div>`;
+</div>`);
     }
 }
 
 export class CustomUriInput extends CustomTextInput {
     override html(e: HTMLElement): void {
-        e.innerHTML += `<div class="input-group">
+        e.insertAdjacentHTML('beforeend', `<div class="input-group">
     <label for="${this.id}">${this.property.label()}</label>
     <input type="url" id="${this.id}" value="${this.property.value ||''}" />
-</div>`;
+</div>`);
     }
 }
 
@@ -183,26 +189,30 @@ export class CustomPhoneInput extends CustomInput {
     }
 
     typeOptionsHtml() {
-        const selected = this.property.value;
+        // TODO replace this with checkboxes or sth
+        const selected = this.property.params.TYPE;
         let ret = '';
         if (selected)
             ret += `<option value="${selected}" selected>${selected}</option>`;
 
         // TODO probably more options
-        return ret + `<option value="PERSONAL">Personal</option>
-<option value="WORK">Work</option>
-<option value="HOME">Home</option>
-<option value="OTHER">Other</option>`;
+        return ret + `<option value="voice">Voice</option>
+<option value="text">Texting</option>
+<option value="cell">Cell</option>
+<option value="video">Video</option>
+<option value="textphone" title="accessibility enabled phone">Textphone</option>
+<option value="pager">Pager</option>
+<option value="fax">Fax</option>`;
     }
 
     override html(e: HTMLElement) {
-        e.innerHTML += `<div class="input-group">
+        e.insertAdjacentHTML('beforeend', `<div class="input-group">
     <label for="${this.id}">Phone number</label>
     <input id="${this.id}" type="tel" placeholder="+15558675309" value="${this.property.value || ''}" />
 </div><div class="input-group">
     <label for="${this.id}-type">Type</label>
     <select id="${this.id}-type">${this.typeOptionsHtml()}</select>
-</div>`;
+</div>`);
         document.getElementById(this.id)
             .addEventListener('change', this.validate.bind(this));
     }
@@ -212,6 +222,7 @@ export class CustomPhoneInput extends CustomInput {
         const t = document.getElementById(this.id + '-type') as HTMLInputElement;
         this.property.value = v.value;
         this.property.params.TYPE = t.value;
+        console.log(t.value);
     }
 }
 
@@ -243,7 +254,7 @@ export class CustomGenderInput extends CustomInput {
             <input type='text' id="${this.id}-gender" value="${gender}" />
         </div>`;
 
-        e.innerHTML += `${sexSelect}${genderInfo}`;
+        e.insertAdjacentHTML('beforeend', `${sexSelect}${genderInfo}`);
     }
 
     override loadValue(): void {
@@ -284,26 +295,23 @@ export class CustomNameInput extends CustomTextInput {
         const suffixes = names[4] && names[4].join(' ') || '';
 
         // Add form
-        e.innerHTML += `<div class="input-group" title="Family name(s) aka surname(s), separated with spaces">
+        let html = `<div class="input-group" title="Family name(s) aka surname(s), separated with spaces">
             <label for="${this.id}-surnames">Surname(s)</label>
             <input type="text" id="${this.id}-surnames" value="${surnames}" />
-        </div>`;
-        e.innerHTML += `<div class="input-group" title="Given names">
+        </div><div class="input-group" title="Given names">
             <label for="${this.id}-given">Given Name(s)</label>
             <input type="text" id="${this.id}-given" value="${givenNames}" />
-        </div>`;
-        e.innerHTML += `<div class="input-group" title="Additional names">
+        </div><div class="input-group" title="Additional names">
             <label for="${this.id}-additional">Additional Name(s)</label>
             <input type="text" id="${this.id}-additional" value="${additionalNames}" />
-        </div>`;
-        e.innerHTML += `<div class="input-group" title="Honorific Prefixes">
+        </div><div class="input-group" title="Honorific Prefixes">
             <label for="${this.id}-prefix">Honorific Prefixes</label>
             <input type="text" id="${this.id}-prefix" value="${prefixes}" />
-        </div>`;
-        e.innerHTML += `<div class="input-group" title="Honorific Suffixes">
+        </div><div class="input-group" title="Honorific Suffixes">
             <label for="${this.id}-suffix">Honorific Suffixes(s)</label>
             <input type="text" id="${this.id}-suffix" value="${suffixes}" />
         </div>`;
+        e.insertAdjacentHTML('beforeend', html);
     }
 
     override loadValue() {
@@ -348,37 +356,31 @@ export class CustomAddressInput extends CustomTextInput {
         const country = components[6] || '';
 
         // These 2 fields are deprecated so hidden by default
-        e.innerHTML += `<div class="input-group" ${poBox.length === 0 ? 'hidden' : ''
+        const html =`<div class="input-group" ${poBox.length === 0 ? 'hidden' : ''
             } title="Post Office Box information">
             <label for="${this.id}-pobox">Post Office Box</label>
             <input type="text" id="${this.id}-pobox" value="${poBox}" />
-        </div>`;
-        e.innerHTML += `<div class="input-group" ${extAddr.length === 0 ? 'hidden' : ''
+        </div><div class="input-group" ${extAddr.length === 0 ? 'hidden' : ''
             } title="Extended address information (e.g., apartment or suite number)">
             <label for="${this.id}-extaddr">Extended Address</label>
             <input type="text" id="${this.id}-extaddr" value="${extAddr}" />
-        </div>`;
-
-        e.innerHTML += `<div class="input-group" title="Street Address">
+        </div><div class="input-group" title="Street Address">
             <label for="${this.id}-street">Street Address</label>
             <input type="text" id="${this.id}-street" value="${streetAddr}" />
-        </div>`;
-        e.innerHTML += `<div class="input-group" title="Locality (e.g., city)">
+        </div><div class="input-group" title="Locality (e.g., city)">
             <label for="${this.id}-city">City</label>
             <input type="text" id="${this.id}-city" value="${city}" />
-        </div>`;
-        e.innerHTML += `<div class="input-group" title="Region (e.g., state or province)">
+        </div><div class="input-group" title="Region (e.g., state or province)">
             <label for="${this.id}-region">State/Province</label>
             <input type="text" id="${this.id}-region" value="${region}" />
-        </div>`;
-        e.innerHTML += `<div class="input-group" title="Postal code (e.g., zip code)">
+        </div><div class="input-group" title="Postal code (e.g., zip code)">
             <label for="${this.id}-zip">Postal code</label>
             <input type="text" id="${this.id}-zip" value="${postCode}" />
-        </div>`;
-        e.innerHTML += `<div class="input-group" title="Country name">
+        </div><div class="input-group" title="Country name">
             <label for="${this.id}-country">Country</label>
             <input type="text" id="${this.id}-country" value="${country}" />
         </div>`;
+        e.insertAdjacentHTML('beforeend', html);
     }
 
     override loadValue() {
@@ -403,3 +405,4 @@ export class CustomAddressInput extends CustomTextInput {
 // TODO CustomTextOptionsInput
 // TODO CustomTimezoneInput
 // TODO CustomLangInput
+// TODO CustomFediyUserInput

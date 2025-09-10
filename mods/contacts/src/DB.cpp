@@ -236,8 +236,15 @@ namespace DB {
             ret.id = query.getColumn(0).getInt64();
             ret.update_ts = query.getColumn(1).getInt64();
         }
-        if (ret.id == -1)
+        if (ret.id == -1) {
+            // Ignore non-existent local users
+            if (user.find('@') == std::string_view::npos
+                && g_host_info->user_info(user.c_str(), nullptr) != 0)
+                    return ret;
+
+            // Create a profile for them
             save_contact(ret);
+        }
         return ret;
     }
 

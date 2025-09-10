@@ -1,6 +1,7 @@
 
 import { VCProperty } from "./VCProperty";
 
+import { domain } from './api';
 
 export default class VC {
     public static readonly BEGIN_TOKEN = "BEGIN:VCARD";
@@ -44,6 +45,10 @@ export default class VC {
         if (!p || !p.value.includes('@'))
             return '';
         return p.value;
+    }
+
+    getProperty(property: string) {
+        return this.properties.find(p => p.name == property);
     }
 
     static parseCard(vc: string) {
@@ -114,7 +119,7 @@ export default class VC {
         const version = this.properties.find(p => p.name === 'VERSION');
         let oldVersion = '4.0';
         if (!version) {
-            this.properties.push(new VCProperty('VERSION', {}, '4.0'));
+            this.properties.unshift(new VCProperty('VERSION', {}, '4.0'));
         } else {
             oldVersion = version.value;
             version.value = '4.0';
@@ -127,6 +132,9 @@ export default class VC {
         return this;
     }
 
+    /**
+     * Get .vcf file contents as a string
+     */
     vCardString() {
         const version = this.properties.find(p => p.name === 'VERSION');
 
@@ -199,5 +207,95 @@ export default class VC {
         }${
             propsHtml
         }`;
+    }
+
+    addEditHtml(e: HTMLElement) {
+        e.innerHTML = `<h2>Editing Contact</h2><hr>`;
+
+        const form = document.createElement('div');
+        e.appendChild(form);
+
+        const addDeleteButton = (p: VCProperty, i: number) => {
+            form.insertAdjacentHTML(
+                'beforeend',
+                `<br><button id="edit-p-del-${i}"><i class="fa fa-trash"></i> Remove</button>`,
+            );
+            document.getElementById('edit-p-del-' + i).addEventListener('click', event => {
+                this.properties = this.properties.filter(prop => prop !== p);
+                this.addEditHtml(e);
+            });
+        }
+        const addVisibilitySelect = this.isProfileCard()
+            ? (p: VCProperty, i: number) => {
+                form.insertAdjacentHTML('beforeend', `<select id="edit-vis-${i}">
+                    <option value="0">Only Me</option>
+                    <option value="1">Local ${domain} users</option>
+                    <option value="2">Any federated user</option>
+                    <option value="3">Public</option>
+                </select>`);
+                const visSelect = document.getElementById('edit-vis-' + i) as HTMLSelectElement;
+                visSelect.value = p.params['X-FEDIY-VISIBILITY'] || '3';
+            }
+            : (p: VCProperty, i: number) => {};
+
+        this.properties.forEach((p, i) => {
+            p.inputHtml(form);
+
+            if (p.name !== 'FN')
+                addDeleteButton(p, i);
+            addVisibilitySelect(p, i);
+
+            form.insertAdjacentHTML('beforeend', '<hr>');
+        });
+
+        // Button to add a property to the contact
+        const optionsHtml = Object.entries(VCProperty.known)
+            .filter(([k, v]) =>
+                v.customInput && (typeof v.versions == 'boolean'
+                    ? v.versions
+                    : v.versions.includes('4.0')))
+            .map(([k, v]) =>
+                `<option value="${k}" title="${v.description}">${v.name}</option>`)
+            .join('');
+        e.insertAdjacentHTML('beforeend', `<div class="input-group">
+            <label for="add-prop-type">Add Field</label>
+            <select id="add-prop-type">${optionsHtml}</select>
+            <button id="add-prop-btn"><i class="fa fa-plus"></i>Add</button>
+        </div>`);
+
+        // Add property editor to the form
+        document.getElementById('add-prop-btn').addEventListener('click', event => {
+            const typeSelect = document.getElementById('add-prop-type') as HTMLSelectElement;
+            const p = new VCProperty(typeSelect.value)
+            this.properties.push(p);
+            p.inputHtml(form);
+            addDeleteButton(p, this.properties.length);
+            addVisibilitySelect(p, this.properties.length);
+        });
+    }
+
+    download() {
+        const e = document.createElement('a');
+        e.setAttribute('href', 'data:text/vcard;charset=utf-8,' + this.vCardString());
+        e.setAttribute('download', 'contact.vcf');
+        e.style.display = 'none';
+        document.body.appendChild(e);
+        e.click();
+        document.body.removeChild(e);
+    }
+
+    validationErrors() {
+        return this.properties.map( p => [p.name, p.input?.validate()]).filter(e => !!e[1]).map(e => e[0] + ':' + e[1]);
+    }
+
+    acceptEdits() {
+        const isProfileCard = !!this.isProfileCard();
+        this.properties.forEach((p, i) => {
+            p.acceptInput();
+            if (isProfileCard) {
+                const visSelect = document.getElementById('edit-vis-' + i) as HTMLSelectElement;
+                p.params['X-FEDIY-VISIBILITY'] = visSelect.value;
+            }
+        });
     }
 }

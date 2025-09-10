@@ -1,5 +1,6 @@
 import VC from './VC';
 import * as API from './api';
+import {VCProperty} from "./VCProperty";
 
 const contactList = document.getElementById("contact-list");
 const contactDetails = document.getElementById("contact-details");
@@ -41,8 +42,10 @@ API.getUserContacts().then(vcf => {
         showContactDetails(index);
     } else {
         // Show user profile editable
-        if (profileIndex && profileIndex != -1)
+        if (profileIndex >= 0)
             showContactDetails(profileIndex);
+        else
+            contactDetails.innerHTML = 'Select a contact or click "+" to make a new one.';
     }
 }).catch(e => {
     console.error(e);
@@ -78,25 +81,87 @@ function mobileDetailsView(goBack = false) {
 function showContactDetails(index: number) {
 
     contactDetails.innerHTML = `${contacts[index].showHtml()}<hr>
+<!--<button title="Share"><i class="fa fa-share" id="contact-share"></i></button>-->
 <button title="Download" id="contact-download"><i class="fa fa-download"></i></button>
-<button title="Share"><i class="fa fa-share" id="contact-share"></i></button>
-<button title="Edit"><i class="fa fa-pencil" id="contact-edit"></i></button>
-<button title="Delete"><i class="fa fa-trash" id="contact-delete"></i></button>`;
+<button title="Edit" id="contact-edit"><i class="fa fa-pencil"></i></button>
+<button title="Delete" id="contact-delete"><i class="fa fa-trash"></i></button>`;
 
+    // document.getElementById('contact-share').addEventListener('click', e => {
+    //     alert("not yet implemented");
+    // });
     document.getElementById('contact-download').addEventListener('click', e => {
-        alert("not implemented!");
-    });
-    document.getElementById('contact-share').addEventListener('click', e => {
-        alert("not implemented!");
+        contacts[index].download();
     });
     document.getElementById('contact-edit').addEventListener('click', e => {
 
-    })
+        editContact(index);
+    });
+    document.getElementById('contact-delete').addEventListener('click', e => {
+        if (contacts[index].isProfileCard()) {
+            alert('Cannot delete profile contact, please edit it instead');
+            return;
+        }
+        API.deleteContact(contacts[index])
+            .then(() => {
+                if (profileIndex >= 0)
+                    showContactDetails(profileIndex);
+                else
+                    contactDetails.innerHTML = 'Select a contact or click "+" to create a new one.';
+            }).catch(e => {
+                console.error(e);
+                alert('Failed to delete contact from the server. Try again later.');
+            });
+    });
 
     mobileDetailsView();
+}
+
+function editContact(index: number) {
+    contactDetails.innerHTML = '';
+    contacts[index].addEditHtml(contactDetails);
+    contactDetails.insertAdjacentHTML(
+        'beforeend',
+        '<hr><span id="edit-contact-errs"></span>'
+        + '<button id="edit-contact-save">Save</button>');
+
+    // Save contact edits
+    document.getElementById('edit-contact-save').addEventListener('click', event => {
+        // Validate
+        const errs = contacts[index].validationErrors();
+        const el = document.getElementById('edit-contact-errs');
+        if (errs.length > 0) {
+            el.innerHTML = `<ul class="validation-errors">${
+                errs.map(e => `<li>${e}</li>`).join('')
+            }</ul>`;
+            return;
+        }
+        el.innerHTML = '';
+
+        // Update local
+        contacts[index].acceptEdits();
+
+        // Update remote
+        API.updateContact(contacts[index]).then(() => {
+           showContactDetails(index);
+        }).catch(e => {
+            console.error(e);
+            alert('Failed to update contact, try again later.');
+        });
+    });
+}
+
+function newContact() {
+    const index = contacts.length;
+    contacts.push(new VC());
+    contacts[index].properties.push(new VCProperty('VERSION', {}, '4.0'));
+    contacts[index].properties.push(new VCProperty('FN')); // All contacts must have a name
+    editContact(index);
 }
 
 searchInput.addEventListener("input", () => {
     renderContactsList(searchInput.value);
 });
 
+globalThis.newContact = newContact;
+globalThis.mobileDetailsView = mobileDetailsView;
+globalThis.showContactDetails = showContactDetails;

@@ -83,14 +83,27 @@ body {
 }
 
 .input-group {
-    display: flex;
+    display: block flex;
     justify-content: space-between;
+    padding: 0.5rem;
     /*width: 60%;*/
     /*margin: 0.5rem;*/
 }
-
+.input-group * {
+    margin: 0.3rem;
+}
+.input-group input {
+    width: 60%;
+}
 
 @media (max-width: 768px) {
+    .input-group {
+        flex-direction: column;
+    }
+    .input-group input {
+        width: 90%;
+    }
+
     .container {
         flex-direction: column;
     }

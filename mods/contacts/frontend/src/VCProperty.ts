@@ -97,13 +97,25 @@ const vcDefaultParams = [
 ];
 
 /// Various valid vcard properties
-const vCardProperties = {
+
+interface VCPropSpec {
+    name: string,
+    description: string,
+    type: string,
+    versions: boolean | string[],
+    const?: boolean,
+    internal?: boolean,
+    customInput?: any,
+    example?: string,
+};
+
+const vCardProperties: { [k: string]: VCPropSpec } = {
     'ADR': {
         name: 'Address',
         description: 'Physical delivery address',
         type: 'address',
         versions: true,
-        types: ['home', 'work'],
+        customInput: CustomAddressInput,
     },
     'AGENT': {
         name: 'Agent',
@@ -116,12 +128,14 @@ const vCardProperties = {
         description: 'Anniversary Date',
         type: 'date-and-or-time',
         versions: ['4.0'],
+        customInput: CustomDateInput,
     },
     'BDAY': {
         name: 'Birthday',
         description: 'Birthday Date',
         type: 'date-and-or-time',
         versions: true,
+        customInput: CustomDateInput,
     },
     'CALURI': {
         name: 'Calendar Link',
@@ -152,7 +166,8 @@ const vCardProperties = {
         name: 'Email',
         description: 'Email address',
         type: 'text', // does not include mailto:
-        versions: true
+        versions: true,
+        customInput: CustomEmailInput,
     },
     'FBURL': {
         name: 'Free-Busy URL',
@@ -165,12 +180,14 @@ const vCardProperties = {
         description: 'Full name, as it should be formatted',
         type: 'text',
         versions: true,
+        customInput: CustomTextInput,
     },
     'GENDER': {
         name: 'Gender',
         description: 'Describes the person\s gender',
         type: 'sex',
         versions: ['4.0'],
+        customInput: CustomGenderInput,
     },
     'GEO': {
         name: 'Geographic Location',
@@ -180,9 +197,10 @@ const vCardProperties = {
     },
     'IMPP': {
         name: 'Instant messenger handle',
-        description: 'Instant messneger handle',
+        description: 'Instant messenger handle',
         type: 'uri',
         versions: ['3.0', '4.0'],
+        customInput: CustomUriInput,
     },
     'KEY': {
         name: 'Public key',
@@ -232,24 +250,28 @@ const vCardProperties = {
         description: 'Structured representation of the person\'s name',
         type: 'name', // name
         versions: true,
+        customInput: CustomNameInput,
     },
     'NICKNAME': {
         name: 'Nickname',
         description: 'More descriptive/familiar names',
         type: 'text', // comma separated list
         versions: true,
+        customInput: CustomTextInput,
     },
     'NOTE': {
         name: 'Notes',
         description: 'Supplimental information',
         type: 'text',
         versions: true,
+        customInput: CustomTextAreaInput,
     },
     'ORG': {
         name: 'Organization',
         description: 'Units of associated organization',
         type: 'text',
         versions: true,
+        customInput: CustomTextInput,
     },
     'PHOTO': {
         name: 'Photo',
@@ -290,6 +312,7 @@ const vCardProperties = {
         description: 'Role, Occupation or Business category',
         type: 'text',
         versions: true,
+        customInput: CustomTextInput,
     },
     'SORT-STRING': {
         name: 'Sort By',
@@ -312,14 +335,16 @@ const vCardProperties = {
     'TEL': {
         name: 'Phone Number',
         description: 'Phone number',
-        type: 'text',
+        type: 'text', // note: can be uri
         versions: true,
+        customInput: CustomPhoneInput,
     },
     'TITLE': {
         name: 'Job Title',
         description: 'Job title, position, or function',
         type: 'text',
         versions: true,
+        customInput: CustomTextInput,
     },
     'TZ': {
         name: 'Timezone',
@@ -339,6 +364,7 @@ const vCardProperties = {
         description: 'URL to website that represents the contact',
         type: 'uri',
         versions: true,
+        customInput: CustomUriInput,
     },
     'VERSION': {
         name: 'vCard Version',
@@ -352,6 +378,7 @@ const vCardProperties = {
         description: 'Link to social media profile page',
         type: 'uri',
         versions: true,
+        customInput: CustomUriInput,
     },
     'X-FEDIY-PROFILE': {
         name: 'Fediy User Profile',
@@ -597,50 +624,20 @@ export class VCProperty {
     }
 
     inputHtml(e: HTMLElement) {
+        if (!this.input) {
+            const InputConstructor = vCardProperties[this.getName()]?.customInput;
+            if (InputConstructor)
+                this.input = new InputConstructor(this);
+        }
         if (this.input) {
+            e.insertAdjacentHTML('beforeend', `<h4>${this.label()}</h4>`);
             this.input.html(e);
-            return;
+        } else {
+            e.insertAdjacentHTML('beforeend', this.showHtml());
         }
-
-        switch (this.getName()) {
-            case 'BDAY':
-            case 'ANNIVERSARY':
-                this.input = new CustomDateInput(this);
-                break;
-            case 'EMAIL':
-                this.input = new CustomEmailInput(this);
-                break;
-            case 'TEL':
-                this.input = new CustomPhoneInput(this);
-                break;
-            case 'NOTE':
-                this.input = new CustomTextAreaInput(this);
-                break;
-            case 'NICKNAME':
-            case 'FN':
-                this.input = new CustomTextInput(this);
-                break;
-            case 'N':
-                this.input = new CustomNameInput(this);
-                break;
-            case 'URL':
-                this.input = new CustomUriInput(this);
-                break;
-            case 'ADR':
-                this.input = new CustomAddressInput(this);
-                break;
-            case 'SEX':
-                this.input = new CustomGenderInput(this);
-                break;
-
-            // Otherwise not editable
-            default:
-                return
-        }
-        this.input.html(e);
     }
 
-    getInput() {
+    acceptInput() {
         if (this.input)
             this.input.loadValue();
     }
