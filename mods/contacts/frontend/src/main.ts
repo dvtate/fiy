@@ -118,19 +118,21 @@ function showContactDetails(index: number) {
 
 function editContact(index: number) {
     contactDetails.innerHTML = '';
-    contacts[index].addEditHtml(contactDetails);
+    const form = document.createElement('div');
+    contactDetails.appendChild(form);
+    contacts[index].addEditHtml(form);
     contactDetails.insertAdjacentHTML(
         'beforeend',
         '<hr><span id="edit-contact-errs"></span>'
-        + '<button id="edit-contact-save">Save</button>');
+        + '<button id="edit-contact-save"><i class="fa fa-check"></i> Save</button>');
 
     // Save contact edits
-    document.getElementById('edit-contact-save').addEventListener('click', event => {
+    document.getElementById('edit-contact-save').addEventListener('click', async event => {
         // Validate
         const errs = contacts[index].validationErrors();
         const el = document.getElementById('edit-contact-errs');
         if (errs.length > 0) {
-            el.innerHTML = `<ul class="validation-errors">${
+            el.innerHTML = `<span class="validation-errors">Please fix the following issues: <ul>${
                 errs.map(e => `<li>${e}</li>`).join('')
             }</ul>`;
             return;
@@ -138,7 +140,7 @@ function editContact(index: number) {
         el.innerHTML = '';
 
         // Update local
-        contacts[index].acceptEdits();
+        await contacts[index].acceptEdits();
 
         // Update remote
         API.updateContact(contacts[index]).then(() => {

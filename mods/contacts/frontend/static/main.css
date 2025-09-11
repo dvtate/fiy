@@ -81,9 +81,12 @@ body {
     margin-bottom: 1rem;
     padding: 0.5rem;
 }
+.validation-errors {
+    color: red;
+}
 
 .input-group {
-    display: block flex;
+    display: flex;
     justify-content: space-between;
     padding: 0.5rem;
     /*width: 60%;*/
@@ -92,8 +95,13 @@ body {
 .input-group * {
     margin: 0.3rem;
 }
-.input-group input {
-    width: 60%;
+.input-group input,select {
+    flex-grow: 1;
+}
+
+#edit-contact-save {
+    width: 100%;
+    height: 2rem;
 }
 
 @media (max-width: 768px) {

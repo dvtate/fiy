@@ -9,10 +9,12 @@ import {
     CustomTextAreaInput,
     CustomTextInput,
     CustomUriInput,
-    CustomNameInput,
+    CustomNameInput, CustomImageInput, CustomGeoInput, CustomSocialInput,
 } from "./CustomInput";
 
-type VCValueType = 'boolean' | 'DATE' | 'DATE-AND-OR-TIME' | 'DATE-TIME' | 'FLOAT' | 'INTEGER' | 'LANGUAGE-TAG' | 'TEXT' | 'TIME' | 'TIMESTAMP' | 'URI' | 'UTC-OFFSET' | string;
+type VCValueType = 'boolean' | 'DATE' | 'DATE-AND-OR-TIME' | 'DATE-TIME'
+    | 'FLOAT' | 'INTEGER' | 'LANGUAGE-TAG' | 'TEXT' | 'TIME' | 'TIMESTAMP'
+    | 'URI' | 'UTC-OFFSET' | string;
 
 /// Params for a property
 
@@ -194,6 +196,7 @@ const vCardProperties: { [k: string]: VCPropSpec } = {
         description: 'Related latitude and longitude',
         type: 'geo', // 4.0: geo:lat,lon || 2.1,3.0: geo:lat;lon
         versions: ['2.1','3.0','4.0'],
+        customInput: CustomGeoInput,
     },
     'IMPP': {
         name: 'Instant messenger handle',
@@ -232,6 +235,7 @@ const vCardProperties: { [k: string]: VCPropSpec } = {
         description: 'Logo for associated organization',
         type: 'img', // either encoded image or url
         versions: ['2.1','3.0','4.0'],
+        customInput: CustomImageInput,
     },
     'MAILER': {
         name: 'Email App',
@@ -278,6 +282,7 @@ const vCardProperties: { [k: string]: VCPropSpec } = {
         description: 'Photo of individual/profile picture',
         type: 'img',
         versions: true,
+        customInput: CustomImageInput,
     },
     'PRODID': {
         name: 'Created by',
@@ -373,12 +378,13 @@ const vCardProperties: { [k: string]: VCPropSpec } = {
         versions: true,
     },
 
+    // Non-standard properties
     'X-SOCIALPROFILE': {
         name: 'Social Media Profile',
         description: 'Link to social media profile page',
         type: 'uri',
         versions: true,
-        customInput: CustomUriInput,
+        customInput: CustomSocialInput,
     },
     'X-FEDIY-PROFILE': {
         name: 'Fediy User Profile',
@@ -435,7 +441,7 @@ export class VCProperty {
             this.paramsString()
         }:${
             this.value
-        }\r\n`;
+        }`;
     }
 
     static fromLine(line: string): VCProperty | null {
@@ -568,7 +574,7 @@ export class VCProperty {
     valueHtml() {
         switch (vCardProperties[this.getName()]?.type) {
             case 'uri':
-                return `<a href="${this.value}">${this.value}</a>`;
+                return `<a href="${this.value}" target="_blank">${this.value}</a>`;
             case 'name':
                 return this.nameToString();
 
@@ -637,8 +643,8 @@ export class VCProperty {
         }
     }
 
-    acceptInput() {
+    async acceptInput() {
         if (this.input)
-            this.input.loadValue();
+            await this.input.loadValue();
     }
 }

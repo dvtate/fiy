@@ -93,52 +93,51 @@ export class CustomDateInput extends CustomInput {
 }
 
 export class CustomEmailInput extends CustomInput {
-   validate(): string | undefined {
-       const e = document.getElementById(this.id) as HTMLInputElement;
-       if (!/[^\s@]@[^\s@]/.test(e.value.trim())) {
-           e.style.border = '1px solid red';
-           return 'Invalid email';
-       }
-       e.style.border = 'default';
-       return null;
-   }
+    validate(): string | null {
+        const e = document.getElementById(this.id) as HTMLInputElement;
+        if (!/[^\s@]@[^\s@]/.test(e.value.trim())) {
+            e.style.border = '1px solid red';
+            return 'Invalid email';
+        }
+        e.style.border = 'default';
+        return null;
+    }
 
-   typeOptionsHtml() {
-       const selected = this.property.value;
-       let ret = '';
-       if (selected)
-           ret += `<option value="${selected}" selected>${selected}</option>`;
+    typeOptionsHtml() {
+        const selected = this.property.value;
+        let ret = '';
+        if (selected)
+            ret += `<option value="${selected}" selected>${selected}</option>`;
 
-       return ret + `<option value="PERSONAL">Personal</option>
+        return ret + `<option value="PERSONAL">Personal</option>
 <option value="WORK">Work</option>
 <option value="HOME">Home</option>
 <option value="OTHER">Other</option>`;
-   }
+    }
 
-   html(e: HTMLElement) {
-       e.insertAdjacentHTML(
-           'beforeend',
-           `<div class="input-group">
+    html(e: HTMLElement) {
+        e.insertAdjacentHTML(
+            'beforeend',
+            `<div class="input-group">
 <label for="${this.id}">Email</label>
 <input id="${this.id}" type="email" value="${this.property.value || ''}" />
 </div><div class="input-group">
 <label for="${this.id}-type">Type</label>
 <select id="${this.id}-type">${this.typeOptionsHtml()}</select>
 </div>`);
-       document.getElementById(this.id)
-           .addEventListener('change', this.validate.bind(this));
-   }
+        document.getElementById(this.id)
+            .addEventListener('change', this.validate.bind(this));
+    }
 
-   loadValue() {
-       const v = document.getElementById(this.id) as HTMLInputElement;
-       const t = document.getElementById(this.id + '-type') as HTMLInputElement;
-       this.property.value = v.value;
-       this.property.params.TYPE = t.value;
-   }
+    loadValue() {
+        const v = document.getElementById(this.id) as HTMLInputElement;
+        const t = document.getElementById(this.id + '-type') as HTMLInputElement;
+        this.property.value = v.value;
+        this.property.params.TYPE = t.value;
+    }
 }
 
 export class CustomTextInput extends CustomInput {
-
     getValue() {
         const e = document.getElementById(this.id) as HTMLInputElement;
         return e.value;
@@ -147,11 +146,15 @@ export class CustomTextInput extends CustomInput {
         return this.getValue().length !== 0 ? null : "Value cannot be empty";
     }
 
+    placeholderText(): string {
+        return '';
+    }
+
     override html(e: HTMLElement): void {
         e.insertAdjacentHTML('beforeend',
             `<div class="input-group">
     <label for="${this.id}">${this.property.label()}</label>
-    <input type="text" id="${this.id}" value="${this.property.value ||''}" />
+    <input type="text" id="${this.id}" value="${this.property.value ||''}" placeholder="${this.placeholderText()}" />
 </div>`);
     }
 
@@ -170,14 +173,28 @@ export class CustomTextAreaInput extends CustomTextInput {
 }
 
 export class CustomUriInput extends CustomTextInput {
+
+    override placeholderText(): string {
+        return 'https://example.com';
+    }
+
     override html(e: HTMLElement): void {
         e.insertAdjacentHTML('beforeend', `<div class="input-group">
     <label for="${this.id}">${this.property.label()}</label>
-    <input type="url" id="${this.id}" value="${this.property.value ||''}" />
+    <input type="url" id="${this.id
+        }" value="${this.property.value ||''
+        }" placeholder="${this.placeholderText()}" />
 </div>`);
     }
 }
 
+export class CustomSocialInput extends CustomUriInput {
+    override placeholderText(): string {
+        return 'https://x.com/x';
+    }
+}
+
+// should this instead accept a uri input?
 export class CustomPhoneInput extends CustomInput {
     getValue() {
         const e = document.getElementById(this.id) as HTMLInputElement;
@@ -266,24 +283,24 @@ export class CustomGenderInput extends CustomInput {
     }
 }
 
-export class CustomNameInput extends CustomTextInput {
+export class CustomNameInput extends CustomInput {
     override validate() {
         return null;
     }
 
     override html(e: HTMLElement): void {
         /*
-       Special note:  The structured property value corresponds, in
-      sequence, to the Family Names (also known as surnames), Given
-      Names, Additional Names, Honorific Prefixes, and Honorific
-      Suffixes.  The text components are separated by the SEMICOLON
-      character (U+003B).  Individual text components can include
-      multiple text values separated by the COMMA character (U+002C).
-      This property is based on the semantics of the X.520 individual
-      name attributes [CCITT.X520.1988].  The property SHOULD be present
-      in the vCard object when the name of the object the vCard
-      represents follows the X.520 model.
-         */
+            The structured property value corresponds, in
+            sequence, to the Family Names (also known as surnames), Given
+            Names, Additional Names, Honorific Prefixes, and Honorific
+            Suffixes.  The text components are separated by the SEMICOLON
+            character (U+003B).  Individual text components can include
+            multiple text values separated by the COMMA character (U+002C).
+            This property is based on the semantics of the X.520 individual
+            name attributes [CCITT.X520.1988].  The property SHOULD be present
+            in the vCard object when the name of the object the vCard
+            represents follows the X.520 model.
+        */
 
         // Get values from property
         const v = this.property.value || ';;;;';
@@ -326,24 +343,27 @@ export class CustomNameInput extends CustomTextInput {
     }
 }
 
-export class CustomAddressInput extends CustomTextInput {
+export class CustomAddressInput extends CustomInput {
+    override validate() {
+        return null;
+    }
     override html(e: HTMLElement) {
         /*
-          The structured type value consists of a sequence of
-          address components.  The component values MUST be specified in
-          their corresponding position.  The structured type value
-          corresponds, in sequence, to
-             the post office box;
-             the extended address (e.g., apartment or suite number);
-             the street address;
-             the locality (e.g., city);
-             the region (e.g., state or province);
-             the postal code;
-             the country name (full name in the language specified in
-             Section 5.1).
+            The structured type value consists of a sequence of
+            address components.  The component values MUST be specified in
+            their corresponding position.  The structured type value
+            corresponds, in sequence, to
+                the post office box;
+                the extended address (e.g., apartment or suite number);
+                the street address;
+                the locality (e.g., city);
+                the region (e.g., state or province);
+                the postal code;
+                the country name (full name in the language specified in
+                Section 5.1).
 
-             For compatibility reasons the first 2 fields should be empty
-         */
+            For compatibility reasons the first 2 fields should be empty
+        */
 
         const v = this.property.value || ';;;;;;;;';
         const components = v.split(';').map(s => s.trim());
@@ -357,11 +377,11 @@ export class CustomAddressInput extends CustomTextInput {
 
         // These 2 fields are deprecated so hidden by default
         const html =`<div class="input-group" ${poBox.length === 0 ? 'hidden' : ''
-            } title="Post Office Box information">
+        } title="Post Office Box information">
             <label for="${this.id}-pobox">Post Office Box</label>
             <input type="text" id="${this.id}-pobox" value="${poBox}" />
         </div><div class="input-group" ${extAddr.length === 0 ? 'hidden' : ''
-            } title="Extended address information (e.g., apartment or suite number)">
+        } title="Extended address information (e.g., apartment or suite number)">
             <label for="${this.id}-extaddr">Extended Address</label>
             <input type="text" id="${this.id}-extaddr" value="${extAddr}" />
         </div><div class="input-group" title="Street Address">
@@ -385,14 +405,14 @@ export class CustomAddressInput extends CustomTextInput {
 
     override loadValue() {
         this.property.value = [
-                'pobox',
-                'extaddr',
-                'street',
-                'city',
-                'region',
-                'zip',
-                'country'
-            ]
+            'pobox',
+            'extaddr',
+            'street',
+            'city',
+            'region',
+            'zip',
+            'country'
+        ]
             .map(f => this.id + '-' + f)
             .map(f => document.getElementById(f) as HTMLInputElement)
             .map(e => e.value.trim())
@@ -400,9 +420,131 @@ export class CustomAddressInput extends CustomTextInput {
     }
 }
 
-// TODO CustomGeoInput
-// TODO CustomImageInput
-// TODO CustomTextOptionsInput
+export class CustomGeoInput extends CustomUriInput {
+    override html(e: HTMLElement) {
+        e.insertAdjacentHTML('beforeend',
+            `<div class="input-group" title="You can use any URI here but the geo uri is a great fit">
+<label for="${this.id}">Location</label>
+<input type="url" id="${this.id}" placeholder="geo:41.878860,-87.635950" />
+</div>`);
+    }
+
+    override validate(): string | null {
+        const v = this.getValue();
+        if (v.startsWith('geo:')) {
+            const coords = v.slice(4).split('?')[0]?.split(',');
+            if (coords.length < 2)
+                return "a geo link is invalid if it does not contain both a latitude and longitude component";
+            if (isNaN(Number(coords[0])))
+                return "geo link contains invalid latitude component";
+            if (isNaN(Number(coords[1])))
+                return "geo link contains invalid longitude component";
+        }
+        return null;
+    }
+
+    override loadValue() {
+        this.property.value = this.getValue();
+    }
+}
+
+export class CustomImageInput extends CustomInput {
+
+    // Android limit: 256x256
+    static readonly MAX_DIM_PIXELS = 256;
+
+    override validate(): string | null {
+        const inp = document.getElementById(this.id) as HTMLInputElement;
+        if (inp.files.length === 0 && !this.property.value)
+            return 'No image provided';
+        return null;
+    }
+
+    override html(e: HTMLElement) {
+        e.insertAdjacentHTML('beforeend', `
+        <div class="input-group">
+        <label for="${this.id}">${this.property.label()}</label>
+        <input type="file" id="${this.id}" accept="image/*" />
+</div><span id="${this.id}-preview">${
+            this.property.value
+                ? `<fieldset><legend>Preview</legend>${this.property.valueHtml()}</fieldset>`
+                : ''}</span>`);
+
+        document.getElementById(this.id).addEventListener('change', async e => {
+            const preview = document.getElementById(this.id + '-preview');
+            try {
+                preview.innerHTML = `<fieldset><legend>Preview</legend><img src="${
+                    await this.resizedDataUrl()}" alt="failed to load image"></fieldset>`;
+            } catch (e) {
+                preview.innerHTML = "failed to load image";
+            }
+        });
+    }
+
+    protected async rawDataUrl(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const inp = document.getElementById(this.id) as HTMLInputElement;
+
+            if (inp.files.length === 0)
+                return reject(new Error('No file provided'));
+
+            const fr = new FileReader();
+            fr.onload = () => resolve(fr.result as string);
+            fr.onerror = reject;
+            fr.readAsDataURL(inp.files[0]);
+        });
+    }
+
+    async resizedDataUrl(): Promise<string> {
+        const url = await this.rawDataUrl();
+        if (!url)
+            return '';
+
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = url;
+            img.onerror = function (e) {
+                URL.revokeObjectURL(this.src);
+                reject(e);
+            };
+            img.onload = function () {
+                // Calculate dimensions needed to truncate bottom/right excess of image
+                let canvasDims: number, ih: number, iw: number;
+                if (img.height > img.width) { // truncate bottom excess
+                    iw = canvasDims = Math.min(img.width, CustomImageInput.MAX_DIM_PIXELS);
+                    ih = img.height * canvasDims / img.width;
+                } else { // height <= width
+                    ih = canvasDims = Math.min(img.height, CustomImageInput.MAX_DIM_PIXELS);
+                    iw = img.width * canvasDims / img.height;
+                }
+
+                // Put image into canvas with calculated dimensions
+                const canvas = document.createElement('canvas');
+                canvas.height = canvas.width = canvasDims;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, iw, ih);
+
+                // Extract dataurl from canvas
+                let ret = canvas.toDataURL('image/png', 0.7);
+                if (ret.length > 200_000) {
+                    console.log("Scaled image still too big, reducing quality");
+                    ret = canvas.toDataURL('image/png', 0.5);
+                }
+                resolve(ret);
+            };
+        });
+    }
+
+    override async loadValue() {
+        try {
+            this.property.value = await this.resizedDataUrl();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
 // TODO CustomTimezoneInput
 // TODO CustomLangInput
 // TODO CustomFediyUserInput
+// TODO Social media input

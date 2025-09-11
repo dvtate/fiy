@@ -14,7 +14,7 @@
   "author": "dvtt.net",
   "type": "module",
   "scripts": {
-    "dev": "cp -s `realpath static`/* dist && DEPLOY_ENV=development webpack",
+    "dev": "rm dist/* && cp -s `realpath static`/* dist && DEPLOY_ENV=development webpack",
     "build": "cp static/* dist && DEPLOY_ENV=production webpack"
   },
   "devDependencies": {

@@ -139,7 +139,7 @@ export default class VC {
         const version = this.properties.find(p => p.name === 'VERSION');
 
         let ret = 'BEGIN:VCARD\r\n';
-        ret += version.toLine();
+        ret += version.toLine() + '\r\n';
         ret += this.properties
             .map(p => p.name === 'VERSION' ? '' : p.toLine())
             .join('\r\n');
@@ -257,9 +257,9 @@ export default class VC {
             .map(([k, v]) =>
                 `<option value="${k}" title="${v.description}">${v.name}</option>`)
             .join('');
-        e.insertAdjacentHTML('beforeend', `<div class="input-group">
-            <label for="add-prop-type">Add Field</label>
-            <select id="add-prop-type">${optionsHtml}</select>
+        e.insertAdjacentHTML('beforeend',
+            `<label for="add-prop-type"><h4>Add Field</h4></label>
+            <div class="input-group"><select id="add-prop-type">${optionsHtml}</select>
             <button id="add-prop-btn"><i class="fa fa-plus"></i>Add</button>
         </div>`);
 
@@ -271,12 +271,13 @@ export default class VC {
             p.inputHtml(form);
             addDeleteButton(p, this.properties.length);
             addVisibilitySelect(p, this.properties.length);
+            form.insertAdjacentHTML('beforeend', '<hr>');
         });
     }
 
     download() {
         const e = document.createElement('a');
-        e.setAttribute('href', 'data:text/vcard;charset=utf-8,' + this.vCardString());
+        e.setAttribute('href', 'data:text/vcard;base64,' + btoa(this.vCardString()));
         e.setAttribute('download', 'contact.vcf');
         e.style.display = 'none';
         document.body.appendChild(e);
@@ -288,14 +289,14 @@ export default class VC {
         return this.properties.map( p => [p.name, p.input?.validate()]).filter(e => !!e[1]).map(e => e[0] + ':' + e[1]);
     }
 
-    acceptEdits() {
+    async acceptEdits() {
         const isProfileCard = !!this.isProfileCard();
-        this.properties.forEach((p, i) => {
-            p.acceptInput();
+        await Promise.all(this.properties.map(async (p, i) => {
+            await p.acceptInput();
             if (isProfileCard) {
                 const visSelect = document.getElementById('edit-vis-' + i) as HTMLSelectElement;
                 p.params['X-FEDIY-VISIBILITY'] = visSelect.value;
             }
-        });
+        }));
     }
 }

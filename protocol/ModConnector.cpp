@@ -164,8 +164,8 @@ struct ModDLLHostInfo : fiy_host_info_t {
             return -1;
         }
 
-        strcat(ret->name, u->get_name().c_str());
-        strcat(ret->locale, u->m_locale.c_str());
+        strcpy(ret->name, u->get_name().c_str());
+        strcpy(ret->locale, u->m_locale.c_str());
         ret->admin = u->m_is_admin;
         ret->join_ts = u->m_joined_ts;
         return 0;
