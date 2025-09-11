@@ -547,4 +547,3 @@ export class CustomImageInput extends CustomInput {
 // TODO CustomTimezoneInput
 // TODO CustomLangInput
 // TODO CustomFediyUserInput
-// TODO Social media input
