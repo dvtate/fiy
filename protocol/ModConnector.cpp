@@ -66,7 +66,9 @@ public:
 };
 
 struct ModDLLHostInfo : fiy_host_info_t {
+    // TODO these should probably be unique_ptr's ?
     std::string m_base_uri;
+    std::string m_data_dir;
 
     explicit ModDLLHostInfo(Mod* mod) {
         this->log = [](int n, const char* s){
@@ -93,6 +95,8 @@ struct ModDLLHostInfo : fiy_host_info_t {
         this->app_id = mod->m_id.c_str(); // safe assuming the mod isn't moved
         this->local_login = ModDLLHostInfo::local_login_impl;
         this->user_info = ModDLLHostInfo::user_info_impl;
+        m_data_dir = g_fiy->m_config.m_data_dir + "/mods/" + mod->m_path;
+        this->data_dir = m_data_dir.c_str();
     }
 
     /**

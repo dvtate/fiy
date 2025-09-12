@@ -81,6 +81,11 @@ cp $CP_INSTALL_FLAG "$(realpath ./mods/mail/module.json)" "$INSTALL_PATH/mods/ma
 cp $CP_INSTALL_FLAG "$(realpath ./build/libdemo_mod_mail.so)" "$INSTALL_PATH/mods/mail/module.so"
 echo "Installed mail mod"
 
+mkdir "$INSTALL_PATH/mods/contacts"
+cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/module.json)" "$INSTALL_PATH/mods/contacts/"
+cp $CP_INSTALL_FLAG "$(realpath ./build/libcontacts_mod.so)" "$INSTALL_PATH/mods/contacts/module.so"
+cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/frontend/dist)"/* "$INSTALL_PATH/mods/contacts/"
+
 # TODO install other mods
 
 # Install protocol server

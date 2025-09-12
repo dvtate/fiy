@@ -28,7 +28,7 @@ API.getUserContacts().then(vcf => {
 
     // Sort by display name
     // vCard has a sort
-    contacts.sort((a,b) => a.getDisplayName().localeCompare(b.getDisplayName()));
+    contacts.sort((a,b) => a.displayName().localeCompare(b.displayName()));
 
     // Initial render
     const queryParams = new URL(document.location.toString()).searchParams;
@@ -52,15 +52,33 @@ API.getUserContacts().then(vcf => {
     alert('failed to load contacts from the server!!');
 });
 
-function renderContactsList(filter = "") {
-    contactList.innerHTML = "";
+function renderContactsList(filter?: string) {
+    if (!filter) {
+        filter = searchInput.value;
+        if (!filter)
+            filter = new URL(document.location.toString())
+                .searchParams.get('q') || '';
+    }
+
+    contactList.innerHTML = '';
     contacts
-        .filter(c => c.getDisplayName().toLowerCase().includes(filter.toLowerCase()))
+        .filter(c => c.displayName().toLowerCase().includes(filter.toLowerCase()))
         .forEach((contact, index) => {
+            // New contact entry
             const li = document.createElement("li");
-            li.textContent = contact.getDisplayName();
-            li.title = contact.getDisplayName();
+            li.title = contact.displayName();
             li.onclick = () => showContactDetails(index);
+
+            // PFP
+            const img = document.createElement("img");
+            img.src = contact.profilePhotoUri();
+            img.alt = '[#]';
+            img.className = 'pfp';
+            img.onerror = e => { img.src = VC.defaultPfp; };
+            li.appendChild(img);
+
+            // Display name
+            li.insertAdjacentHTML('beforeend', ' ' + contact.displayName());
             contactList.appendChild(li);
         });
 }
@@ -79,7 +97,6 @@ function mobileDetailsView(goBack = false) {
 }
 
 function showContactDetails(index: number) {
-
     contactDetails.innerHTML = `${contacts[index].showHtml()}<hr>
 <!--<button title="Share"><i class="fa fa-share" id="contact-share"></i></button>-->
 <button title="Download" id="contact-download"><i class="fa fa-download"></i></button>
@@ -93,7 +110,6 @@ function showContactDetails(index: number) {
         contacts[index].download();
     });
     document.getElementById('contact-edit').addEventListener('click', e => {
-
         editContact(index);
     });
     document.getElementById('contact-delete').addEventListener('click', e => {
@@ -145,6 +161,7 @@ function editContact(index: number) {
         // Update remote
         API.updateContact(contacts[index]).then(() => {
            showContactDetails(index);
+           renderContactsList();
         }).catch(e => {
             console.error(e);
             alert('Failed to update contact, try again later.');

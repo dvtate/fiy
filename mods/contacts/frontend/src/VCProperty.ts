@@ -583,11 +583,11 @@ export class VCProperty {
                 return VCDateTime.parse(this.value).toUserString();
 
             case 'img':
-                if (this.value.startsWith('http')) {
-                    return `<img src="${this.value}" alt="PHOTO" />`;
-                } else {
+                if (this.params.ENCODING === 'b')
                     return `<img src="data:${this.params.TYPE};base64, ${this.value}" alt="PHOTO" />`;
-                }
+                else
+                    return `<img src="${this.value}" alt="PHOTO" />`;
+
             case 'key':
                 /*
                 2.1: KEY;PGP:http://example.com/key.pgp

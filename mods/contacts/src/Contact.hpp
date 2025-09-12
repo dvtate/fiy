@@ -30,10 +30,20 @@ struct VC {
     /// vCard properties
     std::vector<Prop> props;
 
+    /// 256x256 blue-ish square
+    static constexpr const char* default_pfp = "data:image/png;base64,"
+        "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjB"
+        "BbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1Q"
+        "AAAABJRU5ErkJggg==";
+
     /// Convert to vCard text
     std::string to_vcard();
 
     bool parse(std::string vc);
 
     static VC basic_profile(const std::string& user);
+
+    [[nodiscard]] bool invalid() const {
+        return id == -1 && update_ts == 0;
+    }
 };

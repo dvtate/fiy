@@ -15,7 +15,7 @@ export default class VC {
 
     private displayNameCache: string;
 
-    getDisplayName() {
+    displayName() {
         if (this.displayNameCache)
             return this.displayNameCache;
 
@@ -188,10 +188,25 @@ export default class VC {
         return ret;
     }
 
+    static readonly defaultPfp = "data:image/png;base64,"
+        + "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjB"
+        + "BbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1Q"
+        + "AAAABJRU5ErkJggg==";
+
+    profilePhotoUri() {
+        for (const p of this.properties)
+            if (p.name === 'PHOTO' && p.value)
+                return p.params.ENCODING === 'b'
+                    ? `data:${p.params.TYPE};base64,${p.value}`
+                    : p.value;
+        // default pfp: square
+        return VC.defaultPfp;
+    }
+
     showHtml() {
         const dn = this.isProfileCard()
             ? 'Your Profile'
-            : this.getDisplayName();
+            : this.displayName();
         const fiyUser = this.getFiyUser();
         const propsHtml = Object.entries(this.propertiesGrouped())
             .map(([k, v]) =>

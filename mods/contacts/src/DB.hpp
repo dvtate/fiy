@@ -26,5 +26,12 @@ namespace DB {
 
     int64_t get_profile_id(const std::string& user);
 
-    bool save_contact(VC& card);
+    enum Result {
+        Success,
+        Unauthorized,
+        Error
+    };
+    Result save_contact(VC& card);
+
+    std::string get_user_rolodex(const std::string& local_user);
 } // namespace DB

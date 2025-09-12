@@ -15,12 +15,12 @@
 fiy::HostInfo g_host_info;
 
 inline void get_profile(std::string_view user, fiy::Request& req, fiy_callback_t cb) {
-    // TODO split user on @ and if it's remote, call remote server instead
+    // TODO if local request, check and see if the user already has a contact for that user
 
     // Handle remote user
     auto at_idx = user.find('@');
     if (at_idx != std::string_view::npos) {
-        if (at_idx > user.size() - 1) {
+        if (at_idx > user.size() - 1) { // "test@"
             req.respond(cb, 400, "Invalid username");
             return;
         }
@@ -68,7 +68,7 @@ inline void get_profile(std::string_view user, fiy::Request& req, fiy_callback_t
 
     auto card = DB::get_profile(std::string(user), req.user, req.domain);
     if (card.empty())
-        req.respond(cb, 401, "Not found");
+        req.respond(cb, 404, "Not found");
     else
         req.respond(cb, 200, card, "Content-Type:text/vcard");
 }
@@ -117,30 +117,41 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
 
     if (path.starts_with("/profile/")) {
         path.remove_prefix(9);
-
-        // Get user components
-        const auto iat = path.find('@');
-        std::string_view p_user, p_domain;
-        if (iat != std::string_view::npos) {
-            p_user = path.substr(0, iat);
-            p_domain = path.substr(iat+1);
-        } else {
-            p_user = path;
-            p_domain = "";
-        }
-
-
-
-
-
+        get_profile(path, req, cb);
+        return;
     }
 
-//    - Add contact
-//    - Edit contact
-//    - Delete contact
-//    - List contacts
-//    - Search contacts
-//    - Web interface + API
+    if (path == "/all") {
+        req.respond(cb, 200, DB::get_user_rolodex(req.user), "Content-Type: text/vcard");
+        return;
+    }
+
+    if (path == "/save") {
+        VC card;
+        card.parse(std::string(request->body, request->body_len));
+        card.owner = req.user;
+        switch (DB::save_contact(card)) {
+            case DB::Success:
+                req.respond(cb, 200, "OK");
+                return;
+            case DB::Error:
+                req.respond(cb, 500, "Server Error");
+                return;
+            case DB::Unauthorized:
+                req.respond(cb, 401, "Unauthorized");
+                return;
+        }
+    }
+
+    if (path.starts_with("/delete/")) {
+        path.remove_prefix(7);
+
+        // TODO
+        req.respond(cb, 500, "TODO");
+    }
+
+    // Invalid path
+    req.respond(cb, 404, "Not found");
 }
 
 
@@ -151,5 +162,7 @@ extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
         .on_username_changed=nullptr
     };
     g_host_info = *host_info;
+    std::cerr << "ghip: " <<g_host_info.data_dir <<std::endl;
+
     return &mod_info;
 }

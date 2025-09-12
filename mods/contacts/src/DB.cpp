@@ -49,7 +49,7 @@ namespace DB {
         }
     }
 
-    bool create_new_contact(VC& card) {
+    Result create_new_contact(VC& card) {
         // Start transaction
         transaction_begin();
 
@@ -86,7 +86,7 @@ namespace DB {
             if (card.id == -1) {
                 q_create_card.reset();
                 transaction_rollback();
-                return false;
+                return Error;
             }
 
             // Insert properties
@@ -117,25 +117,24 @@ namespace DB {
 
             // Commit transaction
             transaction_commit();
-            return true;
+            return Success;
         } catch (const SQLite::Exception& e) {
             transaction_rollback();
             std::string msg = "contacts: new_contact: database error: ";
             msg += e.what();
             g_host_info->log(1, msg.c_str());
-            return false;
+            return Success;
         }
     }
 
-    bool update_contact(VC& card) {
+    Result update_contact(VC& card) {
         // Update a card
         transaction_begin();
 
         try {
-
             static thread_local SQLite::Statement q_update_card{
                 connection(),
-                "UPDATE Cards SET user=?, updateTs=? WHERE id=?"
+                "UPDATE Cards SET user=?, updateTs=? WHERE id=? AND owner=?"
             };
             static thread_local SQLite::Statement q_remove_props{
                 connection(),
@@ -162,10 +161,13 @@ namespace DB {
                 q_update_card.bind(1);
             else
                 q_update_card.bindNoCopy(1, card.user);
-            q_update_card.bind(2, g_host_info->now());
+            q_update_card.bind(2, card.update_ts = g_host_info->now());
             q_update_card.bind(3, card.id);
-            q_update_card.exec();
+            q_update_card.bind(4, card.owner);
+            const int updated = q_update_card.exec();
             q_update_card.reset();
+            if (!updated)
+                return Unauthorized; // Probably authentication issue
 
             // Clean out old data
             q_remove_props.bind(1, card.id);
@@ -198,13 +200,13 @@ namespace DB {
             }
 
             transaction_commit();
-            return true;
+            return Success;
         } catch (const SQLite::Exception& e) {
             transaction_rollback();
             std::string msg = "contacts: update_contact: database error: ";
             msg += e.what();
             g_host_info->log(1, msg.c_str());
-            return false;
+            return Error;
         }
     }
 
@@ -214,7 +216,7 @@ namespace DB {
      * @remark if card.id < 0, create new contact and update the card
      * @return true if successful
      */
-    bool save_contact(VC& card) {
+    Result save_contact(VC& card) {
         return card.id < 0
             ? create_new_contact(card)
             : update_contact(card);
@@ -232,6 +234,7 @@ namespace DB {
         ret.id = -1;
         ret.user = user;
         ret.owner = user;
+        ret.update_ts = 0;
         while (query.executeStep()) {
             ret.id = query.getColumn(0).getInt64();
             ret.update_ts = query.getColumn(1).getInt64();
@@ -280,6 +283,8 @@ namespace DB {
 
         // Start with just the card
         VC ret = get_profile_base(user);
+        if (ret.invalid())
+            return "";
 
         if (trust_level == 0 || trust_level == 1) {
             static thread_local SQLite::Statement query{connection(),
@@ -336,4 +341,67 @@ namespace DB {
         }
     }
 
+    std::string get_user_rolodex(const std::string& local_user) {
+        static thread_local SQLite::Statement q_get_cards{
+            connection(),
+            "SELECT id, user, updateTs FROM Cards WHERE owner=?"};
+        static thread_local SQLite::Statement q_get_card_props{
+            connection(),
+            "SELECT id, name, params, value FROM Properties"
+                "WHERE id IN (SELECT id FROM CardProperties WHERE cardId=?);"
+        };
+        static thread_local SQLite::Statement q_get_prof_props{
+            connection(),
+            "SELECT id, visibility, name, params, value FROM Properties"
+                "WHERE id IN (SELECT id FROM ProfileCardProperties WHERE cardId=?);"
+        };
+
+        bool found_profile = false;
+        std::string ret;
+
+        q_get_cards.reset();
+        q_get_cards.bindNoCopy(1, local_user);
+        while (q_get_cards.executeStep()) {
+            VC c;
+            c.id = q_get_cards.getColumn(0).getInt64();
+            c.owner = local_user;
+            c.user = q_get_cards.getColumn(1).getString();
+            c.update_ts = q_get_cards.getColumn(2).getInt64();
+
+            if (found_profile || c.user != c.owner) {
+                q_get_card_props.reset();
+                q_get_card_props.bind(1, c.id);
+                while (q_get_card_props.executeStep()) {
+                    c.props.emplace_back(VC::Prop{
+                        .id=q_get_card_props.getColumn(0).getInt64(),
+                        .name=q_get_card_props.getColumn(1).getString(),
+                        .params=q_get_card_props.getColumn(2).getString(),
+                        .value=q_get_card_props.getColumn(3).getString()
+                    });
+                }
+            } else {
+                q_get_prof_props.reset();
+                q_get_prof_props.bind(1, c.id);
+                while (q_get_prof_props.executeStep()) {
+                    c.props.emplace_back(VC::Prop{
+                        .id=q_get_prof_props.getColumn(0).getInt64(),
+                        .name=q_get_prof_props.getColumn(1).getString(),
+                        .params=q_get_prof_props.getColumn(2).getString(),
+                        .value=q_get_prof_props.getColumn(3).getString(),
+                        .visibility=(int8_t)q_get_prof_props.getColumn(4).getInt()
+                    });
+                }
+                found_profile = true;
+            }
+
+            ret += c.to_vcard();
+            ret += "\n";
+        }
+
+        // Add profile to the cards list if it doesn't exist
+        if (!found_profile)
+            ret += get_profile(local_user, local_user, "");
+
+        return ret;
+    }
 } // namespace DB

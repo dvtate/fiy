@@ -194,7 +194,7 @@ export class CustomSocialInput extends CustomUriInput {
     }
 }
 
-// should this instead accept a uri input?
+// Should this instead accept a URI input?
 export class CustomPhoneInput extends CustomInput {
     getValue() {
         const e = document.getElementById(this.id) as HTMLInputElement;
@@ -497,8 +497,6 @@ export class CustomImageInput extends CustomInput {
 
     async resizedDataUrl(): Promise<string> {
         const url = await this.rawDataUrl();
-        if (!url)
-            return '';
 
         return new Promise((resolve, reject) => {
             const img = new Image();
