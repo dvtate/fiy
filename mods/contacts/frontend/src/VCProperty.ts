@@ -426,10 +426,12 @@ export class VCProperty {
     paramsString() {
         return Object.entries(this.params).map(([p, v]) => {
             switch (typeof v) {
-                case 'string':
+                case 'string': case 'number':
                     return `${p}=${v}`;
                 case 'object':
                     return `${p}=${v.join(',')}`;
+                case 'undefined':
+                    return '';
                 default:
                     return p;
             }
@@ -437,7 +439,7 @@ export class VCProperty {
     }
 
     toLine(): string {
-        return `${this.name}${
+        return `${this.name};${
             this.paramsString()
         }:${
             this.value
@@ -464,8 +466,8 @@ export class VCProperty {
             const [k,v] = p.split('=');
             if (v)
                 params[k] = v;
-            else if (!vcDefaultParams.includes(k))
-                params['TYPE'] = k;
+            // else if (!vcDefaultParams.includes(k))
+            //     params['TYPE'] = k;
         });
 
         return new VCProperty(key, params, value);

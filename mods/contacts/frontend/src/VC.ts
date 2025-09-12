@@ -285,8 +285,8 @@ export default class VC {
             const p = new VCProperty(typeSelect.value)
             this.properties.push(p);
             p.inputHtml(form);
-            addDeleteButton(p, this.properties.length);
-            addVisibilitySelect(p, this.properties.length);
+            addDeleteButton(p, this.properties.length - 1);
+            addVisibilitySelect(p, this.properties.length - 1);
             form.insertAdjacentHTML('beforeend', '<hr>');
         });
     }

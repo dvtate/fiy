@@ -33,6 +33,9 @@ API.getUserContacts().then(vcf => {
     // Initial render
     const queryParams = new URL(document.location.toString()).searchParams;
     renderContactsList(queryParams.get('q') || "");
+
+    if (window.innerWidth <= 768)
+        return;
     if (queryParams.get('id')) {
         // Show contact by id
         const index = contacts.findIndex(c => c.getId() == queryParams.get('id'));
@@ -168,6 +171,8 @@ function editContact(index: number) {
             alert('Failed to update contact, try again later.');
         });
     });
+
+    mobileDetailsView();
 }
 
 function newContact() {
