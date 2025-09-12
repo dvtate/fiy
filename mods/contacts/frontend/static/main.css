@@ -99,7 +99,7 @@ body {
 .input-group * {
     margin: 0.3rem;
 }
-.input-group input,select {
+.input-group input,select,textarea {
     flex-grow: 1;
 }
 

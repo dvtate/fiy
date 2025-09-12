@@ -311,7 +311,10 @@ export default class VC {
             await p.acceptInput();
             if (isProfileCard) {
                 const visSelect = document.getElementById('edit-vis-' + i) as HTMLSelectElement;
-                p.params['X-FEDIY-VISIBILITY'] = visSelect.value;
+                if (visSelect)
+                    p.params['X-FEDIY-VISIBILITY'] = visSelect.value;
+                else
+                    console.log('no visibility selector', p.name, i);
             }
         }));
     }

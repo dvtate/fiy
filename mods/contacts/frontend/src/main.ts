@@ -143,7 +143,8 @@ function editContact(index: number) {
     contactDetails.insertAdjacentHTML(
         'beforeend',
         '<hr><span id="edit-contact-errs"></span>'
-        + '<button id="edit-contact-save"><i class="fa fa-check"></i> Save</button>');
+        + '<button id="edit-contact-save"><i class="fa fa-check"></i> Save</button>'
+        + '<button id="edit-contact-cancel"><i class="fa fa-remove"></i> Cancel</button>');
 
     // Save contact edits
     document.getElementById('edit-contact-save').addEventListener('click', async event => {
@@ -170,6 +171,10 @@ function editContact(index: number) {
             console.error(e);
             alert('Failed to update contact, try again later.');
         });
+    });
+
+    document.getElementById('edit-contact-cancel').addEventListener('click', e => {
+        showContactDetails(index);
     });
 
     mobileDetailsView();
