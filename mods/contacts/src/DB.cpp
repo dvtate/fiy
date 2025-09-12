@@ -10,33 +10,34 @@
 
 #include "DB.hpp"
 
+#include <iostream>
 
-
-extern const fiy_host_info_t* g_host_info;
+extern fiy::HostInfo g_host_info;
 
 namespace DB {
 
     SQLite::Database& connection() {
         static thread_local SQLite::Database db{
-            std::string(g_host_info->data_dir) + "/db.db3",
+            std::string(g_host_info.data_dir) + "/db.db3",
             SQLite::OPEN_READWRITE
         };
         return db;
     }
     void transaction_begin() {
         static thread_local SQLite::Statement q{connection(), "BEGIN TRANSACTION"};
+        q.reset();
         q.exec();
     }
     void transaction_commit() {
         static thread_local SQLite::Statement q{connection(), "COMMIT"};
+        q.reset();
         q.exec();
     }
     void transaction_rollback() {
         static thread_local SQLite::Statement q{connection(), "ROLLBACK"};
+        q.reset();
         q.exec();
     }
-
-
 
     bool is_profile_card(int64_t card_id) {
         static thread_local SQLite::Statement query{connection(), "SELECT owner, user FROM Cards WHERE id=?"};
@@ -44,48 +45,56 @@ namespace DB {
         query.bind(1, card_id);
         if (query.executeStep()) {
             return query.getColumn(0).getString() == query.getColumn(1).getString();
-        } else {
-            return false; // invalid contact id === not a profile
         }
+        return false; // invalid contact id === not a profile
     }
 
     Result create_new_contact(VC& card) {
         // Start transaction
         transaction_begin();
+        g_host_info.log(3, "Creating new contact");
 
         try {
             static thread_local SQLite::Statement q_create_card{
                 connection(),
                 "INSERT INTO Cards (owner, user, updateTs) VALUES (?, ?, ?);"
+            };
+            static thread_local SQLite::Statement q_get_card{
+                connection(),
                 "SELECT id FROM cards WHERE rowid=last_insert_rowid();"
             };
             static thread_local SQLite::Statement q_insert_profile_property{
                 connection(),
                 "INSERT INTO Properties (name, params, value) VALUES (?, ?, ?); "
                 "INSERT INTO ProfileCardProperties (cardId, propertyId, visibility) VALUES (?, last_insert_rowid(), ?); "
-                "SELECT last_insert_rowid();"
             };
             static thread_local SQLite::Statement q_insert_property{
                 connection(),
                 "INSERT INTO Properties (name, params, value) VALUES (?, ?, ?); "
                 "INSERT INTO CardProperties (cardId, propertyId) VALUES (?, last_insert_rowid()); "
-                "SELECT last_insert_rowid();"
             };
+            static thread_local SQLite::Statement q_last_insert_rowid(
+                connection(),
+                "SELECT last_insert_rowid();"
+            );
 
             // Bind params to create card query
+            q_create_card.reset();
             q_create_card.bindNoCopy(1, card.owner);
             if (card.user.empty())
                 q_create_card.bind(2);
             else
                 q_create_card.bindNoCopy(2, card.user);
-            q_create_card.bind(3, g_host_info->now());
+            q_create_card.bind(3, g_host_info.now());
+            q_create_card.exec();
 
             // Execute create card query
-            while (q_create_card.executeStep())
-                card.id = q_create_card.getColumn(0).getInt64();
+            q_get_card.reset();
+            if (q_get_card.executeStep())
+                card.id = q_get_card.getColumn(0).getInt64();
             if (card.id == -1) {
-                q_create_card.reset();
                 transaction_rollback();
+                g_host_info.log(1, "Didn't create card??");
                 return Error;
             }
 
@@ -93,25 +102,31 @@ namespace DB {
             if (card.owner == card.user) {
                 // Profile card
                 for (auto& p: card.props) {
+                    q_insert_profile_property.reset();
                     q_insert_profile_property.bindNoCopy(1, p.name);
                     q_insert_profile_property.bindNoCopy(2, p.params);
                     q_insert_profile_property.bindNoCopy(3, p.value);
                     q_insert_profile_property.bind(4, card.id);
                     q_insert_profile_property.bind(5, p.visibility);
-                    if (q_insert_profile_property.executeStep())
-                        p.id = q_insert_profile_property.getColumn(0).getInt();
-                    q_insert_profile_property.reset();
+                    q_insert_profile_property.exec();
+
+                    q_last_insert_rowid.reset();
+                    if (q_last_insert_rowid.executeStep())
+                        p.id = q_last_insert_rowid.getColumn(0).getInt();
                 }
             } else {
                 // Not a profile card
                 for (auto& p: card.props) {
+                    q_insert_property.reset();
                     q_insert_property.bindNoCopy(1, p.name);
                     q_insert_property.bindNoCopy(2, p.params);
                     q_insert_property.bindNoCopy(3, p.value);
                     q_insert_property.bind(4, card.id);
-                    if (q_insert_property.executeStep())
-                        p.id = q_insert_property.getColumn(0).getInt();
-                    q_insert_property.reset();
+                    q_insert_property.exec();
+
+                    q_last_insert_rowid.reset();
+                    if (q_last_insert_rowid.executeStep())
+                        p.id = q_last_insert_rowid.getColumn(0).getInt();
                 }
             }
 
@@ -122,7 +137,7 @@ namespace DB {
             transaction_rollback();
             std::string msg = "contacts: new_contact: database error: ";
             msg += e.what();
-            g_host_info->log(1, msg.c_str());
+            g_host_info.log(1, msg.c_str());
             return Success;
         }
     }
@@ -130,6 +145,7 @@ namespace DB {
     Result update_contact(VC& card) {
         // Update a card
         transaction_begin();
+        g_host_info.log(3, "Updating contact");
 
         try {
             static thread_local SQLite::Statement q_update_card{
@@ -161,13 +177,15 @@ namespace DB {
                 q_update_card.bind(1);
             else
                 q_update_card.bindNoCopy(1, card.user);
-            q_update_card.bind(2, card.update_ts = g_host_info->now());
+            q_update_card.bind(2, card.update_ts = g_host_info.now());
             q_update_card.bind(3, card.id);
             q_update_card.bind(4, card.owner);
             const int updated = q_update_card.exec();
             q_update_card.reset();
-            if (!updated)
+            if (!updated) {
+                transaction_rollback();
                 return Unauthorized; // Probably authentication issue
+            }
 
             // Clean out old data
             q_remove_props.bind(1, card.id);
@@ -205,7 +223,7 @@ namespace DB {
             transaction_rollback();
             std::string msg = "contacts: update_contact: database error: ";
             msg += e.what();
-            g_host_info->log(1, msg.c_str());
+            g_host_info.log(1, msg.c_str());
             return Error;
         }
     }
@@ -242,7 +260,7 @@ namespace DB {
         if (ret.id == -1) {
             // Ignore non-existent local users
             if (user.find('@') == std::string_view::npos
-                && g_host_info->user_info(user.c_str(), nullptr) != 0)
+                && g_host_info.user_info(user.c_str(), nullptr) != 0)
                     return ret;
 
             // Create a profile for them
@@ -348,12 +366,13 @@ namespace DB {
         static thread_local SQLite::Statement q_get_card_props{
             connection(),
             "SELECT id, name, params, value FROM Properties"
-                "WHERE id IN (SELECT id FROM CardProperties WHERE cardId=?);"
+                " WHERE id IN (SELECT propertyId AS id FROM CardProperties WHERE cardId=?);"
         };
         static thread_local SQLite::Statement q_get_prof_props{
             connection(),
-            "SELECT id, visibility, name, params, value FROM Properties"
-                "WHERE id IN (SELECT id FROM ProfileCardProperties WHERE cardId=?);"
+            "SELECT propertyId, name, params, value, visibility"
+            " FROM Properties INNER JOIN ProfileCardProperties on Properties.id = ProfileCardProperties.propertyId"
+            " WHERE cardId=?;"
         };
 
         bool found_profile = false;
@@ -399,8 +418,9 @@ namespace DB {
         }
 
         // Add profile to the cards list if it doesn't exist
-        if (!found_profile)
+        if (!found_profile) {
             ret += get_profile(local_user, local_user, "");
+        }
 
         return ret;
     }

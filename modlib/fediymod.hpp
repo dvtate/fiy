@@ -77,7 +77,7 @@ namespace fiy {
 
     struct Request : public fiy_request_t {
 
-        enum class Method : uint8_t {
+        enum Method : uint8_t {
             UNKNOWN = 0,
             DELETE, GET, HEAD, POST, PUT, CONNECT, OPTIONS,
             TRACE, COPY, LOCK, MKCOL, MOVE, PROPFIND, PROPPATCH,

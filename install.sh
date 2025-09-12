@@ -79,12 +79,15 @@ fi
 mkdir "$INSTALL_PATH/mods/mail"
 cp $CP_INSTALL_FLAG "$(realpath ./mods/mail/module.json)" "$INSTALL_PATH/mods/mail/module.json"
 cp $CP_INSTALL_FLAG "$(realpath ./build/libdemo_mod_mail.so)" "$INSTALL_PATH/mods/mail/module.so"
-echo "Installed mail mod"
+echo "Installed Mail mod"
 
 mkdir "$INSTALL_PATH/mods/contacts"
+mkdir "$INSTALL_PATH/mods/contacts/assets"
 cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/module.json)" "$INSTALL_PATH/mods/contacts/"
 cp $CP_INSTALL_FLAG "$(realpath ./build/libcontacts_mod.so)" "$INSTALL_PATH/mods/contacts/module.so"
-cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/frontend/dist)"/* "$INSTALL_PATH/mods/contacts/"
+cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/frontend/dist)"/* "$INSTALL_PATH/mods/contacts/assets"
+sqlite3 "$INSTALL_PATH/mods/contacts/db.db3" < ./mods/contacts/db.sql
+echo "Installed Contacts mod"
 
 # TODO install other mods
 

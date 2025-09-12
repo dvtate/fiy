@@ -159,9 +159,10 @@ function editContact(index: number) {
         await contacts[index].acceptEdits();
 
         // Update remote
-        API.updateContact(contacts[index]).then(() => {
-           showContactDetails(index);
-           renderContactsList();
+        API.updateContact(contacts[index]).then((newVcText) => {
+            contacts[index] = VC.parseCard(newVcText);
+            showContactDetails(index);
+            renderContactsList();
         }).catch(e => {
             console.error(e);
             alert('Failed to update contact, try again later.');

@@ -82,7 +82,7 @@ export class VCDateTime {
 
     toUserString() {
         const monthNames = [
-            '',
+            '', // There is no month zero
             'January',
             'February',
             'March',
@@ -181,4 +181,4 @@ export class VCDateTime {
         return ret;
     }
 
-};
+}

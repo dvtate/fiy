@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Contacts Page</title>
 
-    <link rel="stylesheet" href="main.css" />
+    <link rel="stylesheet" href="{{fediy_contacts_base_uri}}/main.css" />
 
     <!-- TODO locally host this instead -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
 </head>
 <body>
     <nav class="navbar">
-        <a class="nav-icon" href="/portal" title="Apps"><i class="fa fa-th"></i></a>
+        <a class="nav-icon" href="//{{fediy_contacts_domain}}/portal" title="Apps"><i class="fa fa-th"></i></a>
         <a class="nav-icon" href="javascript:newContact()" title="Add Contact"><i class="fa fa-plus"></i></a>
         <a class="nav-icon" href="javascript:showContactDetails(profileIndex)" title="Profile"><i class="fa fa-user"></i></a>
 <!--        <a class="nav-icon" title="Notifications"><i class="fa fa-bell"></i></a>-->
@@ -36,6 +36,6 @@
             </div>
         </div>
     </div>
-    <script src="main.bundle.js"></script>
+    <script src="{{fediy_contacts_base_uri}}/main.js"></script>
 </body>
 </html>

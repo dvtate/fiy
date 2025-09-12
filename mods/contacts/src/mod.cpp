@@ -110,6 +110,60 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         return;
     }
 
+    // Fontawesome fonts
+    if (path == "/fa/fa.css") {
+        static constexpr char file_path[] = "font-awesome.css";
+        req.respond(cb, 200,
+            Pages::file_contents<file_path>(),
+            "\nContent-Type: text/css"
+            "\nCache-Control: max-age=604800"
+        );
+    }
+    if (path.starts_with("/fonts/fontawesome-webfont.")) {
+        path.remove_prefix(27);
+        if (path.starts_with("eot")) {
+            static constexpr char file_path[] = "fontawesome-webfont.eot";
+            req.respond(cb, 200,
+                Pages::file_contents<file_path>(),
+                "Content-Type: application/vnd.ms-fontobject\nCache-Control: max-age=604800"
+            );
+            return;
+        }
+        if (path.starts_with("woff2")) {
+            static constexpr char file_path[] = "fontawesome-webfont.woff2";
+            req.respond(cb, 200,
+                Pages::file_contents<file_path>(),
+                "Content-Type: font/woff2\nCache-Control: max-age=604800"
+            );
+            return;
+        }
+        if (path.starts_with("woff")) {
+            static constexpr char file_path[] = "fontawesome-webfont.woff";
+            req.respond(cb, 200,
+                Pages::file_contents<file_path>(),
+                "Content-Type: font/woff\nCache-Control: max-age=604800"
+            );
+            return;
+        }
+        if (path.starts_with("ttf")) {
+            static constexpr char file_path[] = "fontawesome-webfont.ttf";
+            req.respond(cb, 200,
+                Pages::file_contents<file_path>(),
+                "Content-Type: font/ttf\nCache-Control: max-age=604800"
+            );
+            return;
+        }
+        if (path.starts_with("svg")) {
+            static constexpr char file_path[] = "fontawesome-webfont.svg";
+            req.respond(cb, 200,
+                Pages::file_contents<file_path>(),
+                "Cache-Control: max-age=604800"
+            );
+            return;
+        }
+    }
+
+
     if (path == "/" || (path.size() > 1 && path[1] == '?')) {
         req.respond(cb, 200, Pages::index_html(), "Content-Type: text/html");
         return;
@@ -132,7 +186,7 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         card.owner = req.user;
         switch (DB::save_contact(card)) {
             case DB::Success:
-                req.respond(cb, 200, "OK");
+                req.respond(cb, 200, card.to_vcard(), "Content-Type: text/vcard");
                 return;
             case DB::Error:
                 req.respond(cb, 500, "Server Error");
@@ -143,11 +197,14 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         }
     }
 
-    if (path.starts_with("/delete/")) {
+    if (path.starts_with("/delete/")
+        && req.method == (uint8_t) fiy::Request::DELETE
+    ) {
         path.remove_prefix(7);
 
         // TODO
         req.respond(cb, 500, "TODO");
+        return;
     }
 
     // Invalid path

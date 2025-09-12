@@ -16,6 +16,11 @@
 extern fiy::HostInfo g_host_info;
 
 namespace Pages {
+
+    static std::string full_path(const std::string& subpath) {
+        return std::string(g_host_info.data_dir) + "/assets/" + subpath;
+    }
+
     //////
     // Simple Templating engine
     /////
@@ -54,9 +59,7 @@ namespace Pages {
      */
     template<const char* FileSubPath>
     const std::string& file_contents() {
-        static const std::string contents = load_file_as_string(
-            std::string(g_host_info.data_dir) + FileSubPath
-        );
+        static const std::string contents = load_file_as_string(full_path(FileSubPath));
         return contents;
     }
 
@@ -93,7 +96,7 @@ namespace Pages {
 
     const std::string& main_js() {
         static const std::string contents = Pages::replace_all(
-            load_file_as_string(std::string(g_host_info.data_dir) + "/main.bundle.js"),
+            load_file_as_string(full_path("main.bundle.js")),
             {
                 {   "{{fediy_contacts_base_uri}}",
                     g_host_info.base_uri
@@ -107,12 +110,18 @@ namespace Pages {
     }
 
     const std::string& index_html() {
-        static const char path[] = "/index.html";
-        return file_contents<path>();
+        static std::string contents = replace_all(
+            load_file_as_string(full_path("index.html")),
+            {
+                { "{{fediy_contacts_base_uri}}", g_host_info.base_uri },
+                { "{{fediy_contacts_domain}}", g_host_info.domain }
+            }
+        );
+        return contents;
     }
 
     const std::string& main_css() {
-        static const char path[] = "/main.css";
+        static const char path[] = "main.css";
         return file_contents<path>();
     }
 };

@@ -136,10 +136,11 @@ export default class VC {
      * Get .vcf file contents as a string
      */
     vCardString() {
-        const version = this.properties.find(p => p.name === 'VERSION');
+        const version = this.properties.find(p =>
+                p.name === 'VERSION')?.toLine() || "VERSION:4.0";
 
         let ret = 'BEGIN:VCARD\r\n';
-        ret += version.toLine() + '\r\n';
+        ret += version + '\r\n';
         ret += this.properties
             .map(p => p.name === 'VERSION' ? '' : p.toLine())
             .join('\r\n');

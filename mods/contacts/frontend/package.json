@@ -14,12 +14,15 @@
   "author": "dvtt.net",
   "type": "module",
   "scripts": {
-    "dev": "rm dist/* && cp -s `realpath static`/* dist && DEPLOY_ENV=development webpack",
-    "build": "cp static/* dist && DEPLOY_ENV=production webpack"
+    "dev": "./pre_build.sh && cp -s `realpath static`/* dist && DEPLOY_ENV=development webpack",
+    "build": "./pre_build.sh && cp static/* dist && DEPLOY_ENV=production webpack"
   },
   "devDependencies": {
     "ts-loader": "^9.5.2",
     "typescript": "^5.9.2",
     "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "font-awesome": "^4.7.0"
   }
 }
