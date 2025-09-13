@@ -188,7 +188,7 @@ bool VC::parse(std::string vc) {
                     if (pend == idstr)
                         property_id = -1;
                 } else {
-                    if (p.starts_with("TYPE=fediy") && name == "X-SOCIALPROFILE") {
+                    if (p.starts_with("TYPE=fediy") && name == "X-SOCIALPROFILE")
                         this->user = value;
 
                     // TODO check if no = and make it to TYPE=lhs
