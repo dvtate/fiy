@@ -9,12 +9,17 @@ export async function getUserContacts() {
     return await r.text();
 }
 
-export async function updateContact(contact: VC) {
+
+export async function importSafeVcfString(vcf: string) {
     const r = await fetch(base_uri + '/save', {
         method: 'POST',
-        body: contact.vCardString()
+        body: vcf,
     });
     return r.text();
+}
+
+export async function updateContact(contact: VC) {
+    return await importSafeVcfString(contact.vCardString());
 }
 
 export async function deleteContact(contact: VC) {

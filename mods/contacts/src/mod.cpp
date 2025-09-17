@@ -6,6 +6,8 @@
 #include <string_view>
 #include <utility>
 
+#include "../../../third_party/base64.hpp"
+
 #include "../../../modlib/fediymod.hpp"
 
 #include "DB.hpp"
@@ -14,63 +16,170 @@
 
 fiy::HostInfo g_host_info;
 
-inline void get_profile(std::string_view user, fiy::Request& req, fiy_callback_t cb) {
+/**
+ * User profile endpoint
+ * @param user_str user to get profile of
+ * @param req request for profile
+ * @param cb request callback
+ */
+inline void get_profile(std::string_view user_str, fiy::Request& req, fiy_callback_t cb) {
     // TODO if local request, check and see if the user already has a contact for that user
 
+    const auto [user, dom] = g_host_info.split_user_str(user_str);
+
     // Handle remote user
-    auto at_idx = user.find('@');
-    if (at_idx != std::string_view::npos) {
-        if (at_idx > user.size() - 1) { // "test@"
-            req.respond(cb, 400, "Invalid username");
-            return;
-        }
+    if (!dom.empty()) {
+        // Remote user
+        struct Ctx {
+            fiy_callback_t cb;
+            fiy::Request* req;
+            std::string domain;
+        };
+        auto* ctx = new Ctx{
+            .cb=cb,
+            .req=&req,
+            .domain=std::string(dom)
+        };
+        req.domain = ctx->domain.c_str();
 
-        auto dom = user.substr(at_idx + 1);
-        if (dom == g_host_info.domain) {
-            // Local user
-            user = user.substr(0, at_idx);
-            // fallthrough to get local user profile
-        } else {
-            // Remote user
-            struct Ctx {
-                fiy_callback_t cb;
-                fiy::Request* req;
-                std::string domain;
-            };
-            auto ctx = new Ctx{
-                .cb=cb,
-                .req=&req,
-                .domain=std::string(dom)
-            };
-            req.domain = ctx->domain.c_str();
+        g_host_info.request(
+            "contacts",
+            &req,
+            ctx,
+            [](const struct fiy_response_t* res, void* pctx){
+                auto* ctx = (struct Ctx*) pctx;
 
-            g_host_info.request(
-                "contacts",
-                &req,
-                ctx,
-                [](const struct fiy_response_t* res, void* pctx){
-                    auto* ctx = (struct Ctx*) pctx;
-
-                    if (res == nullptr) {
-                        // Failed
-                        ctx->req->respond(ctx->cb, 404, "User not found at " + ctx->domain);
-                    } else {
-                        // Success, forward the response
-                        ctx->req->respond(ctx->cb, *res);
-                    }
-
-                    delete ctx;
+                if (!res || res->status < 0) {
+                    // Failed
+                    std::string body = "Failed to get profile from " + ctx->domain + ": ";
+                    if (res != nullptr)
+                        body += res->body;
+                    ctx->req->respond(ctx->cb,
+                        500,
+                        body,
+                        "Content-Type: text/html"
+                    );
+                } else {
+                    // Success, forward the response
+                    ctx->req->respond(ctx->cb, *res);
                 }
-            );
-            return;
-        }
+
+                delete ctx;
+            }
+        );
+        return;
     }
 
-    auto card = DB::get_profile(std::string(user), req.user, req.domain);
+    const auto card = DB::get_profile(std::string(user), req.user, req.domain);
     if (card.empty())
         req.respond(cb, 404, "Not found");
     else
         req.respond(cb, 200, card, "Content-Type:text/vcard");
+}
+
+/**
+ * Profile picture endpoint
+ * @param user_str relevant user string
+ * @param req request
+ * @param cb request callback
+ */
+inline void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t cb) {
+    auto [user, dom] = g_host_info.split_user_str(user_str);
+
+    static const fiy_response_t default_pfp {
+        404,
+        (const char*) VC::default_pfp_raw,
+        sizeof VC::default_pfp_raw,
+        "Content-Type: image/png\nCache-Control: max-age=300"
+    };
+
+    // Local request
+    const auto pfp_dataurl = DB::get_pfp(std::string(user),
+        req.user,
+        req.domain
+    );
+    // Either:
+    // - dataurl: data:image/png;base64,data
+    // - url: http(s) ...
+    // - not found: "" empty string
+
+    if (pfp_dataurl.empty()) {
+        // Local user has no profile photo
+        if (dom.empty()) {
+            req.respond(cb, default_pfp);
+            return;
+        }
+
+        // Remote user, with no locally overridden profile picture
+        //  -> forward request to remote server
+
+        struct Ctx {
+            fiy_callback_t cb;
+            fiy::Request* req;
+            std::string domain;
+        };
+        auto* ctx = new Ctx{
+            .cb=cb,
+            .req=&req,
+            .domain=std::string(dom)
+        };
+        req.domain = ctx->domain.c_str();
+
+        g_host_info.request(
+            "contacts",
+            &req,
+            ctx,
+            [](const struct fiy_response_t* res, void* pctx){
+                auto* ctx = (struct Ctx*) pctx;
+
+                if (!res || res->status < 0) {
+                    // Failed
+                    ctx->req->respond(ctx->cb, default_pfp);
+                } else {
+                    // Success, forward the response
+                    ctx->req->respond(ctx->cb, *res);
+                }
+
+                delete ctx;
+            }
+        );
+        return;
+    }
+
+    // Redirect
+    if (pfp_dataurl.starts_with("http")) {
+        req.respond(cb, 307, "","Location: " + pfp_dataurl);
+    }
+
+    if (!pfp_dataurl.starts_with("data:")) {
+        g_host_info.log(2, "PFP invalid PHOTO property, not a dataurl");
+        req.respond(cb, default_pfp);
+        return;
+    }
+    std::string_view pfp = pfp_dataurl;
+    pfp.remove_prefix(5);
+
+    auto end_type = pfp.find(';');
+    const auto start_data = pfp.find(',');
+    if (start_data == std::string::npos) {
+        g_host_info.log(2, "PFP invalid PHOTO property");
+        req.respond(cb, default_pfp);
+        return;
+    }
+
+    std::string_view media_type;
+    if (end_type == std::string_view::npos) {
+        g_host_info.log(2, "PFP invalid PHOTO property, dataurl missing media-type");
+        media_type = "image";
+    }
+    media_type = pfp.substr(0, std::min(end_type, start_data));
+
+    auto data = pfp.substr(start_data + 1);
+    auto raw_data = base64::decode_into<std::string>(data);
+
+    std::string headers = "Cache-Control: max-age=300\nContentType: ";
+    headers += media_type;
+    req.respond(cb, 200, std::move(raw_data), headers);
 }
 
 void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
@@ -82,6 +191,13 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     if (req.method == (uint8_t) fiy::Request::Method::GET && path.starts_with("/profile/")) {
         path.remove_prefix(9);
         get_profile(path, req, cb);
+        return;
+    }
+
+    // Get user pfp
+    if (path.starts_with("/pfp/")) {
+        path.remove_prefix(5);
+        get_pfp(path, req, cb);
         return;
     }
 
@@ -176,14 +292,17 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     }
 
     if (path == "/all") {
+        if (req.domain != nullptr)
+            return;
         req.respond(cb, 200, DB::get_user_rolodex(req.user), "Content-Type: text/vcard");
         return;
     }
 
+    // TODO accept multiple cards in a single file
     if (path == "/save") {
         VC card;
-        card.parse(std::string(request->body, request->body_len));
         card.owner = req.user;
+        card.parse(std::string(request->body, request->body_len));
         switch (DB::save_contact(card)) {
             case DB::Success:
                 req.respond(cb, 200, card.to_vcard(), "Content-Type: text/vcard");
@@ -195,6 +314,24 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
                 req.respond(cb, 401, "Unauthorized");
                 return;
         }
+    }
+
+    // Get card by id
+    if (path.starts_with("/id/")) {
+        path.remove_prefix(4);
+        VC card;
+        card.owner = req.user;
+        try {
+            card.id = std::stoll(std::string(path));
+        } catch (...) {
+            req.respond(cb, 400, "Invalid contact ID");
+            return;
+        }
+        if (DB::get_contact(card))
+            req.respond(cb, 200, card.to_vcard(), "Content-Type: text/vcard");
+        else
+            req.respond(cb, 404, "No card with given id");
+        return;
     }
 
     if (path.starts_with("/delete/")
@@ -219,7 +356,6 @@ extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
         .on_username_changed=nullptr
     };
     g_host_info = *host_info;
-    std::cerr << "ghip: " <<g_host_info.data_dir <<std::endl;
 
     return &mod_info;
 }

@@ -25,6 +25,45 @@ namespace fiy {
                 base_uri[4] == 's' ? "https://" : "http://";
             return protocol + domain;
         }
+
+        /**
+         * Write a debug message
+         * @param type log level
+         *  - 0 : fatal
+         *  - 1 : error
+         *  - 2 : warning
+         *  - 3 : info
+         *  - 4 : debug
+         * @param msg message
+         */
+        void log(const int type, const std::string& msg) const {
+            fiy_host_info_t::log(type, msg.c_str());
+        }
+
+        /**
+         * Get components from user string
+         * @param user user string of format user@domain
+         * @return pair < user, domain > of same format
+         */
+        std::pair<std::string_view, std::string_view> split_user_str(std::string_view user) {
+            const auto at_idx = user.find('@');
+
+            // No user
+            if (user.empty())
+                return std::make_pair("","");
+
+            // Local user
+            if (at_idx >= user.size() - 1 // includes "user@" and "user"
+                || user.substr(at_idx + 1) == this->domain
+            )
+                return std::make_pair(user.substr(0, at_idx), "");
+
+            // Remote user
+            return std::make_pair(
+                user.substr(0, at_idx),
+                user.substr(at_idx + 1)
+            );
+        }
     };
 
     struct Response : public fiy_response_t {

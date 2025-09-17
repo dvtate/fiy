@@ -278,6 +278,14 @@ void ModNetConnector::handle_request(std::shared_ptr<Session> conn) {
         conn->req(),
         [session = std::move(conn)] (auto resp) {
             session->respond(std::move(resp));
+        },
+        [this, session = std::move(conn)] (std::string err) {
+            Session::StringResponse res;
+            res.result(500);
+            res.body() = "<h1>Server Error</h1><p>Request failed: " + err + "</p>";
+            res.set(boost::beast::http::field::content_type, "text/html");
+            session->respond(session->prep(std::move(res)));
+            LOG_ERR("ModNetConnector[" <<m_mod->m_id <<"]: ");
         }
     );
 }

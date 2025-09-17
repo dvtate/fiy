@@ -17,3 +17,10 @@ This file contains relevant information about the mod. For example: this would w
     "path": "demo"
 }
 ```
+
+## TODO
+- struct fiy_user_t ?
+- hostinfo.request callback should maybe not take a pointer so that user doesn't worry about checking for null
+- network based mod type
+- network shared_object network wrapper
+  - allows user to leverage multiple machines for their instance

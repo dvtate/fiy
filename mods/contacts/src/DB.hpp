@@ -20,8 +20,8 @@ namespace DB {
 
     std::string get_profile(
         const std::string& user,
-        const std::string& req_user,
-        const std::string& req_domain
+        const char* req_user,
+        const char* req_domain
     );
 
     int64_t get_profile_id(const std::string& user);
@@ -34,4 +34,13 @@ namespace DB {
     Result save_contact(VC& card);
 
     std::string get_user_rolodex(const std::string& local_user);
+
+    std::string get_pfp(
+        const std::string& user,
+        const char* req_user,
+        const char* req_domain
+    );
+
+    bool get_contact(VC& card);
+
 } // namespace DB

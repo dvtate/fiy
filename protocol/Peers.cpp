@@ -51,8 +51,7 @@ std::shared_ptr<Peer> Peers::get_peer_for_domain(const std::string& domain) {
 std::shared_ptr<Peer> Peers::get_peer_from_token(const std::string& token) {
     RWMutex::LockForRead lock{m_mtx};
 
-    auto it = m_peers_in.find(token);
-    if (it != m_peers_in.end())
+    if (const auto it = m_peers_in.find(token); it != m_peers_in.end())
         return it->second;
     return nullptr;
 }
@@ -62,6 +61,8 @@ void Peers::prune() {
     const auto now = g_fiy->now();
     std::erase_if(m_peers_in, [this, now](const auto& item) {
         const auto& [domain, peer] = item;
+        if (peer == nullptr)
+            return true;
         if (peer->m_auth.is_expired(now)) {
             m_peers_out.erase(peer->m_domain);
             return true;
@@ -135,7 +136,11 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
                 // Make Peer
                 auto p = std::make_shared<Peer>(
                     domain,
-                    PeerAuth("symkey", std::string(res.body()), std::move(token))
+                    PeerAuth(
+                        "symkey",
+                        std::string(res.body()),
+                        std::move(token)
+                    )
                 );
 
                 // Add peer
@@ -151,16 +156,36 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
                 m_mtx.write_unlock();
 
                 // Success
-                DEBUG_LOG("New peer: " <<domain);
                 cb2(p);
+                DEBUG_LOG("New peer: " <<domain);
+        };
+
+        auto handshake_err_cb = [this, domain, cb2 = std::move(cb)] (std::string err) {
+            cb2(nullptr);
+            LOG_ERR("Peer handshake failed " <<domain <<": " <<err);
+            // Safe to leave the peer stub in the cache
         };
 
         bool use_https = domain.find(':') == std::string::npos;
-        if (use_https) {
-            g_fiy->m_https.request(domain, std::move(req), handshake_cb);
-        } else {
-            g_fiy->m_http.request(domain, std::move(req), handshake_cb);
-        }
+        if (use_https)
+            g_fiy->m_https.request(
+                domain,
+                std::move(req),
+                std::move(handshake_cb),
+                std::move(handshake_err_cb)
+            );
+        else
+            g_fiy->m_http.request(
+                domain,
+                std::move(req),
+                std::move(handshake_cb),
+                std::move(handshake_err_cb)
+            );
+    };
+
+    auto err_key_cb = [domain, cb](std::string message) {
+        LOG_ERR("Could not get key for peer " <<domain <<": " <<message);
+        cb(nullptr);
     };
 
     boost::beast::http::request<boost::beast::http::empty_body> key_req;
@@ -168,16 +193,21 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
     key_req.method(boost::beast::http::verb::get);
     key_req.keep_alive(false);
 
-    auto err_key_cb = [domain, cb](std::string message) {
-        LOG_ERR("Could not get key for peer " <<domain <<": " <<message);
-        cb(nullptr);
-    };
     bool use_https = domain.find(':') == std::string::npos;
-    if (use_https) {
-        g_fiy->m_https.request(domain, std::move(key_req), with_key_cb, err_key_cb);
-    } else {
-        g_fiy->m_http.request(domain, std::move(key_req), with_key_cb, err_key_cb);
-    }
+    if (use_https)
+        g_fiy->m_https.request(
+            domain,
+            std::move(key_req),
+            std::move(with_key_cb),
+            std::move(err_key_cb)
+        );
+    else
+        g_fiy->m_http.request(
+            domain,
+            std::move(key_req),
+            std::move(with_key_cb),
+            std::move(err_key_cb)
+        );
 }
 
 
@@ -300,10 +330,23 @@ void Peers::request_peer(
         callback(&response, context);
     };
 
+    auto err_cb = [context, callback](std::string err) {
+        if (callback == nullptr)
+            return;
+        const fiy_response_t response{
+            .status = -1,
+            .body = err.c_str(),
+            .body_len = err.size(),
+            .headers = "",
+        };
+        callback(&response, context);
+        LOG_ERR("Peer request failed: " << err);
+    };
+
     bool use_https = std::string_view(peer->m_domain).find(':') == std::string_view::npos;
     if (use_https) {
-        g_fiy->m_https.request(peer->m_domain, std::move(request), std::move(cb));
+        g_fiy->m_https.request(peer->m_domain, std::move(request), std::move(cb), std::move(err_cb));
     } else {
-        g_fiy->m_http.request(peer->m_domain, std::move(request), std::move(cb));
+        g_fiy->m_http.request(peer->m_domain, std::move(request), std::move(cb), std::move(err_cb));
     }
 }

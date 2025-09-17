@@ -105,6 +105,45 @@ export default class VC {
             ].includes(p.name)
         );
 
+        // Convert images to modern format
+        this.properties = this.properties.filter(p => {
+            if (!['PHOTO', 'LOGO'].includes(p.name))
+                return true;
+
+            const encoding = p.params.ENCODING || p.params.encoding;
+            if (!encoding)
+                return true;
+
+            if (encoding !== 'b') {
+                console.warn(`${p.name}: invalid ENCODING: ${encoding}`);
+                return false;
+            }
+            const validImgTypes = ['png', 'gif', 'jpeg', 'webp', 'bmp', 'x-icon'];
+            const type = Object.keys(p.params).find(p =>
+                    validImgTypes.includes(p.toLowerCase()))
+                || p.params.TYPE || p.params.type || '';
+            if (!type) {
+                console.warn(`${p.name}: couldn't determine type: ${p.toLine()}`);
+            }
+
+            delete p.params.encoding;
+            delete p.params.ENCODING;
+            if (type)
+                delete p.params[type];
+
+            if (p.value.startsWith('data:image/'))
+                return true;
+            if (p.value.startsWith('http')) {
+                if (type)
+                    // p.params.MEDIATYPE = type.startsWith('image/')
+                    //     ? type
+                    //     : `image/${type}`;
+                return true;
+            }
+            p.value = `data:image/${type};base64,${p.value}`;
+            return true;
+        });
+
         // Convert LABEL into ADR;LABEL:
         this.properties
             .filter(p => p.name === 'LABEL')
@@ -250,7 +289,7 @@ export default class VC {
                     <option value="3">Public</option>
                 </select>`);
                 const visSelect = document.getElementById('edit-vis-' + i) as HTMLSelectElement;
-                visSelect.value = p.params['X-FEDIY-VISIBILITY'] || '3';
+                visSelect.value = p.params['X-FIY-VISIBILITY'] || '3';
             }
             : (p: VCProperty, i: number) => {};
 
@@ -312,7 +351,7 @@ export default class VC {
             if (isProfileCard) {
                 const visSelect = document.getElementById('edit-vis-' + i) as HTMLSelectElement;
                 if (visSelect)
-                    p.params['X-FEDIY-VISIBILITY'] = visSelect.value;
+                    p.params['X-FIY-VISIBILITY'] = visSelect.value;
                 else
                     console.log('no visibility selector', p.name, i);
             }

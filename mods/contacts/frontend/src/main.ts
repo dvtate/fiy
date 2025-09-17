@@ -8,8 +8,6 @@ const searchInput = document.getElementById("search") as HTMLInputElement;
 const sidebar = document.querySelector(".sidebar");
 const detailsView = document.querySelector(".details-view");
 
-let uidCounter = 0;
-
 let contacts: VC[];
 let username: string;
 let profileIndex: number;
@@ -99,6 +97,7 @@ function mobileDetailsView(goBack = false) {
     }
 }
 
+// TODO accept reference instead of index, apply to all other functions here
 function showContactDetails(index: number) {
     contactDetails.innerHTML = `${contacts[index].showHtml()}<hr>
 <!--<button title="Share"><i class="fa fa-share" id="contact-share"></i></button>-->
@@ -192,6 +191,28 @@ searchInput.addEventListener("input", () => {
     renderContactsList(searchInput.value);
 });
 
+const fileInp = document.getElementById('contact-upload') as HTMLInputElement;
+fileInp.addEventListener('change', async e => {
+
+    // TODO allow multi-imports
+    const text = await fileInp.files[0].text();
+    const vcs = VC.parseCards(text);
+    const reqs = vcs.map(
+        c => API.updateContact(c.convertInternal())
+    ).join('\n');
+    try {
+        await Promise.all(reqs);
+        window.location.reload();
+    } catch (e) {
+        console.error(e);
+        alert('Import failed, reload the page');
+    }
+});
+
 globalThis.newContact = newContact;
 globalThis.mobileDetailsView = mobileDetailsView;
 globalThis.showContactDetails = showContactDetails;
+globalThis.uploadContact = () => fileInp.click();
+
+
+globalThis.getContacts = () => contacts;

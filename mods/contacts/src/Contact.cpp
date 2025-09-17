@@ -36,9 +36,15 @@ std::string VC::to_vcard() {
     std::string ret = "BEGIN:VCARD\r\nVERSION:4.0\r\n";
 
     if (this->id >= 0) {
+        // Add SOURCE field
         ret += "SOURCE:";
         ret += g_host_info.base_uri;
         ret += "/id/";
+        ret += std::to_string(this->id);
+        ret += "\r\n";
+
+        // Add UID field
+        ret += "UID:";
         ret += std::to_string(this->id);
         ret += "\r\n";
     }
@@ -158,11 +164,26 @@ bool VC::parse(std::string vc) {
         if (name == "CLIENTPIDMAP")
             continue;
 
-        // These are set by us
+        // Set by us
         if (name == "VERSION")
             continue; // All are expected to version 4
-        if (name == "UID")
-            continue; // we set this
+        if (name == "UID") {
+            try {
+                this->id = std::stoll(value);
+            } catch (...) {
+                std::string msg = "VC::parse(): Invalid UID: " + value;
+                g_host_info.log(2, msg.c_str());
+            }
+            continue;
+        }
+        if (name == "X-FEDIY-PROFILE") {
+            this->user = value;
+            if (this->owner != value) {
+                g_host_info.log(1, "VC::parse(): User not owner of profile card? "
+                    + this->user + " != " + this->owner);
+            }
+            continue;
+        }
 
         // We store this differently
         if (name == "REV") {
@@ -175,8 +196,10 @@ bool VC::parse(std::string vc) {
         int8_t visibility = 0;
         int64_t property_id = -1;
         std::string params;
-        if (!raw_params.empty())
+        if (!raw_params.empty()) {
             for (auto&& p : resplit(raw_params, std::regex(";"))) {
+                if (p.empty())
+                    continue;
                 if (p.starts_with("X-FIY-VISIBILITY=")) {
                     visibility = p[17] - '0';
                     if (visibility > 3)
@@ -188,16 +211,24 @@ bool VC::parse(std::string vc) {
                     if (pend == idstr)
                         property_id = -1;
                 } else {
-                    if (p.starts_with("TYPE=fediy") && name == "X-SOCIALPROFILE")
-                        this->user = value;
+                    if (p.starts_with("TYPE=fediy") && name == "X-SOCIALPROFILE") {
+                        const auto [u, domain] = g_host_info.split_user_str(value);
+                        if (domain.empty())
+                            this->user = u;
+                        else
+                            this->user = value;
+                    }
 
-                    // TODO check if no = and make it to TYPE=lhs
+                    // TODO check if no = ?
                     params += ';';
                     params += p;
                 }
             }
-        if (params[0] == ';')
-            params = params.substr(1);
+            if (params[0] == ';')
+                params.erase(0, 1);
+            if (params[0] == ';')
+                params.erase(0, 1);
+        }
 
         // Add property
         this->props.emplace_back(Prop{

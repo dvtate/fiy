@@ -15,6 +15,8 @@
         <a class="nav-icon" href="//{{fediy_contacts_domain}}/portal" title="Apps"><i class="fa fa-th"></i></a>
         <a class="nav-icon" href="javascript:newContact()" title="Add Contact"><i class="fa fa-plus"></i></a>
         <a class="nav-icon" href="javascript:showContactDetails(profileIndex)" title="Profile"><i class="fa fa-user"></i></a>
+        <a class="nav-icon" href="javascript:uploadContact()" title="Upload"><i class="fa fa-upload"></i></a>
+        <a class="nav-icon" href="{{fediy_contacts_base_uri}}/all" title="Download"><i class="fa fa-download"></i></a>
 <!--        <a class="nav-icon" title="Notifications"><i class="fa fa-bell"></i></a>-->
 <!--        <a class="nav-icon" title="Settings"><i class="fa fa-cog"></i></a>-->
     </nav>
@@ -35,6 +37,7 @@
                 <button><i class="fa fa-plus"></i> Make a new contact</button>
             </div>
         </div>
+        <input type="file" id="contact-upload" accept="text/vcard" hidden />
     </div>
     <script src="{{fediy_contacts_base_uri}}/main.js"></script>
 </body>

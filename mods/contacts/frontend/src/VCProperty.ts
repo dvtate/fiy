@@ -435,12 +435,13 @@ export class VCProperty {
                 default:
                     return p;
             }
-        }).join(';');
+        }).filter(p=> !!p).join(';');
     }
 
     toLine(): string {
-        return `${this.name};${
-            this.paramsString()
+        const params = this.paramsString();
+        return `${this.name}${
+            params ? ';' + params : ''            
         }:${
             this.value
         }`;
@@ -586,7 +587,7 @@ export class VCProperty {
 
             case 'img':
                 if (this.params.ENCODING === 'b')
-                    return `<img src="data:${this.params.TYPE};base64, ${this.value}" alt="PHOTO" />`;
+                    return `<img src="data:image/${this.params.TYPE};base64, ${this.value}" alt="PHOTO" />`;
                 else
                     return `<img src="${this.value}" alt="PHOTO" />`;
 

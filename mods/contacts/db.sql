@@ -57,3 +57,6 @@ CREATE TABLE SharedCards (
     sendingUser TEXT, -- could be remote user
     acceptUser TEXT
 );
+
+-- erase db
+-- delete from Cards; delete from Properties; delete from CardProperties; delete from ProfileCardProperties;
