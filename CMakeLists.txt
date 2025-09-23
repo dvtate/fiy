@@ -122,6 +122,8 @@ add_library(contacts_mod SHARED
     mods/contacts/src/DB.hpp
     mods/contacts/src/Pages.hpp
     third_party/base64.hpp
+    mods/contacts/src/timezones.hpp
+
 )
 target_link_libraries(contacts_mod
     PRIVATE fediymod

@@ -1,5 +1,6 @@
 import { VCProperty } from "./VCProperty";
-import {VCDateTime} from "./VCDateTime";
+import { VCDateTime } from "./VCDateTime";
+import { getTzDb } from "./api";
 
 /*
 
@@ -79,7 +80,7 @@ export class CustomDateInput extends CustomInput {
     html(e: HTMLElement) {
         e.insertAdjacentHTML('beforeend', `<div class="input-group">
     <label for="${this.id}">${this.property.label()}</label>
-    <input type="date" id="${this.id}" value={this.initialValue()}>
+    <input type="date" id="${this.id}" value="${this.initialValue()}">
 </div>`);
         document.getElementById(this.id).addEventListener('change', this.validate.bind(this));
     }
@@ -150,12 +151,17 @@ export class CustomTextInput extends CustomInput {
         return '';
     }
 
+    defaultValue(): string {
+        return this.property.value || '';
+    }
+
     override html(e: HTMLElement): void {
         e.insertAdjacentHTML('beforeend',
-            `<div class="input-group">
-    <label for="${this.id}">${this.property.label()}</label>
-    <input type="text" id="${this.id}" value="${this.property.value ||''}" placeholder="${this.placeholderText()}" />
-</div>`);
+            `<div class="input-group"><label for="${this.id}">${
+            this.property.label()}</label><input type="text" id="${this.id}" value="${
+            this.defaultValue()}" placeholder="${this.placeholderText()
+            }" /></div>`
+        );
     }
 
     override loadValue(): void {
@@ -182,7 +188,7 @@ export class CustomUriInput extends CustomTextInput {
         e.insertAdjacentHTML('beforeend', `<div class="input-group">
     <label for="${this.id}">${this.property.label()}</label>
     <input type="url" id="${this.id
-        }" value="${this.property.value ||''
+        }" value="${this.property.value || ''
         }" placeholder="${this.placeholderText()}" />
 </div>`);
     }
@@ -206,20 +212,20 @@ export class CustomPhoneInput extends CustomInput {
     }
 
     typeOptionsHtml() {
-        // TODO replace this with checkboxes or sth
+        // TODO replace this with checkboxes or something and combine with commas
         const selected = this.property.params.TYPE;
         let ret = '';
         if (selected)
             ret += `<option value="${selected}" selected>${selected}</option>`;
 
         // TODO probably more options
-        return ret + `<option value="voice">Voice</option>
-<option value="text">Texting</option>
-<option value="cell">Cell</option>
-<option value="video">Video</option>
-<option value="textphone" title="accessibility enabled phone">Textphone</option>
-<option value="pager">Pager</option>
-<option value="fax">Fax</option>`;
+        return ret + `<option value="voice" title="Supports voice calling">Voice</option>
+<option value="text" title="SMS communications supported">Texting</option>
+<option value="cell" title="Mobile telephone">Cell</option>
+<option value="video" title="Video calling supported">Video</option>
+<option value="textphone" title="Accessibility enabled phone">Textphone</option>
+<option value="pager" title="Pager device, limited functionality">Pager</option>
+<option value="fax" title="Fax machine">Fax</option>`;
     }
 
     override html(e: HTMLElement) {
@@ -239,7 +245,6 @@ export class CustomPhoneInput extends CustomInput {
         const t = document.getElementById(this.id + '-type') as HTMLInputElement;
         this.property.value = v.value;
         this.property.params.TYPE = t.value;
-        console.log(t.value);
     }
 }
 
@@ -525,7 +530,7 @@ export class CustomImageInput extends CustomInput {
                 // Extract dataurl from canvas
                 let ret = canvas.toDataURL('image/png', 0.7);
                 if (ret.length > 200_000) {
-                    console.log("Scaled image still too big, reducing quality");
+                    console.warn("Scaled image still too big, reducing quality");
                     ret = canvas.toDataURL('image/png', 0.5);
                 }
                 resolve(ret);
@@ -542,6 +547,124 @@ export class CustomImageInput extends CustomInput {
     }
 }
 
-// TODO CustomTimezoneInput
-// TODO CustomLangInput
+// TODO add TZ database entries
+export class CustomTimezoneInput extends CustomInput {
+    static tzDbOptions: string = null;
+
+    isTzDbIdentifier: boolean = true;
+
+    static async getTzDbOptions() {
+        if (CustomTimezoneInput.tzDbOptions)
+            return CustomTimezoneInput.tzDbOptions;
+
+        const tzdb = await getTzDb();
+        const formatOffset = (secs: number) =>
+            secs == 0
+            ? 'UTC'
+            : `UTC${secs > 0 ? '+' : '-'
+                }${Math.floor(Math.abs(secs) / (60 * 60))
+                }${('0'+ Math.floor((Math.abs(secs) / 60) % 60)).slice(-2)}`;
+        const options: [string, string][] = Object.entries(tzdb.zones)
+            .map(([z, [offset, abbrev]]) => [
+                    z,
+                    z + (abbrev ? ` (${abbrev})`
+                        : offset ? ` (${formatOffset(offset)})`
+                            : '' )
+                ] as [string, string])
+            .concat(
+                tzdb.links.map(([name, target]) =>
+                    [name, name + (target ? ` (${target})` : '')]
+                )
+            ).sort((a, b) => b[0].localeCompare(a[0]));
+        return CustomTimezoneInput.tzDbOptions = options.map(([value, text]) =>
+            `<option value="${value}">${text}</option>`).join('');
+    }
+
+    getDefaultValue() {
+        // UTC offset value
+        if (['+', '-'].includes(this.property.value[0])) {
+            this.isTzDbIdentifier = false;
+            return [
+                this.property.value[0],
+                ...this.property.value.slice(1).split(':'),
+                '00'
+            ];
+        }
+
+        // No value
+        if (!this.property.value) {
+            this.isTzDbIdentifier = true;
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+            } catch (_) {
+                return 'UTC';
+            }
+        }
+        // if (!this.property.value) {
+        //     this.isTzDbIdentifier = false;
+        //     const o = new Date().getTimezoneOffset();
+        //     const sign = o < 0 ? '+' : '-'; // For some reason negated
+        //     const hours = Math.floor(Math.abs(o) / 60);
+        //     const mins = ('0' + Math.floor(Math.abs(o) % 60)).slice(-2);
+        //     return [sign, hours, mins];
+        // }
+
+        // TZ database value
+        this.isTzDbIdentifier = true;
+        return this.property.value;
+    }
+
+    override validate(): string | null {
+        if (this.isTzDbIdentifier)
+            return null;
+        return null;
+    }
+
+    override html(e: HTMLElement): void {
+        const v = this.getDefaultValue();
+        if (typeof v == "string") {
+            e.insertAdjacentHTML('beforeend',
+                `<div class="input-group"><label for="${this.id}">Timezone</label>
+<select id="${this.id}"><option value="${v}" selected>${v}</option>${CustomTimezoneInput.tzDbOptions || ''}</select>`);
+            if (!CustomTimezoneInput.tzDbOptions)
+                CustomTimezoneInput.getTzDbOptions().then(() => {
+                    document.getElementById(this.id).insertAdjacentHTML('beforeend',
+                        CustomTimezoneInput.tzDbOptions)
+                }).catch(console.error);
+
+        } else {
+            const signSelectHtml = `<select id="${this.id}-sign">${
+                ['+','-'].map(s => `<option value="${s}"${v[0] === s ? ' selected' : ''}>${s}</option>`)
+            }</select>`;
+            e.insertAdjacentHTML('beforeend',
+                `<div class="input-group"><label>Timezone</label><span>UTC${
+                signSelectHtml}<input type="number" min="0" max="24" id="${
+                this.id}-hours" value="${v[1] || '0'}">:<input type="number" id="${
+                this.id}-mins" min="0" max="60" value="${v[2] || '0'}"></span></div>`);
+        }
+    }
+
+    override loadValue() {
+        if (this.isTzDbIdentifier) {
+            const e = document.getElementById(this.id) as HTMLInputElement;
+            this.property.value = e.value;
+        } else {
+            const sign = document.getElementById(this.id + '-sign') as HTMLInputElement;
+            const hours = document.getElementById(this.id + '-hours') as HTMLInputElement;
+            const mins = document.getElementById(this.id + '-mins') as HTMLInputElement;
+            this.property.value = sign.value + hours.value + ':' + ('0' + mins).slice(-2);
+        }
+    }
+}
+
+export class CustomLangInput extends CustomTextInput {
+    // TODO searchable dropdown
+    placeholderText(): string {
+        return 'en-US';
+    }
+    defaultValue(): string {
+        return super.defaultValue() || navigator.language || '';
+    }
+}
+
 // TODO CustomFediyUserInput

@@ -9,7 +9,7 @@ import {
     CustomTextAreaInput,
     CustomTextInput,
     CustomUriInput,
-    CustomNameInput, CustomImageInput, CustomGeoInput, CustomSocialInput,
+    CustomNameInput, CustomImageInput, CustomGeoInput, CustomSocialInput, CustomTimezoneInput, CustomLangInput,
 } from "./CustomInput";
 
 type VCValueType = 'boolean' | 'DATE' | 'DATE-AND-OR-TIME' | 'DATE-TIME'
@@ -80,25 +80,7 @@ interface VCParams {
 
     //
     ENCODING?: string;
-
-};
-
-// These are in the spec
-const vcDefaultParams = [
-    'LANGUAGE',
-    'VALUE',
-    'PREF',
-    'ALTID',
-    'PID',
-    'TYPE',
-    'MEDIATYPE',
-    'CALSCALE',
-    'SORT-AS',
-    'GEO',
-    'TZ',
-];
-
-/// Various valid vcard properties
+}
 
 interface VCPropSpec {
     name: string,
@@ -109,8 +91,9 @@ interface VCPropSpec {
     internal?: boolean,
     customInput?: any,
     example?: string,
-};
+}
 
+/// Valid vcard properties
 const vCardProperties: { [k: string]: VCPropSpec } = {
     'ADR': {
         name: 'Address',
@@ -229,6 +212,7 @@ const vCardProperties: { [k: string]: VCPropSpec } = {
         description: 'Language that a person speaks',
         type: 'lang', // Language code: en-US, fr-CA
         versions: true,
+        customInput: CustomLangInput,
     },
     'LOGO': {
         name: 'Logo',
@@ -356,6 +340,7 @@ const vCardProperties: { [k: string]: VCPropSpec } = {
         description: 'Associated timezone',
         type: 'timezone',
         versions: true,
+        customInput: CustomTimezoneInput,
     },
     'UID': {
         name: 'Contact ID',

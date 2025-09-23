@@ -213,6 +213,3 @@ globalThis.newContact = newContact;
 globalThis.mobileDetailsView = mobileDetailsView;
 globalThis.showContactDetails = showContactDetails;
 globalThis.uploadContact = () => fileInp.click();
-
-
-globalThis.getContacts = () => contacts;

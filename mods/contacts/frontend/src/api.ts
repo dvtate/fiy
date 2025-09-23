@@ -29,6 +29,18 @@ export async function deleteContact(contact: VC) {
     return r.text();
 }
 
+
+export interface TzDb {
+    version: string,
+    zones: { [k: string]: [number, string] },
+    links: [string, string][],
+};
+
+export async function getTzDb(): Promise<TzDb> {
+    const r = await fetch(base_uri + '/tzdb');
+    return await r.json();
+}
+
 export async function newContact(contact: VC) {
 
 }

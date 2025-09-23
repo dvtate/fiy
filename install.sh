@@ -56,6 +56,8 @@ chmod -R 777 "$INSTALL_PATH"
 
 SALT="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 36)"
 
+declare CONCURRENCY
+if [[ ]]
 # Make config.ini
 echo "
 hostname=$HOSTNAME

@@ -10,7 +10,6 @@
 
 #include "DB.hpp"
 
-
 extern fiy::HostInfo g_host_info;
 
 namespace DB {
@@ -620,9 +619,10 @@ namespace DB {
                 "SELECT id, name, params, value FROM Properties WHERE id IN ("
                     "SELECT propertyId AS id FROM ("
                         "SELECT cardId, propertyId FROM CardProperties"
-                        "UNION"
+                        // We already checked that they own the card
+                        " UNION "
                         "SELECT cardId, propertyId FROM ProfileCardProperties"
-                    ") WHERE cardId = (SELECT id FROM Cards WHERE AND id=?)"
+                    ") WHERE cardId = (SELECT id FROM Cards WHERE id=?)"
                 ")"
             );
 

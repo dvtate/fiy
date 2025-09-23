@@ -13,6 +13,7 @@
 #include "DB.hpp"
 #include "Pages.hpp"
 #include "Contact.hpp"
+#include "timezones.hpp"
 
 fiy::HostInfo g_host_info;
 
@@ -201,6 +202,17 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         return;
     }
 
+    if (path == "/tzdb") {
+        // TODO 30 mins cache
+        static const std::string tzdb_json = get_timezones_json();
+        static const fiy::Response tzdb_json_resp{
+            200, tzdb_json.c_str(), tzdb_json.size(),
+            "Content-Type: application/json\nCache-Control: max-age=604800"
+        };
+        req.respond(cb, tzdb_json_resp);
+        return;
+    }
+
     // Everything here requires a login
     if (req.user == nullptr) {
         static const fiy::Response no_auth_resp{
@@ -234,6 +246,7 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
             "\nContent-Type: text/css"
             "\nCache-Control: max-age=604800"
         );
+        return;
     }
     if (path.starts_with("/fonts/fontawesome-webfont.")) {
         path.remove_prefix(27);
@@ -320,13 +333,14 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     if (path.starts_with("/id/")) {
         path.remove_prefix(4);
         VC card;
-        card.owner = req.user;
         try {
             card.id = std::stoll(std::string(path));
         } catch (...) {
             req.respond(cb, 400, "Invalid contact ID");
             return;
         }
+        card.owner = req.user;
+
         if (DB::get_contact(card))
             req.respond(cb, 200, card.to_vcard(), "Content-Type: text/vcard");
         else
