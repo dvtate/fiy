@@ -1,6 +1,7 @@
 [submodule "third_party/json"]
 	path = third_party/json
 	url = https://github.com/nlohmann/json
+	branch = master
 [submodule "third_party/inih"]
 	path = third_party/inih
 	url = https://github.com/benhoyt/inih
