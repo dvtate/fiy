@@ -58,12 +58,22 @@ SALT="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 36)"
 
 declare CONCURRENCY
 if [[ ]]
+
+
+declare CONCURRENCY
+if [ "$DEVEL_INSTALL" -eq 1 ]; then
+    CONCURRENCY="1"
+else
+    CONCURRENCY="`nproc`"
+fi
+
 # Make config.ini
 echo "
 hostname=$HOSTNAME
 port=$PORT
 data_dir=$INSTALL_PATH
 salt=$SALT
+concurrency=$CONCURRENCY
 " > "$INSTALL_PATH/config.ini"
 
 # Initialize database
@@ -106,6 +116,7 @@ else
 fi
 echo "Installed Portal Frontend"
 
+# TODO use openssl instead
 # Generate and install GPG keys
 echo "Generating server key pair..."
 GPG_BATCH_CONF="$(mktemp)"

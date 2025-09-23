@@ -56,12 +56,18 @@ bool FediyConfig::set_key(const char* section, const char* key, const char* valu
             m_port = port;
         }
     } else if (strcmp(key, "concurrency") == 0) {
-        int threads = strtol(value, nullptr, 10);
+        char* pend = nullptr;
+        int threads = strtol(value, &pend, 10);
+        if (pend == value) {
+            LOG_ERR("Config file: concurrency should be an integer, failed to parse " << value);
+            threads = 0;
+        }
         if (threads <= 0) {
             m_concurrency = std::thread::hardware_concurrency();
             if (-threads >= m_concurrency)
                 m_concurrency = 1;
-            m_concurrency -= threads;
+            else
+                m_concurrency += threads;
         } else {
             m_concurrency = threads;
         }
