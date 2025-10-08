@@ -1,5 +1,9 @@
 # TODO
-## No DB for protocol server
+## HTTP Keep-Alive
+It would probably be a good idea to recycle Sessions.
+I believe that the Session class design should enable this.
+
+## No DB for protocol server?
 Replace DB with RAM cache + files.
 Protocol relevant info for users should be <1kb/userm.
 So less than 1GB of ram for 1M users is fine. 

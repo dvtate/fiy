@@ -16,7 +16,7 @@ protected:
 public:
     explicit FileCache(std::string path_prefix): m_basedir(std::move(path_prefix)) {}
 
-    static std::string load_file_as_string(std::string&& file_path) {
+    static std::string load_file_as_string(const std::string& file_path) {
         // Open the file
         std::ifstream f{file_path};
         if (!f.is_open()) {
@@ -40,7 +40,7 @@ public:
 
     /// Get cached contents of file as a string
     template<const char* FileSubPath>
-    const std::string& file_contents() {
+    [[nodiscard]] const std::string& file_contents() const {
         static const std::string contents = load_file_as_string(m_basedir + FileSubPath);
         return contents;
     }

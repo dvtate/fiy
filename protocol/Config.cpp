@@ -4,6 +4,9 @@
 
 #include "Config.hpp"
 
+#include "../util/Crypto.hpp"
+#include "../util/FileCache.hpp"
+
 bool Config::parse(const std::string& path) {
     if (!std::filesystem::exists(path)) {
         LOG("Config file " << path << " does not exist!");
@@ -71,9 +74,42 @@ bool FediyConfig::set_key(const char* section, const char* key, const char* valu
         } else {
             m_concurrency = threads;
         }
+    } else if (strcmp(key, "public_key") == 0) {
+        m_public_key = FileCache::load_file_as_string(value);
+        if (m_public_key.empty()) {
+            LOG_ERR("Config file: public_key: could not read file: " << value);
+        }
+    } else if (strcmp(key, "private_key") == 0) {
+        m_private_key = Crypto::SSL::load_private_key_from_pem(
+            FileCache::load_file_as_string(value)
+        );
+        if (m_private_key == nullptr) {
+            LOG_ERR("Config file: private_key: could not load file: " << value);
+        }
     } else {
         LOG_ERR("Config file: invalid key: " <<key);
         return false; // invalid key
     }
     return true;
+}
+
+// Call after parse to fill in any missing items
+void FediyConfig::set_defaults() {
+    // Try to get keys from their default locations
+    if (m_public_key.empty()) {
+        const std::string path = m_data_dir + "/auth/pubkey.crt";
+        m_public_key = FileCache::load_file_as_string(path);
+        if (m_public_key.empty()) {
+            LOG_ERR("Config file: public_key: could not read file: " << path);
+        }
+    }
+    if (m_private_key == nullptr) {
+        const std::string path = m_data_dir + "/auth/privkey.pem";
+        m_private_key = Crypto::SSL::load_private_key_from_pem(
+            FileCache::load_file_as_string(path)
+        );
+        if (m_private_key == nullptr) {
+            LOG_ERR("Config file: private_key: could not load file: " << path);
+        }
+    }
 }

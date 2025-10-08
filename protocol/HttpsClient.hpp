@@ -190,7 +190,6 @@ class HttpsClient {
 
     static boost::asio::io_context* get_io_context();
 
-
 public:
     HttpsClient() {
         prep_ssl();

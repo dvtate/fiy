@@ -7,8 +7,10 @@
 #include <filesystem>
 #include <cstring>
 #include <regex>
+#include <openssl/types.h>
 
 #include "defs.hpp"
+
 
 /**
  * INI Config file abstract base class
@@ -48,12 +50,13 @@ public:
 
     explicit FediyConfig(const std::string& path = CONFIG_FILE_PATH) {
         parse(path);
+        set_defaults(); // call after parse
     }
 
     /// Where files are stored
     std::string m_data_dir{"/opt/fediy"};
 
-    /// Domain where we're hosting the the service
+    /// Domain where we're hosting the service
     char* m_hostname;
 
     /// Password salt that should not be changed
@@ -68,11 +71,17 @@ public:
     /// Hint for the number of threads to use
     int m_concurrency{4};
 
-    // TODO parse public and private keys?
+    /// Server public key
+    std::string m_public_key;
+
+    /// Server private key
+    EVP_PKEY* m_private_key{nullptr};
+
     // TODO request timeouts?
 
 protected:
     bool set_key(const char* section, const char* key, const char* value) override;
+    void set_defaults();
 
     /**
      * Example config.ini

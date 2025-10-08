@@ -3,8 +3,6 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
-#include <algorithm>
-#include <variant>
 #include <thread>
 #include <functional>
 
@@ -12,7 +10,6 @@
 #include "../util/RWMutex.hpp"
 
 #include "Peer.hpp"
-#include "LocalUser.hpp"
 
 #include "../modlib/fediymod.h"
 

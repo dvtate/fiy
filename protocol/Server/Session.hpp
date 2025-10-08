@@ -4,6 +4,13 @@
 
 #pragma once
 
+
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+#include <thread>
+#include <map>
 #include <memory>
 
 #include <boost/beast/core.hpp>
@@ -13,22 +20,8 @@
 #include <boost/asio/strand.hpp>
 #include <boost/config.hpp>
 
-#include <algorithm>
-#include <cstdlib>
-#include <functional>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
-#include <vector>
-#include <map>
-
-namespace beast = boost::beast;         // from <boost/beast.hpp>
-namespace http = beast::http;           // from <boost/beast/http.hpp>
-using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 class LocalUser;
-
 
 // Handles an HTTP server connection
 class Session : public std::enable_shared_from_this<Session> {
@@ -103,7 +96,7 @@ public:
     }
 
     template<class T>
-    inline boost::beast::http::message_generator prep(boost::beast::http::response<T> msg) {
+    boost::beast::http::message_generator prep(boost::beast::http::response<T> msg) {
         msg.keep_alive(m_req.keep_alive());
         msg.prepare_payload();
         return boost::beast::http::message_generator(std::move(msg));
@@ -111,7 +104,7 @@ public:
 
     void close() {
         // Send a TCP shutdown
-        beast::error_code ec;
+        boost::beast::error_code ec;
         m_stream.socket().shutdown(tcp::socket::shutdown_send, ec);
 
         // At this point the connection is closed gracefully
@@ -128,7 +121,7 @@ protected:
 
         // Read a request
         boost::beast::http::async_read(m_stream, m_buffer, m_req,
-             beast::bind_front_handler(
+             boost::beast::bind_front_handler(
                  &Session::on_read,
                  shared_from_this()));
     }
@@ -137,7 +130,7 @@ protected:
 
     void on_write(
         bool keep_alive,
-        beast::error_code ec,
+        boost::beast::error_code ec,
         std::size_t bytes_transferred
     ) {
         boost::ignore_unused(bytes_transferred);

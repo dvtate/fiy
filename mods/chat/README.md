@@ -23,9 +23,10 @@ Similar to Telegram but federated
     - Effectively a forum
 - Chat folders
   - invite link that invites user to all chats in the folder
-  - 
 
 
 ## Security & Privacy
 - Where are chats stored?
   - All peers store copy of the chats?
+
+- GPG: https://openpgpjs.org/

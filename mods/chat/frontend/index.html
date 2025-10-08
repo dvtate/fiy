@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Chat App</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Container for everything */
+        .app {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar for chat list */
+        .sidebar {
+            width: 300px;
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-bar {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+        }
+
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+        .chat-item:hover {
+            background: #f9f9f9;
+        }
+        .chat-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .chat-details {
+            flex: 1;
+        }
+        .chat-details .name {
+            font-weight: bold;
+        }
+        .chat-details .status {
+            font-size: 12px;
+            color: gray;
+        }
+        .chat-notification {
+            background: #e63946;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 50%;
+            font-size: 12px;
+        }
+
+        /* Chat area */
+        .chat-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+        }
+        .chat-header img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 60%;
+            clear: both;
+        }
+        .message.sent {
+            background: #0078fe;
+            color: white;
+            margin-left: auto;
+        }
+        .message.received {
+            background: #e4e6eb;
+            margin-right: auto;
+        }
+        .chat-input {
+            display: flex;
+            border-top: 1px solid #ddd;
+            padding: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 10px;
+        }
+        .chat-input button {
+            padding: 8px 16px;
+            border: none;
+            background: #0078fe;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+            }
+            .chat-view {
+                width: 100%;
+                display: none;
+            }
+            .chat-view.active {
+                display: flex;
+            }
+            .sidebar.hidden {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="sidebar" id="sidebar">
+        <div class="search-bar">
+            <input type="text" placeholder="Search...">
+        </div>
+        <div class="chat-list">
+            <div class="chat-item" onclick="openChat('John Doe')">
+                <img src="https://via.placeholder.com/40" alt="profile">
+                <div class="chat-details">
+                    <div class="name">John Doe</div>
+                    <div class="status">Online</div>
+                </div>
+                <div class="chat-notification">3</div>
+            </div>
+            <div class="chat-item" onclick="openChat('Jane Smith')">
+                <img src="https://via.placeholder.com/40" alt="profile">
+                <div class="chat-details">
+                    <div class="name">Jane Smith</div>
+                    <div class="status">Offline</div>
+                </div>
+                <div class="chat-notification">1</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-view" id="chatView">
+        <div class="chat-header">
+            <img src="https://via.placeholder.com/35" id="chatAvatar">
+            <div id="chatName">Select a chat</div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="message received">Hello!</div>
+            <div class="message sent">Hi, how are you?</div>
+        </div>
+        <div class="chat-input">
+            <input type="text" placeholder="Type a message..." id="messageInput">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openChat(name) {
+        document.getElementById("chatName").textContent = name;
+        document.getElementById("chatView").classList.add("active");
+        document.getElementById("sidebar").classList.add("hidden");
+    }
+
+    function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const text = input.value.trim();
+        if (text === "") return;
+
+        const msgContainer = document.getElementById("chatMessages");
+        const msg = document.createElement("div");
+        msg.className = "message sent";
+        msg.textContent = text;
+        msgContainer.appendChild(msg);
+
+        input.value = "";
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+    }
+
+    // Allow going back to chat list on mobile
+    document.querySelector(".chat-header").addEventListener("click", () => {
+        if (window.innerWidth <= 768) {
+            document.getElementById("sidebar").classList.remove("hidden");
+            document.getElementById("chatView").classList.remove("active");
+        }
+    });
+</script>
+</body>
+</html>

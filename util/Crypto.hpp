@@ -72,6 +72,13 @@ namespace Crypto {
     std::string gpg_encrypt_text(const std::string& pubkey, const std::string& data);
     std::string gpg_sign(const std::string& privkey, const std::string& data);
 
-    // std::string ssl_encrypt_text(const std::string& pubkey, const std::string& data);
-    // std::string ssl_sign(const std::string& privkey, const std::string& data);
+    namespace SSL {
+        EVP_PKEY* load_private_key_from_pem(const std::string& privkey_pem);
+        std::string encrypt(const std::string& pubkey, const std::string& data);
+        std::string sign(const std::string& privkey, const std::string& data);
+        std::string sign(EVP_PKEY* privkey, const std::string& data);
+        std::string decrypt(const std::string& privkey, const std::string& b64data);
+        std::string decrypt(EVP_PKEY* privkey, const std::string& b64data);
+        bool verify(const std::string& pubkey, const std::string& data, const std::string& b64sig);
+    }
 }

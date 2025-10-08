@@ -62,7 +62,7 @@ void Peers::prune() {
     std::erase_if(m_peers_in, [this, now](const auto& item) {
         const auto& [domain, peer] = item;
         if (peer == nullptr)
-            return true;
+            return false; // would be unsafe to erase placeholders
         if (peer->m_auth.is_expired(now)) {
             m_peers_out.erase(peer->m_domain);
             return true;
@@ -71,15 +71,7 @@ void Peers::prune() {
     });
 }
 
-
-static std::string privkey() {
-    static std::string ret = FileCache::load_file_as_string(
-        g_fiy->m_config.m_data_dir + "/_privkey.pgp"
-    );
-    return ret;
-}
-
-
+// TODO maybe prevent this from getting called multiple times for same peer
 void Peers::new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb) {
     DEBUG_LOG("Sending message to new peer " << domain);
 
@@ -92,7 +84,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
             cb(nullptr);
             return;
         }
-        const auto key = res.body();
+        const auto& key = res.body();
 
         // Generate unique auth token
         auto bearer_token = PeerAuth::get_token_string();
@@ -105,59 +97,97 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         std::string symkey_part1 = PeerAuth::get_token_string();
 
         std::string payload;
-        // hostname ; bearer token ; symkey part 1 ; unix timestamp
         payload += g_fiy->m_config.m_hostname;
-        payload += '\n';
-        payload += bearer_token;
         payload += '\n';
         payload += symkey_part1;
         payload += '\n';
-        payload += std::to_string(g_fiy->now());
-        payload += '\n';
-        payload += Crypto::gpg_sign(privkey(), payload);
-        auto encrypted_payload = Crypto::gpg_encrypt_text(key, payload);
-        // TODO use this instead
+        payload += bearer_token;
+        auto signature = Crypto::SSL::sign(g_fiy->m_config.m_private_key, payload);
+        payload += '\n' + signature;
+        // DEBUG_LOG("Outgoing Handshake request:\n" << payload << "\n");
+
+        // auto encrypted_payload = Crypto::SSL::encrypt(key, payload);
 
         // Make handshake request
         boost::beast::http::request<boost::beast::http::string_body> req;
         req.method(boost::beast::http::verb::post);
         req.target("/peer/handshake");
-        // TODO this is just a placeholder for now, actual algorithm in Server/Router.cpp
-        (void)key; // use it to encrypt body
-        req.body() = g_fiy->m_config.m_hostname + std::string("\n") + bearer_token;
+        // req.body() = encrypted_pyload;
+        req.body() = payload;
         req.keep_alive(false);
         req.prepare_payload();
 
-        auto handshake_cb =
-            [this, cb2 = std::move(cb), domain, token = std::move(bearer_token)]
-            (boost::beast::http::response<boost::beast::http::string_body> res)
-            mutable
-        {
-                // Make Peer
-                auto p = std::make_shared<Peer>(
-                    domain,
-                    PeerAuth(
-                        "symkey",
-                        std::string(res.body()),
-                        std::move(token)
-                    )
-                );
+        auto handshake_cb = [
+            this,
+            key = std::move(key),
+            cb2 = std::move(cb),
+            domain,
+            secret = std::move(symkey_part1),
+            token = std::move(bearer_token)
+        ] (
+            boost::beast::http::response<boost::beast::http::string_body> res
+        ) mutable {
+            // Check status
+            if (res.result_int() != 200) {
+                LOG_ERR("Handshake failed: " << res.result_int() << " -- " << res.body());
+                cb2(nullptr);
+                return;
+            }
 
-                // Add peer
-                m_mtx.write_lock();
-                m_peers_in[p->m_auth.m_bearer_token_we_accept] = p;
-                auto ret = m_peers_out.emplace(domain, p);
-                if (!ret.second) {
-                    DEBUG_LOG("Duplicate peer?? - " <<domain);
-                    m_peers_in.erase(p->m_auth.m_bearer_token_we_accept);
-                    m_mtx.write_unlock();
-                    return;
-                }
+            // Extract body components
+            // auto body = Crypto::SSL::decrypt(g_fiy->m_config.m_private_key, res.body());
+            const auto& body = res.body();
+            // DEBUG_LOG("Handshake response:\n" << body << "\n");
+
+            auto eol = body.find('\n');
+            if (eol == std::string::npos) {
+                LOG_ERR("Invalid handshake response: no bearer token");
+                cb2(nullptr);
+                return;
+            }
+            std::string bearer_token_we_use = body.substr(0, eol);
+            auto start = eol + 1;
+            eol = body.find('\n', start);
+            if (eol == std::string::npos) {
+                LOG_ERR("Invalid handshake response: no secret");
+                cb2(nullptr);
+                return;
+            }
+            const auto secret_part2 = body.substr(start, eol - start);
+            std::string sig = body.substr(eol + 1);
+            if (!Crypto::SSL::verify(key, bearer_token_we_use + '\n' + secret_part2, sig)) {
+                cb2(nullptr);
+                DEBUG_LOG("Handshake response has invalid signature");
+                return;
+            }
+
+            secret += secret_part2;
+            // Make Peer
+            auto p = std::make_shared<Peer>(
+                domain,
+                PeerAuth(
+                    secret,
+                    bearer_token_we_use,
+                    std::move(token)
+                )
+            );
+
+            // Add peer
+            m_mtx.write_lock();
+            m_peers_in[p->m_auth.m_bearer_token_we_accept] = p; // was nullptr
+            auto ret = m_peers_out.emplace(domain, p);
+            if (!ret.second) {
+                DEBUG_LOG("Duplicate peer?? - " <<domain);
+                m_peers_in.erase(p->m_auth.m_bearer_token_we_accept);
                 m_mtx.write_unlock();
+                cb2(nullptr);
+                return;
+            }
+            m_mtx.write_unlock();
 
-                // Success
-                cb2(p);
-                DEBUG_LOG("New peer: " <<domain);
+            // Success
+            cb2(p);
+            DEBUG_LOG("New peer: " <<domain);
         };
 
         auto handshake_err_cb = [this, domain, cb2 = std::move(cb)] (std::string err) {
@@ -193,8 +223,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
     key_req.method(boost::beast::http::verb::get);
     key_req.keep_alive(false);
 
-    bool use_https = domain.find(':') == std::string::npos;
-    if (use_https)
+    if (domain.find(':') == std::string::npos)
         g_fiy->m_https.request(
             domain,
             std::move(key_req),
@@ -247,7 +276,6 @@ struct ScopedRequest {
         };
     }
 };
-
 
 void Peers::request_peer(
     const std::string& domain,

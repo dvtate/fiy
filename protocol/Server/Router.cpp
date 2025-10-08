@@ -9,7 +9,7 @@
 #include "Session.hpp"
 #include "Router.hpp"
 
-inline std::pair<std::string, std::string> parse_app_request_get(const std::shared_ptr<Session>& conn) {
+static inline std::pair<std::string, std::string> parse_mod_request_get(const std::shared_ptr<Session>& conn) {
     auto path = conn->req().target();
     if (path.starts_with("/mods")) {
         path.remove_prefix(5);
@@ -21,14 +21,15 @@ inline std::pair<std::string, std::string> parse_app_request_get(const std::shar
     auto hostname = conn->req()["Host"];
     if (!hostname.empty()) {
         std::string_view hhn = g_fiy->m_config.m_hostname;
-        if (hostname.ends_with(hhn) && hhn.size() != hostname.size()) {
-            // Subdomain app  app.example.com/uri/path
+        // Subdomain mod  mod.example.com/uri/path
+        if (hostname.ends_with(hhn) && hhn.size() != hostname.size())
             return {
                 hostname.substr(0, hostname.size() - hhn.size() - 1),
                 path
             };
-        } else if (hostname != hhn) {
-            // Invalid request to different host?
+
+        // Invalid request to different host?
+        if (hostname != hhn) {
 //            Session::DynamicResponse res;
 //            res.result(400);
 //            boost::beast::ostream(res.body())
@@ -38,15 +39,16 @@ inline std::pair<std::string, std::string> parse_app_request_get(const std::shar
 //                    << hostname
 //                    << '\n';
 //            conn->respond(res);
-            std::cerr << "Received request for invalid hostname: expected "
+            LOG_ERR(  "Received request for invalid hostname: expected "
                       << hhn.data()
                       << " but host was "
                       << hostname
-                      << '\n';
+                      << '\n');
+            return { " ", "/" }; // give invalid mod
         }
     }
 
-    // Not a subdomain app  example.com/app/uri/path
+    // Not a subdomain mod  example.com/mod/uri/path
     const auto slash_idx = path.find('/', 1);
     if (slash_idx == std::string_view::npos)
         return { path.empty() ? "" : path.substr(1), "/" };
@@ -54,29 +56,29 @@ inline std::pair<std::string, std::string> parse_app_request_get(const std::shar
         return { path.substr(1, slash_idx - 1), path.substr(slash_idx) };
 }
 
-inline static void app_send_msg(std::shared_ptr<Session> conn) {
+static inline void mod_send_msg(std::shared_ptr<Session> conn) {
     // Get app
-    auto [ app, uri ] = parse_app_request_get(conn);
+    auto [ mod, uri ] = parse_mod_request_get(conn);
 
-    // Forward to apps
-    Mod* m = g_fiy->m_mods.get_mod(app);
+    // Forward to mods
+    Mod* m = g_fiy->m_mods.get_mod(mod);
     if (m == nullptr) {
         Session::DynamicResponse res;
         res.result(404);
         boost::beast::ostream(res.body())
-                <<"App '" <<app <<"' not found\n";
+                <<"App '" <<mod <<"' not found\n";
         res.set(boost::beast::http::field::content_type, "text/html");
         conn->respond(conn->prep(std::move(res)));
-        DEBUG_LOG("Invalid apps: " <<app <<" : " <<uri);
+        DEBUG_LOG("Invalid mod: " <<mod <<" : " <<uri);
         return;
     }
-    DEBUG_LOG("Calling App " <<app <<" : " << uri);
+    DEBUG_LOG("Calling App " <<mod <<" : " << uri);
 
     conn->req().target(uri);
     m->m_ipc->handle_request(std::move(conn));
 }
 
-inline Session::StringResponse signup_page(unsigned status = 200, const std::string& err = "") {
+static Session::StringResponse signup_page(unsigned status = 200, const std::string& err = "") {
     // Cache-able
     Session::StringResponse res;
     res.result(status);
@@ -84,7 +86,7 @@ inline Session::StringResponse signup_page(unsigned status = 200, const std::str
     res.body() = g_fiy->m_pages->signup_page(err);
     return res;
 }
-inline Session::StringResponse login_page(unsigned status = 200, const std::string& err = "") {
+static Session::StringResponse login_page(unsigned status = 200, const std::string& err = "") {
     Session::StringResponse res;
     res.result(status);
     res.set(boost::beast::http::field::content_type, "text/html");
@@ -92,7 +94,7 @@ inline Session::StringResponse login_page(unsigned status = 200, const std::stri
     return res;
 }
 
-inline bool str_is_alphanum(const std::string& str) {
+static bool str_is_alphanum(const std::string& str) {
     // c++20: std::ranges::all_of(str.cbegin(), str.cend(), isalnum);
     for (const auto& c : str)
         if (!isalnum(c))
@@ -100,7 +102,7 @@ inline bool str_is_alphanum(const std::string& str) {
     return true;
 }
 
-void signup_post(std::shared_ptr<Session>&& conn) {
+static void signup_post(std::shared_ptr<Session>&& conn) {
     static const auto resp_bad_username = signup_page(400, "Username should contain only alphanumeric characters");
     static const auto resp_username_taken = signup_page(400, "Username is taken, try a different one");
     static const auto resp_bad_form = signup_page(400, "Form Error");
@@ -187,7 +189,7 @@ void signup_post(std::shared_ptr<Session>&& conn) {
     conn->respond(conn->prep(std::move(res)));
 }
 
-void login_post(std::shared_ptr<Session>&& conn) {
+static void login_post(std::shared_ptr<Session>&& conn) {
     // Pre-allocated responses
     static const auto resp_bad_form = login_page(400, "Form Error");
     static const auto resp_bad_creds = login_page(401, "Incorrect username/password");
@@ -253,8 +255,8 @@ void login_post(std::shared_ptr<Session>&& conn) {
 template <class Str>
 auto server_error(const Str& what) {
     Session::StringResponse res;
-    res.result(http::status::internal_server_error);
-    res.set(http::field::content_type, "text/html");
+    res.result(boost::beast::http::status::internal_server_error);
+    res.set(boost::beast::http::field::content_type, "text/html");
     res.body() = "An error occurred: '" + std::string(what) + "'";
     return res;
 }
@@ -279,38 +281,156 @@ std::vector<std::string> split_string(
 }
 
 void peer_handshake(std::shared_ptr<Session>&& conn) {
-    // TODO this algorithm is insecure and just used for testing
-    DEBUG_LOG("handshake: body: " << conn->req().body());
-    auto parts = split_string(conn->req().body(), "\n");
-    auto domain = parts[0];
-    auto token = parts[1];
+    // DEBUG_LOG("handshake: body: " << conn->req().body());
+    // auto body = Crypto::SSL::decrypt(
+    //     g_fiy->m_config.m_private_key,
+    //     conn->req().body()
+    // );
+    const auto& body = conn->req().body();
 
-    std::cout <<"New peer: " <<domain <<" : " <<token <<std::endl;
+    // DEBUG_LOG("Incoming Handshake request:\n" << body << "\n");
 
-    // Add peer with unique auth token
-    std::shared_ptr<Peer> p;
-    do {
-        p = std::make_shared<Peer>(domain, PeerAuth{"symkey", token});
-    } while (!g_fiy->m_peers.add_peer(domain, p));
+    // Get body components
+    // Body should contain the following:
+    //  - peer domain
+    //  - part of a secret
+    //  - bearer token
+    //  - signature
+    std::string domain, secret, bearer_token, signature;
+    auto eol = body.find('\n');
+    if (eol != std::string::npos) {
+        domain = body.substr(0, eol);
+        size_t start = eol + 1;
+        eol = body.find('\n', start);
+        if (eol != std::string::npos) {
+            secret = body.substr(start, eol - start);
+            start = eol + 1;
+            eol = body.find('\n', start);
+            if (eol != std::string::npos) {
+                bearer_token = body.substr(start, eol - start);
+                signature = body.substr(eol + 1);
+            }
+        }
+    }
 
-    // Respond with token
-    Session::StringResponse res;
-    res.result(200);
-    res.body() = p->m_auth.m_bearer_token_we_accept;
-    conn->respond(conn->prep(std::move(res)));
+    // Missing components
+    if (signature.empty() || bearer_token.empty() || secret.empty() || domain.empty()) {
+        Session::StringResponse res;
+        res.result(400);
+        res.body() = "Invalid handshake body: missing components";
+        conn->respond(conn->prep(std::move(res)));
+        return;
+    }
 
-    // Actual algorithm to use:
-    // 1. Use private key associated with our pubkey endpoint to decrypt request body
-    // 2. Store provided peer data: host, symkey, tokens, etc. into Peers cache
-    // 3. Send token + symkey, encrypted with the other peer's pubkey
+    // TODO is there a reason/process for re-authentication
+    if (g_fiy->m_peers.get_peer_for_domain(domain) != nullptr) {
+        Session::StringResponse res;
+        res.result(400);
+        res.body() = "Already peers";
+        conn->respond(conn->prep(std::move(res)));
+        return;
+    }
 
-    // Decrypt body
-//    auto encryptedBody = drogon::utils::base64Decode(req->body()); // may contain \0
+    // Get foreign public key
+    auto with_pubkey_cb = [
+        domain,
+        secret = std::move(secret),
+        our_token = std::move(bearer_token),
+        handshake_sig = std::move(signature),
+        conn = std::move(conn)
+    ] (boost::beast::http::response<boost::beast::http::string_body> res) {
+        // Make sure it's success
+        if (res.result_int() != 200) {
+            Session::StringResponse ret;
+            ret.result(ret.result());
+            ret.body() = "Failed to get public key from domain " + domain;
+            conn->respond(conn->prep(std::move(ret)));
+            LOG_ERR("Failed to get public key for handshake peer "
+                <<domain <<": " <<ret.result_int());
+        }
 
-    // Get relevant public key
-//    auto client = drogon::HttpsClient::newHttpClient(remote_peer);
-//    client.request();
+        // Verify signature
+        const auto pubkey = res.body();
+        const std::string sig_data = domain + '\n' + secret + '\n' + our_token;
+        if (!Crypto::SSL::verify(pubkey, sig_data, handshake_sig)) {
+            Session::StringResponse ret;
+            ret.result(401);
+            ret.body() = "Invalid signature";
+            conn->respond(conn->prep(std::move(ret)));
+            DEBUG_LOG("Invalid signature received in handshake");
+            return;
+        }
 
+        // Our contribution to the secret
+        std::string our_secret = PeerAuth::get_token_string();
+
+        // Add peer to the db
+        auto peer = std::make_shared<Peer>(
+            domain,
+            PeerAuth{
+                secret + our_secret, our_token
+            }
+        );
+
+        int max_tries = 10;
+        while (!g_fiy->m_peers.add_peer(domain, peer) && max_tries-- > 0) {
+            // Maybe another thread already completed the handshake?
+            if (g_fiy->m_peers.get_peer_for_domain(domain) != nullptr) {
+                Session::StringResponse ret;
+                ret.result(400);
+                ret.body() = "Already peers";
+                conn->respond(conn->prep(std::move(ret)));
+                return;
+            }
+
+            // Update token and try again
+            peer->m_auth.m_bearer_token_we_accept = PeerAuth::get_token_string();
+        }
+
+        // Respond with
+        //  - bearer token
+        //  - our part of the secret
+        //  - signature
+        std::string response = peer->m_auth.m_bearer_token_we_accept
+            + '\n' + our_secret;
+        auto sig = Crypto::SSL::sign(g_fiy->m_config.m_private_key, response);
+        response += '\n' + sig;
+
+        Session::StringResponse ret;
+        ret.result(200);
+        // ret.body() = Crypto::SSL::encrypt(pubkey, response);
+        ret.body() = response;
+        conn->respond(conn->prep(std::move(ret)));
+    };
+
+    auto err_key_cb = [domain, conn = std::move(conn)](const std::string& message) {
+        Session::StringResponse res;
+        res.result(404);
+        res.body() = "Could not get public key from domain " + domain;
+        conn->respond(conn->prep(std::move(res)));
+        LOG_ERR("Could not get public key for handshake peer " <<domain <<": " <<message);
+    };
+
+    boost::beast::http::request<boost::beast::http::empty_body> key_req;
+    key_req.target("/peer/key");
+    key_req.method(boost::beast::http::verb::get);
+    // key_req.keep_alive(false);
+
+    if (domain.find(':') == std::string_view::npos) {
+        g_fiy->m_https.request(
+            domain,
+            std::move(key_req),
+            std::move(with_pubkey_cb),
+            std::move(err_key_cb)
+        );
+    } else {
+        g_fiy->m_http.request(
+            domain,
+            std::move(key_req),
+            std::move(with_pubkey_cb),
+            std::move(err_key_cb)
+        );
+    }
 }
 
 void route_request(std::shared_ptr<Session> conn) {
@@ -372,19 +492,14 @@ void route_request(std::shared_ptr<Session> conn) {
                     return;
                 }
             } else if (path == "/peer/key") {
-                // Cache file contents
-                static const std::string contents = FileCache::load_file_as_string(
-                    g_fiy->m_config.m_data_dir + "/auth/key"
-                );
-
-                // Send contents
+                // Send key
                 Session::StringResponse res;
                 res.result(200);
-                res.body() = contents;
+                res.body() = g_fiy->m_config.m_public_key;
                 conn->respond(conn->prep(std::move(res)));
                 return;
             } else {
-                app_send_msg(std::move(conn));
+                mod_send_msg(std::move(conn));
                 return;
             }
 
@@ -409,12 +524,12 @@ void route_request(std::shared_ptr<Session> conn) {
                 peer_handshake(std::move(conn));
                 return;
             } else {
-                app_send_msg(std::move(conn));
+                mod_send_msg(std::move(conn));
                 return;
             }
 
         default:
-            app_send_msg(std::move(conn));
+            mod_send_msg(std::move(conn));
             return;
     }
 }

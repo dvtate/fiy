@@ -57,12 +57,8 @@ chmod -R 777 "$INSTALL_PATH"
 SALT="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 36)"
 
 declare CONCURRENCY
-if [[ ]]
-
-
-declare CONCURRENCY
 if [ "$DEVEL_INSTALL" -eq 1 ]; then
-    CONCURRENCY="1"
+    CONCURRENCY=1
 else
     CONCURRENCY="`nproc`"
 fi
@@ -74,6 +70,9 @@ port=$PORT
 data_dir=$INSTALL_PATH
 salt=$SALT
 concurrency=$CONCURRENCY
+
+public_key=$INSTALL_PATH/auth/pubkey.crt
+private_key=$INSTALL_PATH/auth/privkey.pem
 " > "$INSTALL_PATH/config.ini"
 
 # Initialize database
@@ -117,29 +116,38 @@ fi
 echo "Installed Portal Frontend"
 
 # TODO use openssl instead
-# Generate and install GPG keys
+## Generate and install GPG keys
+#echo "Generating server key pair..."
+#GPG_BATCH_CONF="$(mktemp)"
+#GPG_TMP_HOME="$(mktemp -d)"
+#echo "
+#%echo Generating a GPG key
+#Key-Type: RSA
+#Key-Length: 2048
+#Name-Real: Fediy Instance $HOSTNAME
+#Name-Email: admin@example.com
+#Expire-Date: 0
+#Passphrase: not-used
+#%no-protection
+#%commit
+#%echo Done
+#" > "$GPG_BATCH_CONF"
+#gpg --batch --homedir "$GPG_TMP_HOME" --generate-key "$GPG_BATCH_CONF"
+#gpg --homedir "$GPG_TMP_HOME" --armor --export-secret-keys > "$INSTALL_PATH/auth/_privkey.gpg"
+#gpg --homedir "$GPG_TMP_HOME" --armor --export > "$INSTALL_PATH/auth/key"
+#rm "$GPG_BATCH_CONF"
+#rm -rf "$GPG_TMP_HOME"
+#echo "Generated server key pair."
+
+## Generate and install server keys
 echo "Generating server key pair..."
-GPG_BATCH_CONF="$(mktemp)"
-GPG_TMP_HOME="$(mktemp -d)"
-echo "
-%echo Generating a GPG key
-Key-Type: RSA
-Key-Length: 2048
-Name-Real: Fediy Instance $HOSTNAME
-Name-Email: admin@example.com
-Expire-Date: 0
-Passphrase: not-used
-%no-protection
-%commit
-%echo Done
-" > "$GPG_BATCH_CONF"
-gpg --batch --homedir "$GPG_TMP_HOME" --generate-key "$GPG_BATCH_CONF"
-gpg --homedir "$GPG_TMP_HOME" --armor --export-secret-keys > "$INSTALL_PATH/auth/_privkey.gpg"
-gpg --homedir "$GPG_TMP_HOME" --armor --export > "$INSTALL_PATH/auth/key"
-rm "$GPG_BATCH_CONF"
-rm -rf "$GPG_TMP_HOME"
+openssl genrsa -out "$INSTALL_PATH/auth/privkey.pem" 2048
+openssl rsa -in "$INSTALL_PATH/auth/privkey.pem" -pubout -out "$INSTALL_PATH/auth/pubkey.crt"
+# Convert to pkcs8 format ... probably not necessary
+openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in "$INSTALL_PATH/auth/privkey.pem" -out "$INSTALL_PATH/auth/privkey.pem"
 echo "Generated server key pair."
 
+# TODO keys should be more restricted
 chmod -R 777 "$INSTALL_PATH"
 
 echo
