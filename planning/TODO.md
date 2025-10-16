@@ -1,7 +1,18 @@
 # TODO
+## Handshake protocol still not done
+- should encrypt body
+
+## Logging system
+- Log files
+- Module log files
+- Maybe write logs in a different format?
+
 ## HTTP Keep-Alive
 It would probably be a good idea to recycle Sessions.
 I believe that the Session class design should enable this.
+
+## Minify HTML+CSS+JS
+Maybe good to [minify](https://www.npmjs.com/package/minify) these.
 
 ## No DB for protocol server?
 Replace DB with RAM cache + files.

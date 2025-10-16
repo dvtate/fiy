@@ -153,29 +153,29 @@ inline void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t
     }
 
     if (!pfp_dataurl.starts_with("data:")) {
-        g_host_info.log(2, "PFP invalid PHOTO property, not a dataurl");
+        g_host_info.log_warning("PFP invalid PHOTO property, not a dataurl");
         req.respond(cb, default_pfp);
         return;
     }
     std::string_view pfp = pfp_dataurl;
     pfp.remove_prefix(5);
 
-    auto end_type = pfp.find(';');
+    const auto end_type = pfp.find(';');
     const auto start_data = pfp.find(',');
     if (start_data == std::string::npos) {
-        g_host_info.log(2, "PFP invalid PHOTO property");
+        g_host_info.log_warning("PFP invalid PHOTO property");
         req.respond(cb, default_pfp);
         return;
     }
 
     std::string_view media_type;
     if (end_type == std::string_view::npos) {
-        g_host_info.log(2, "PFP invalid PHOTO property, dataurl missing media-type");
+        g_host_info.log_warning("PFP invalid PHOTO property, dataurl missing media-type");
         media_type = "image";
     }
     media_type = pfp.substr(0, std::min(end_type, start_data));
 
-    auto data = pfp.substr(start_data + 1);
+    const auto data = pfp.substr(start_data + 1);
     auto raw_data = base64::decode_into<std::string>(data);
 
     std::string headers = "Cache-Control: max-age=300\nContentType: ";

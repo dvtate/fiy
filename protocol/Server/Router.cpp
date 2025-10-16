@@ -94,10 +94,14 @@ static Session::StringResponse login_page(unsigned status = 200, const std::stri
     return res;
 }
 
-static bool str_is_alphanum(const std::string& str) {
-    // c++20: std::ranges::all_of(str.cbegin(), str.cend(), isalnum);
+/**
+ * Checks if the proposed username string is allowable
+ * @param str proposed username
+ * @return true if valid, false otherwise
+ */
+static bool is_valid_username(const std::string& str) {
     for (const auto& c : str)
-        if (!isalnum(c))
+        if (! (isalnum(c) || c == '_' || c == '.'))
             return false;
     return true;
 }
@@ -134,7 +138,7 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
     LOG("Creating local user: " << username <<"  | " << contact);
 
     // Validate username
-    if (!str_is_alphanum(username)) {
+    if (!is_valid_username(username)) {
         conn->respond(conn->prep(resp_bad_username));
         return;
     }
@@ -398,6 +402,7 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
 
         Session::StringResponse ret;
         ret.result(200);
+        // TODO only encrypt the secret and bearer token
         // ret.body() = Crypto::SSL::encrypt(pubkey, response);
         ret.body() = response;
         conn->respond(conn->prep(std::move(ret)));

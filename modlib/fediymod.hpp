@@ -17,6 +17,10 @@
 namespace fiy {
 
     struct HostInfo : public fiy_host_info_t {
+
+        // TODO
+        // static HostInfo* singleton;
+
         HostInfo(fiy_host_info_t hi): fiy_host_info_t(hi) {}
         HostInfo() = default;
 
@@ -27,17 +31,49 @@ namespace fiy {
         }
 
         /**
-         * Write a debug message
+         * Write a log
          * @param type log level
          *  - 0 : fatal
          *  - 1 : error
          *  - 2 : warning
          *  - 3 : info
          *  - 4 : debug
-         * @param msg message
+         * @param msg log message text
          */
         void log(const int type, const std::string& msg) const {
             fiy_host_info_t::log(type, msg.c_str());
+        }
+
+        enum class Log : int {
+            FATAL = 0,
+            ERROR = 1,
+            WARNING = 2,
+            INFO = 3,
+            DEBUG = 4,
+        };
+
+        /**
+         * Write a log
+         * @param type log type/severity
+         * @param msg log message text
+         */
+        void log(const Log type, const std::string& msg) const {
+            log(static_cast<int>(type), msg);
+        }
+        void log_fatal(const std::string& msg) const {
+            log(Log::FATAL, msg);
+        }
+        void log_error(const std::string& msg) const {
+            log(Log::ERROR, msg);
+        }
+        void log_warning(const std::string& msg) const {
+            log(Log::WARNING, msg);
+        }
+        void log_info(const std::string& msg) const {
+            log(Log::INFO, msg);
+        }
+        void log_debug(const std::string& msg) const {
+            log(Log::DEBUG, msg);
         }
 
         /**
@@ -184,9 +220,31 @@ namespace fiy {
         inline void respond(fiy_callback_t cb, const std::string_view body, const std::string_view headers = "") {
             respond(cb, 200, body, headers);
         }
+
+        enum class Locality {
+            USER = 0,       // Request is from the user
+            INSTANCE = 1,   // Request is from another user on same instance
+            FEDIVERSE = 2,  // Request is from another user in the fediverse
+            PUBLIC = 3      // Request is anonymous
+        };
+
+        [[nodiscard]] Locality locality(const std::string& local_user) const {
+
+            return user == nullptr
+                ? Locality::PUBLIC
+                : domain == nullptr
+                    ? (local_user != user ? Locality::INSTANCE : Locality::USER)
+                    : Locality::FEDIVERSE;
+
+            // TODO maybe a use case for local app-to-app requests
+            //      in this case the user would be null and domain would be host domain
+            //      this would probably mean privilege level -1
+        }
     };
 
     // TODO replace this with a more performant trie-based implementation
+    // TODO middleware?
+    // TODO move this to separate file
     class Router {
     public:
         using Handler = std::function<void(Request&, fiy_callback_t, std::vector<std::string_view>&&)>;

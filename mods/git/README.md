@@ -9,8 +9,10 @@ With this roadmap, and the pages below, it would probably take about a man-year 
 - Clone + push to repo via terminal
 
 ### Stage 1
-- View summary of repo
+- Repo summary
+- Repo settings
 - View user profile
+  - list repos
 - Show files in browser
 
 ### Stage 2
@@ -50,3 +52,6 @@ With this roadmap, and the pages below, it would probably take about a man-year 
   - Overview
   - Repos
   - Settings
+
+## Reference material
+- https://git-scm.com/docs/http-protocol

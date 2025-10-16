@@ -58,5 +58,5 @@ CREATE TABLE SharedCards (
     acceptUser TEXT
 );
 
--- erase db
+-- erase db for debugging
 -- delete from Cards; delete from Properties; delete from CardProperties; delete from ProfileCardProperties;

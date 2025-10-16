@@ -16,6 +16,8 @@ protected:
 public:
     explicit FileCache(std::string path_prefix): m_basedir(std::move(path_prefix)) {}
 
+    /// Load entire file contents into a string
+    /// returns "" if file could not be opened
     static std::string load_file_as_string(const std::string& file_path) {
         // Open the file
         std::ifstream f{file_path};
