@@ -14,6 +14,7 @@ See [built-in apps in /apps](../mods).
 - Blog-IY: Wordpress killer
 - Chat-IY: Matrix competitor
     - text, vc, teams, etc.
+    - some features may require websockets/webrtc
 - Social-IY: Mastodon competitor
 - Contacts: Rolodex
 - Wiki-IY: mediawiki killer

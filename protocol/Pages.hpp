@@ -12,7 +12,7 @@
 
 // TODO i18n
 // TODO minification
-// dvtt: keeping this as an instanced object to make it easier to dynamically change language
+// dvtt: keeping this as an instanced object to make it easier to dynamically change locale
 
 class LocalUser;
 

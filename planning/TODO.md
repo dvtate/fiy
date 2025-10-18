@@ -1,4 +1,8 @@
 # TODO
+
+## Shared library mod to server mod wrapper
+Currently developing all mods as .so's as this would give best performance on low-traffic systems.
+
 ## Handshake protocol still not done
 - should encrypt body
 

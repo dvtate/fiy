@@ -1,13 +1,20 @@
 #!/bin/bash
 set -e
 
-command -v sqlite3 >/dev/null 2>&1 || { echo >&2 "sqlite3 is required but not installed.  Aborting."; exit 1; }
-command -v gpg >/dev/null 2>&1 || { echo >&2 "gpg is required but not installed.  Aborting."; exit 1; }
+###
+# Safety checks
+###
 
+command -v sqlite3 >/dev/null 2>&1 || { echo >&2 "sqlite3 is required but not installed.  Aborting."; exit 1; }
+command -v openssl >/dev/null 2>&1 || { echo >&2 "openssl is required but not installed.  Aborting."; exit 1; }
 
 if [[ $EUID -ne 0 ]]; then
    echo "Not root, make sure you have access to install location"
 fi
+
+###
+# Prompt user
+###
 
 if [ ! -f build/protocol_server ]; then
     echo "Project not built yet";
@@ -47,6 +54,9 @@ fi
 
 echo
 
+###
+# Install
+###
 
 # Make data dir
 mkdir "$INSTALL_PATH" || echo "Couldn't mkdir $INSTALL_PATH"
@@ -149,6 +159,10 @@ echo "Generated server key pair."
 
 # TODO keys should be more restricted
 chmod -R 777 "$INSTALL_PATH"
+
+###
+# Success
+###
 
 echo
 echo
