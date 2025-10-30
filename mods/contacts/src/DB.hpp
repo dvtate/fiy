@@ -43,4 +43,5 @@ namespace DB {
 
     bool get_contact(VC& card);
 
+    void delete_user(const char* local_user);
 } // namespace DB

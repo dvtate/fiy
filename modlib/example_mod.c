@@ -48,6 +48,10 @@ static void update_username(const char* old_username, const char* new_username) 
     printf("User moved from %s to %s\n", old_username, new_username);
 }
 
+static void user_deleted(const char* username) {
+    printf("User %s deleted, removing their data (ie - for GDPR compliance)", username);
+}
+
 /**
  * Initialize the module so that it can begin accepting requests
  * @param domain
@@ -58,8 +62,7 @@ struct fiy_mod_info_t* start(const struct fiy_host_info_t* host_info) {
     // Prepare and make sure everything is set up and installed correctly
     static struct fiy_mod_info_t mod_info = {
         .on_request=handle_request,
-        .on_peer_domain_changed=update_peer_domain,
-        .on_username_changed=update_username
+        .delete_user = user_deleted
     };
     return &mod_info;
 }

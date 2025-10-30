@@ -362,12 +362,24 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     req.respond(cb, 404, "Not found");
 }
 
+void delete_user(const char* username) {
+    // Invalid input
+    if (username == nullptr || username[0] == '\0')
+        return;
+
+    // Not a local user -- not our problem
+    if (strchr(username, '@') != nullptr)
+        return;
+
+    // Delete the user
+    DB::delete_user(username);
+}
+
 
 extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
     static fiy_mod_info_t mod_info = {
-        .on_request=handle_request,
-        .on_peer_domain_changed=nullptr,
-        .on_username_changed=nullptr
+        .on_request = handle_request,
+        .delete_user = nullptr
     };
     g_host_info = *host_info;
 

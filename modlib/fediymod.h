@@ -100,13 +100,10 @@ struct fiy_mod_info_t {
     /// Handle http requests to the module
     void (*on_request)(struct fiy_request_t* request, fiy_callback_t callback);
 
-    /// Peer domain changed handler
-    void (*on_peer_domain_changed)(const char* old_domain, const char* new_domain);
-
-    /// Username changed handler
-    /// @note usernames of form user@domain
-    void (*on_username_changed)(const char* old_username, const char* new_username);
-
+    /// Called by host to delete all data associated with a deleted user
+    /// @note username of form user@domain
+    void (*delete_user)(const char* username);
+    
     const char* remote_app_id
 #ifdef __cplusplus
         {nullptr};

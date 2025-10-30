@@ -12,7 +12,7 @@
 #include <vector>
 #include <set>
 
-static const fiy_host_info_t* g_host_info;
+fiy::HostInfo g_host_info;
 
 MailBox g_mailbox;
 
@@ -38,39 +38,44 @@ std::vector<std::string> split_string(const std::string& str,
 std::string user_str(const fiy_request_t* request) {
     std::string ret = request->user;
     ret += '@';
-    ret += request->domain != nullptr ? request->domain : g_host_info->domain;
+    ret += request->domain != nullptr ? request->domain : g_host_info.domain;
     return ret;
 }
 
 void send_mail(fiy::Request& req, fiy_callback_t cb) {
+    // Unauthenticated
     if (req.user == nullptr) {
-        // Unauthenticated
         req.respond(cb, 401, "Unauthenticated");
         return;
     }
 
+    // Invalid body
+    // It should be destination(s) \n subject \n mail body
     std::string body = req.body;
     auto i = body.find('\n');
     if (i == std::string::npos) {
-        req.respond(cb, 400);
+        req.respond(cb, 400, "Invalid body");
         return;
     }
 
-    std::string to_str = body.substr(0, i);
+    // Get destinations
+    const std::string to_str = body.substr(0, i);
     auto to = split_string(to_str, ",");
-    auto old_i = i + 1;
+    const auto old_i = i + 1;
     i = body.find('\n', old_i);
     if (i == std::string::npos) {
         req.respond(cb, 400);
         return;
     }
 
+    // Get subject
     std::string subject = body.substr(old_i, i - old_i);
-    const std::string local_dom = std::string("@") + g_host_info->domain;
+    const std::string local_dom = std::string("@") + g_host_info.domain;
     for (auto& recip: to)
         if (recip.find('@') == std::string::npos)
             recip += local_dom;
 
+    // Get mail body
     std::string content = body.substr(i);
     std::cout <<"new mail: " <<user_str(&req) <<" : " <<to[0] <<" : " <<subject <<" : " <<content<<std::endl;
     g_mailbox.push(Mail(user_str(&req), to, subject, content));
@@ -85,13 +90,13 @@ void send_mail(fiy::Request& req, fiy_callback_t cb) {
                 doms.emplace(user.substr(i + 1));
             }
         }
-        doms.erase(g_host_info->domain);
+        doms.erase(g_host_info.domain);
 
         // Send to destination servers
         for (const auto& dom : doms) {
             req.domain = dom.c_str();
-            std::cout <<"sending to: " <<dom <<std::endl;
-            g_host_info->request("mail", &req, nullptr, nullptr);
+            std::cout <<"Sending to: " <<dom <<std::endl;
+            g_host_info.request("mail", &req, nullptr, nullptr);
         }
     }
     req.respond(cb);
@@ -123,11 +128,21 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
     std::cout <<"Mail: Path: "<<req.path <<std::endl;
     std::cout <<"Mail: User: "<<req.user_str() <<std::endl;
 
+    // Everything here requires a login
+    if (req.user == nullptr) {
+        static const fiy::Response no_auth_resp{
+            303, nullptr, 0,
+            "Location: " + g_host_info.host_base_uri() + "/portal/login"
+        };
+        req.respond(cb, no_auth_resp);
+        return;
+    }
+
     if (strcmp(req.path, "/send") == 0) {
         send_mail(req, cb);
         return;
     } else if (strcmp(req.path, "/") == 0) {
-        static const std::string root = g_host_info->base_uri;
+        static const std::string root = g_host_info.base_uri;
         static const std::string body = "<ul>"
                            "<li><a href='" + root + "/inbox'>Inbox</a></li>"
                            "<li><a href='" + root + "/outbox'>Outbox</a></li>"
@@ -198,10 +213,9 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
 
 extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
     static fiy_mod_info_t mod_info = {
-            .on_request=handle_request,
-            .on_peer_domain_changed=nullptr,
-            .on_username_changed=nullptr,
+        .on_request = handle_request,
+        .delete_user = nullptr,
     };
-    g_host_info = host_info;
+    g_host_info = *host_info;
     return &mod_info;
 }

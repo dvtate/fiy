@@ -37,6 +37,21 @@ bool Peers::add_peer(const std::string& domain, const std::shared_ptr<Peer>& p) 
 }
 
 /**
+ * Remove a peer from cache
+ * @param domain peer domain to remove from cache
+ * @return true if erased, false otherwise
+ */
+bool Peers::remove_peer(const std::string& domain) {
+    RWMutex::LockForWrite lock{m_mtx};
+    const auto it = m_peers_out.find(domain);
+    if (it == m_peers_out.end() || it->second == nullptr)
+        return false;
+    m_peers_in.erase(it->second->m_auth.m_bearer_token_we_accept);
+    m_peers_out.erase(it);
+    return true;
+}
+
+/**
  * \returns null when not a peer invalid user token
  */
 std::shared_ptr<Peer> Peers::get_peer_for_domain(const std::string& domain) {
@@ -107,6 +122,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         // DEBUG_LOG("Outgoing Handshake request:\n" << payload << "\n");
 
         // auto encrypted_payload = Crypto::SSL::encrypt(key, payload);
+        // instead: symmetrically encrypt body payload, pk encrypt symkey in header
 
         // Make handshake request
         boost::beast::http::request<boost::beast::http::string_body> req;
@@ -239,8 +255,6 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         );
 }
 
-
-
 struct ScopedRequest {
     std::string m_domain;
     std::string m_user;
@@ -284,14 +298,14 @@ void Peers::request_peer(
     void* context,
     void (*callback)(const fiy_response_t*, void*)
 ) {
-    if (domain == g_fiy->m_config.m_hostname) {
-        std::cout <<"request_peer(localhost)\n";
+    if (domain.empty() || domain == g_fiy->m_config.m_hostname) {
+        DEBUG_LOG("request_peer(localhost)");
         g_fiy->m_mods.get_mod(appid)->m_ipc->handle_request(req, context, callback);
     }
 
     auto p = get_peer_for_domain(domain);
     if (p == nullptr) {
-        std::cout <<"peer not in cache\n";
+        DEBUG_LOG("Peer " <<domain <<" not in cache");
         new_peer(
             domain,
             [appid, request = ScopedRequest(req), callback, context]

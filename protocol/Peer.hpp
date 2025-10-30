@@ -21,9 +21,8 @@ public:
     std::string m_bearer_token_we_send;
     std::string m_bearer_token_we_accept;
 
-    /// When do we need to refresh auth credentials?
-    // dvtt: why bother refreshing?
-    time_t m_expire_ts;
+    /// When was this authentication credential created?
+    time_t m_link_ts;
 
     static constexpr time_t SESSION_LIFETIME = 60 * 60 * 24 * 7; // 1 week
     static constexpr int TOKEN_LEN = 24;
@@ -37,13 +36,13 @@ public:
 //        std::string pubkey,
         std::string peer_provided_token,
         std::string our_generated_token,
-        const time_t expire_ts
+        const time_t now
     ):
         m_sym_key(std::move(sym_key)),
 //        m_pubkey(std::move(pubkey)),
         m_bearer_token_we_send(std::move(peer_provided_token)),
         m_bearer_token_we_accept(std::move(our_generated_token)),
-        m_expire_ts(expire_ts)
+        m_link_ts(now)
     {}
 
     PeerAuth(
@@ -53,12 +52,10 @@ public:
         std::string our_generated_token = get_token_string()
     );
 
-
-    [[nodiscard]] bool is_expired(const time_t now) const {
-        return now > m_expire_ts;
-    }
     [[nodiscard]] bool is_expired() const;
-
+    [[nodiscard]] bool is_expired(const time_t now) const {
+        return now > (m_link_ts + SESSION_LIFETIME);
+    }
 };
 
 // This is another server on a different domain

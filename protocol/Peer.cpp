@@ -6,7 +6,7 @@
 #include "Peer.hpp"
 
 PeerAuth::PeerAuth(std::string sym_key, std::string peer_provided_token, std::string our_generated_token):
-    PeerAuth(std::move(sym_key), std::move(peer_provided_token), std::move(our_generated_token), g_fiy->now() + SESSION_LIFETIME)
+    PeerAuth(std::move(sym_key), std::move(peer_provided_token), std::move(our_generated_token), g_fiy->now())
 {}
 
 bool PeerAuth::is_expired() const {

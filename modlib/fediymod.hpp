@@ -8,9 +8,7 @@
 #include <string>
 #include <string_view>
 #include <cstring>
-#include <functional>
-#include <optional>
-#include <unordered_map>
+#include <map>
 
 #include "fediymod.h"
 
@@ -150,8 +148,10 @@ namespace fiy {
 #endif
     };
 
+    // Must not add members or else not pointer compatible
     struct Request : public fiy_request_t {
 
+        // match those from boost::beast::http::verb
         enum Method : uint8_t {
             UNKNOWN = 0,
             DELETE, GET, HEAD, POST, PUT, CONNECT, OPTIONS,
@@ -181,7 +181,7 @@ namespace fiy {
         } {
         }
 
-        Request(fiy_request_t req): fiy_request_t(req) {}
+        Request(const fiy_request_t& req): fiy_request_t(req) {}
 
         [[nodiscard]] std::string user_str(const std::string& anon_name = "anon") const {
             if (user == nullptr)
@@ -197,7 +197,7 @@ namespace fiy {
             return user != nullptr && domain == nullptr;
         }
 
-        inline void respond(fiy_callback_t cb, const fiy_response_t& resp) {
+        inline void respond(const fiy_callback_t cb, const fiy_response_t& resp) const {
             cb(this, &resp);
         }
 
@@ -208,7 +208,12 @@ namespace fiy {
          * @param body HTTP body
          * @param headers null-terminated headers string
          */
-        inline void respond(fiy_callback_t cb, int status = 200, const std::string_view body = "", const std::string_view headers = "") {
+        inline void respond(
+            const fiy_callback_t cb,
+            const int status = 200,
+            const std::string_view body = "",
+            const std::string_view headers = ""
+        ) const {
             fiy_response_t res = {
                 .status=status,
                 .body=body.empty() ? nullptr : body.data(),
@@ -217,7 +222,11 @@ namespace fiy {
             };
             cb(this, &res);
         }
-        inline void respond(fiy_callback_t cb, const std::string_view body, const std::string_view headers = "") {
+        inline void respond(
+            const fiy_callback_t cb,
+            const std::string_view body,
+            const std::string_view headers = ""
+        ) const {
             respond(cb, 200, body, headers);
         }
 
@@ -228,8 +237,12 @@ namespace fiy {
             PUBLIC = 3      // Request is anonymous
         };
 
+        /**
+         * Get the trust level of a given request wrt. a local user
+         * @param local_user local user this request wants information on
+         * @return Locality trust level
+         */
         [[nodiscard]] Locality locality(const std::string& local_user) const {
-
             return user == nullptr
                 ? Locality::PUBLIC
                 : domain == nullptr
@@ -240,105 +253,82 @@ namespace fiy {
             //      in this case the user would be null and domain would be host domain
             //      this would probably mean privilege level -1
         }
-    };
 
-    // TODO replace this with a more performant trie-based implementation
-    // TODO middleware?
-    // TODO move this to separate file
-    class Router {
-    public:
-        using Handler = std::function<void(Request&, fiy_callback_t, std::vector<std::string_view>&&)>;
-        using NotFoundHandler = std::function<void(Request&, fiy_callback_t)>;
+        /**
+         * Get the first value for a give http header
+         * @param key HTTP header key to find
+         * @return First value associated with given header
+         */
+        [[nodiscard]] std::string_view find_header(const std::string_view key) const {
+            if (this->headers == nullptr)
+                return "";
 
-        Router& get(const std::string& path, Handler handler) {
-            return add_route(Request::Method::GET, path, std::move(handler));
-        }
+            std::string_view fields = this->headers;
+            std::size_t start = 0;
+            do {
+                // Find colon
+                std::size_t end = fields.find(':', start);
+                if (end == std::string_view::npos)
+                    return "";
 
-        Router& add_route(Request::Method method, const std::string& path, Handler handler) {
-            Route route = parse_route(path, std::move(handler));
-            m_routes[method].push_back(std::move(route));
-            return *this;
-        }
+                // Check if matching key
+                if (end == key.size()) {
+                    for (size_t i = 0; i < end - start; i++)
+                        if (tolower(key[start + i]) != tolower(key[i]))
+                            goto next_field;
 
-        Router& not_found(NotFoundHandler handler) {
-            m_not_found_handler = std::move(handler);
-            return *this;
-        }
-
-        void handle_request(Request& request, fiy_callback_t cb) {
-            auto it = m_routes.find((Request::Method) request.method);
-            if (it != m_routes.end()) {
-                for (const auto& route : it->second) {
-                    auto params = match(request.path, route);
-                    if (params.has_value()) {
-                        route.handler(request, cb, std::move(*params));
-                        return;
-                    }
-                }
-            }
-            if (m_not_found_handler)
-                m_not_found_handler.value()(request, cb);
-        }
-
-    private:
-        struct Route {
-            std::vector<std::string> parts; // route parts split by '/'
-            std::vector<bool> is_param;     // which parts are parameters
-            Handler handler;
-        };
-
-        std::unordered_map<Request::Method, std::vector<Route>> m_routes;
-        std::optional<NotFoundHandler> m_not_found_handler;
-
-        static Route parse_route(const std::string& path, Handler handler) {
-            Route route;
-
-            std::size_t i = 1;
-            std::size_t slash;
-            while ((slash = path.find('/', i)) != std::string::npos) {
-                std::string part = path.substr(i, slash - i);
-                route.is_param.push_back(part == "{}");
-                route.parts.emplace_back(std::move(part));
-                i = slash;
-            }
-            route.handler = std::move(handler);
-            return route;
-        }
-
-        static std::optional<std::vector<std::string_view>> match(const std::string& path, const Route& route) {
-            std::vector<std::string_view> result;
-
-            size_t start = 0, end = 0;
-            size_t i = 0;
-            while (end != std::string::npos) {
-                end = path.find('/', start);
-                std::string_view segment = (end == std::string::npos)
-                    ? std::string_view(path).substr(start)
-                    : std::string_view(path).substr(start, end - start);
-
-                if (segment.empty()) {
-                    start = end + 1;
-                    continue;
+                    // Return corresponding value
+                    std::size_t endl = fields.find('\n', end);
+                    if (endl == std::string_view::npos)
+                        endl = fields.size();
+                    return fields.substr(end + 1, endl - end - 1);
                 }
 
-                if (i >= route.parts.size())
-                    return std::nullopt;
+                // Check next field
+next_field:
+                start = fields.find('\n', end);
+            } while (start != std::string_view::npos);
 
-                if (route.is_param[i]) {
-                    result.push_back(segment);
-                } else {
-                    if (segment != route.parts[i])
-                        return std::nullopt;
-                }
+            return "";
+        }
 
-                ++i;
-                start = end + 1;
-            }
+        /**
+         * Parse the headers into a map where all the keys are lower-case
+         * @return headers lookup map
+         */
+        [[nodiscard]] std::map<std::string, std::string_view> headers_map() const {
+            std::map<std::string, std::string_view> ret;
 
-            if (i != route.parts.size())
-                return std::nullopt;
+            if (this->headers == nullptr)
+                return ret;
 
-            return result;
+            std::string_view fields = this->headers;
+            std::size_t start = 0;
+            do {
+                // Find colon
+                std::size_t end = fields.find(':', start);
+                if (end == std::string_view::npos)
+                    return ret;
+
+                // Convert key to lower case
+                std::string key;
+                key.reserve(end - start);
+                for (size_t i = 0; i < end - start; i++)
+                    key += static_cast<char>(tolower(fields[start + i]));
+
+                // Find next start
+                start = fields.find('\n', end);
+                if (start == std::string_view::npos)
+                    start = fields.size();
+
+                // Put it into the map
+                ret.emplace(std::move(key), fields.substr(end + 1, start - end - 1));
+
+                // Check next field
+                start++; // after \n
+            } while (start != std::string_view::npos);
+
+            return ret;
         }
     };
 

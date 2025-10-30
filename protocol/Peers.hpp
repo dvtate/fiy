@@ -17,10 +17,10 @@
 class Peers {
     RWMutex m_mtx;
 
-    // domain -> peer
+    /// domain -> peer
     std::unordered_map<std::string, std::shared_ptr<Peer>> m_peers_out;
 
-    // bearer token -> peer
+    /// bearer token -> peer
     std::unordered_map<std::string, std::shared_ptr<Peer>> m_peers_in;
 
     std::thread m_cron;
@@ -33,9 +33,10 @@ public:
     void prune();
 
     bool add_peer(const std::string& domain, const std::shared_ptr<Peer>& p);
+    bool remove_peer(const std::string& domain);
 
     std::shared_ptr<Peer> get_peer_for_domain(const std::string& domain);
-    std::shared_ptr<Peer> get_peer_from_token(const std::string& domain);
+    std::shared_ptr<Peer> get_peer_from_token(const std::string& token);
 
     void new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb);
 
@@ -53,7 +54,4 @@ public:
         void* context,
         void (*callback)(const fiy_response_t*, void*)
     );
-
-//    void request_peer(std::shared_ptr<Peer> peer, const std::string& local_user, T& req, callback
-
 };

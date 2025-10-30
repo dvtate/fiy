@@ -2,6 +2,8 @@
 // Created by tate on 6/25/25.
 //
 
+#include <boost/url.hpp>
+
 #include "../util/WebUtils.hpp"
 
 #include "../FIY.hpp"
@@ -78,6 +80,7 @@ static inline void mod_send_msg(std::shared_ptr<Session> conn) {
     m->m_ipc->handle_request(std::move(conn));
 }
 
+// TODO ?redirect=/mod/that/requires/auth query parameter
 static Session::StringResponse signup_page(unsigned status = 200, const std::string& err = "") {
     // Cache-able
     Session::StringResponse res;
@@ -175,21 +178,29 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
 
     auto auth_token = g_fiy->m_users.login_user(username, password);
 
+    // Find redirect query parameter
     Session::EmptyResponse res;
-    res.result(boost::beast::http::status::see_other);
+    res.result(boost::beast::http::status::see_other); // 303: post -> get
+    // FIXME? https://stackoverflow.com/questions/18492576/share-cookies-between-subdomain-and-domain
+    conn->clear_cookie_cache();
     res.set(boost::beast::http::field::set_cookie,
         WebUtils::serialize_cookie(
             "fiy_auth",
             auth_token.m_token,
-            {   .encode_fn=nullptr,
+            {
+                .encode_fn=nullptr,
                 .max_age=LocalUser::AuthToken::SESSION_LIFETIME,
                 .path="/",
                 .http_only=true
             }
         )
     );
-    res.set(boost::beast::http::field::location, "/portal");
-    conn->clear_cookie_cache();
+
+    const auto ps = boost::urls::url_view(conn->req().target()).params();
+    if (auto it = ps.find("redirect"); it != ps.end())
+        res.set(boost::beast::http::field::location, (*it).value);
+    else
+        res.set(boost::beast::http::field::location, "/portal");
     conn->respond(conn->prep(std::move(res)));
 }
 
@@ -240,7 +251,8 @@ static void login_post(std::shared_ptr<Session>&& conn) {
     // Log user in and send them to portal home
     Session::EmptyResponse res;
     res.result(boost::beast::http::status::see_other); // 303 - redirect them with get request
-    res.set(boost::beast::http::field::location, "/portal");
+    // FIXME? https://stackoverflow.com/questions/18492576/share-cookies-between-subdomain-and-domain
+    conn->clear_cookie_cache();
     res.set(boost::beast::http::field::set_cookie,
         WebUtils::serialize_cookie(
             "fiy_auth",
@@ -252,7 +264,11 @@ static void login_post(std::shared_ptr<Session>&& conn) {
             }
         )
     );
-    conn->clear_cookie_cache();
+    const auto ps = boost::urls::url_view(conn->req().target()).params();
+    if (auto it = ps.find("redirect"); it != ps.end())
+        res.set(boost::beast::http::field::location, (*it).value);
+    else
+        res.set(boost::beast::http::field::location, "/portal");
     conn->respond(conn->prep(std::move(res)));
 }
 
@@ -466,6 +482,34 @@ void route_request(std::shared_ptr<Session> conn) {
                         g_fiy->m_pages->file_contents<subpath>()
                     };
                     res.set(boost::beast::http::field::content_type, "text/javascript");
+                    conn->respond(conn->prep(std::move(res)));
+                    return;
+                } else if (path.starts_with("/redirect")) {
+                    // Check for redirect header
+                    if (auto it = conn->req().find("FIY-Redirect");
+                        it != conn->req().end()
+                    ) {
+                        Session::EmptyResponse res;
+                        res.result(boost::beast::http::status::see_other); // 303 -> redirect as GET
+                        res.set(boost::beast::http::field::location, it->value());
+                        conn->respond(conn->prep(std::move(res)));
+                        return;
+                    }
+
+                    // No redirect header, check for query params
+                    const auto ps = boost::urls::url_view(conn->req().target()).params();
+                    if (auto it = ps.find("redirect"); it != ps.end()) {
+                        Session::EmptyResponse res;
+                        res.result(boost::beast::http::status::see_other);
+                        res.set(boost::beast::http::field::location, (*it).value);
+                        conn->respond(conn->prep(std::move(res)));
+                        return;
+                    }
+
+                    // Invalid request
+                    Session::StringResponse res;
+                    res.result(boost::beast::http::status::bad_request);
+                    res.body() = "Invalid redirect: no destination provided";
                     conn->respond(conn->prep(std::move(res)));
                     return;
                 } else if (path.empty() || path == "/") {

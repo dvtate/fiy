@@ -11,7 +11,6 @@
 
 #include "Server.hpp"
 #include "Session.hpp"
-#include "FIY.hpp"
 
 namespace {
 namespace beast = boost::beast;         // from <boost/beast.hpp>

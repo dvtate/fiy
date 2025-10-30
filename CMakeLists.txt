@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/SQLiteCpp)
 
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS url)
 
 file(GLOB protocol_server_sources protocol/*.cpp)
 
@@ -81,6 +81,7 @@ target_link_libraries(protocol_server
     crypto
     ssl
     gpgme
+    Boost::url
 )
 
 add_library(fediymod SHARED

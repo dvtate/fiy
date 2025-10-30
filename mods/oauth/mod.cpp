@@ -29,12 +29,10 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     }
 }
 
-
 extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
     static fiy_mod_info_t mod_info = {
-        .on_request=handle_request,
-        .on_peer_domain_changed=nullptr,
-        .on_username_changed=nullptr,
+        .on_request = handle_request,
+        .delete_user = nullptr,
     };
     g_host_info = host_info;
     return &mod_info;

@@ -2,7 +2,7 @@
   "id": "mail",
   "version": "0.0",
   "name": "Mail",
-  "description": "Send and receive mail",
+  "description": "Demo to send and receive mail (lots of bugs)",
   "icon": "icon.png",
   "enabled": false,
   "connector":"shared_object",

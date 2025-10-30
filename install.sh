@@ -100,7 +100,7 @@ fi
 mkdir "$INSTALL_PATH/mods/mail"
 cp $CP_INSTALL_FLAG "$(realpath ./mods/mail/module.json)" "$INSTALL_PATH/mods/mail/module.json"
 cp $CP_INSTALL_FLAG "$(realpath ./build/libdemo_mod_mail.so)" "$INSTALL_PATH/mods/mail/module.so"
-echo "Installed Mail mod"
+echo "Installed Mail mod."
 
 mkdir "$INSTALL_PATH/mods/contacts"
 mkdir "$INSTALL_PATH/mods/contacts/assets"
@@ -108,14 +108,14 @@ cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/module.json)" "$INSTALL_PATH/mod
 cp $CP_INSTALL_FLAG "$(realpath ./build/libcontacts_mod.so)" "$INSTALL_PATH/mods/contacts/module.so"
 cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/frontend/dist)"/* "$INSTALL_PATH/mods/contacts/assets"
 sqlite3 "$INSTALL_PATH/mods/contacts/db.db3" < ./mods/contacts/db.sql
-echo "Installed Contacts mod"
+echo "Installed Contacts mod."
 
 # TODO install other mods
 
 # Install protocol server
 cp $CP_INSTALL_FLAG "$(realpath ./build/protocol_server)" "$INSTALL_PATH/server"
 cp $CP_INSTALL_FLAG "$(realpath ./build/libfediymod.so)" "$INSTALL_PATH/libfediymod.so"
-echo "Installed binaries"
+echo "Installed binaries."
 
 if [ "$DEVEL_INSTALL" -eq 1 ]; then
     cp -r $CP_INSTALL_FLAG "$(realpath ./portal_frontend)" "$INSTALL_PATH/pages"
@@ -123,7 +123,19 @@ else
     mkdir "$INSTALL_PATH/pages"
     cp ./portal_frontend/* "$INSTALL_PATH/pages"
 fi
-echo "Installed Portal Frontend"
+echo "Installed Portal Frontend."
+
+echo "
+[Unit]
+Description=FedIY Protocol Server
+
+[Service]
+Type=simple
+ExecStart=$INSTALL_PATH/server $INSTALL_PATH/config.ini
+#User=$(whoami) # replace this and uncomment
+# For security, it's recommended to run the server as a dedicated non-privileged user
+" > "$INSTALL_PATH/fediy.service"
+echo "Generated sample systemd unit file."
 
 # TODO use openssl instead
 ## Generate and install GPG keys
