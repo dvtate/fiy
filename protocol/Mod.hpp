@@ -35,16 +35,16 @@ public:
         explicit Version(const std::string& version_str) {
             std::size_t pos;
             major = std::stoi(version_str, &pos);
+            major_string = std::to_string(major);
             if (pos >= version_str.size() || version_str.at(pos) != '.') {
                 minor = 0;
                 return;
             }
             char* end = nullptr;
             minor = std::strtol(version_str.c_str() + pos, &end, 10);
-            major_string = std::to_string(major);
         }
 
-        Version(long major, long minor):
+        Version(const long major, const long minor):
                 major(major), minor(minor)
         {
             major_string = std::to_string(major);
@@ -58,12 +58,16 @@ public:
         }
 
         [[nodiscard]] auto operator<=>(const Version& other) const {
-            if (auto c = major <=> other.major; c != 0)
+            if (const auto c = major <=> other.major; c != 0)
                 return c;
             return minor <=> other.minor;
         }
         [[nodiscard]] std::string str() const {
             return major_string + '.' + std::to_string(minor);
+        }
+
+        [[nodiscard]] bool initialized() const {
+            return major != -1;
         }
     };
 
@@ -113,6 +117,11 @@ public:
     std::string json();
     std::string user_json();
     void save();
+
+    void error(const std::string& err) {
+        m_error = err;
+        m_running = false;
+    }
 
     inline std::filesystem::path dir() const;
 

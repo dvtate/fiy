@@ -103,10 +103,26 @@ struct fiy_mod_info_t {
     /// Called by host to delete all data associated with a deleted user
     /// @note username of form user@domain
     void (*delete_user)(const char* username);
-    
-    const char* remote_app_id
+
+    ////
+    // These can be overriden by user's module.json
+    ////
+
+    /**
+     * Globally unique mod id
+     */
+    const char* id
 #ifdef __cplusplus
-        {nullptr};
+        {nullptr}
+#endif
+    ;
+
+    /**
+     * Version
+     */
+    const char* version
+#ifdef __cplusplus
+        {nullptr}
 #endif
     ;
 };
@@ -204,6 +220,8 @@ struct fiy_host_info_t {
      * Gets the current time according to the host
      */
     time_t (*now)();
+
+    // TODO also send module.json contents
 };
 
 typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host_info_t*);

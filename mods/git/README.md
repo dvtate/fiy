@@ -7,6 +7,8 @@ With this roadmap, and the pages below, it would probably take about a man-year 
 ### Stage 0
 - Create repos
 - Clone + push to repo via terminal
+- This should be easy to accomplish via git-http-backend CGI script
+  - Arch: /usr/lib/git-core/git-http-backend
 
 ### Stage 1
 - Repo summary

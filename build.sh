@@ -5,9 +5,10 @@ command -v npm >/dev/null 2>&1 || { echo >&2 "npm is required but not installed.
 command -v cmake >/dev/null 2>&1 || { echo >&2 "cmake is required but not installed.  Aborting."; exit 1; }
 
 function build_cpp {
+    local build_type=$1
     mkdir build | :
     cd build
-    if [ "$1" = "debug" ]; then
+    if [ "$build_type" = "debug" ]; then
         cmake -DCMAKE_BUILD_TYPE=Debug ..
     else
         cmake ..

@@ -72,14 +72,14 @@ Mod::Mod(std::string id) {
     }
 
     // Get version
-    if (!conf.contains("version")) {
-        err("module.json: missing key: version");
-    } else {
+    if (conf.contains("version")) {
         auto version = conf.at("version");
         if (!version.is_string()) {
             err("module.json: \"version\" should be a string of format NN.nn");
         }
         m_version = Mod::Version(version.get<std::string>());
+    } else {
+        // err("module.json: missing key: version");
     }
 
     // Get description
@@ -110,12 +110,12 @@ Mod::Mod(std::string id) {
             err("module.json: \"connector\" should be either \"shared_object\", \"socket\" or \"tcp\"");
         }
 
-        auto ts = t.get<std::string>();
-        if (ts == "tcp") {
+        const auto ts = t.get<std::string>();
+        if (ts == "http" || ts == "https") {
             if (connector_uri.empty()) {
-                err("module.json: \"connector_uri\" must be defined when \"ipc\" is set to \"tcp\"");
+                err("module.json: \"connector_uri\" must be defined when \"ipc\" is set to \"" + ts + "\"");
             } else {
-                m_ipc = std::make_unique<ModNetConnector>(this, connector_uri);
+                m_ipc = std::make_unique<ModNetConnector>(this, connector_uri, ts == "https");
             }
         } else if (ts == "shared_object") {
             if (connector_uri.empty())
@@ -178,6 +178,8 @@ Mod::~Mod() {
 
 bool Mod::start() {
     std::lock_guard lock(m_mtx);
+
+    // Note: this function can update our fields if not populated from module.json
     return m_running = m_ipc->start();
 }
 

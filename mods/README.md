@@ -2,14 +2,18 @@
 These apps come pre-installed. They integrate with each-other and other apps.
 
 ## Important Built-in apps
-- Contacts
-  - Profile pages for users
-- Notifications
-  - From apps for users
-- Chat
-  - Federated chat app
-- Storage
-  - Internal file storage for apps
+### Federated
+- Contacts: Profile pages for users
+- Chat: Federated chat app
+
+### Internal
+- Notifications: From apps for users
+- Storage: Internal file storage for apps
+
+### Non-federated
+- Reverse-proxy mod: Simple reverse proxy server
+- Static file server: Serve static files
+- Redirect: Redirect requests somewhere else
 
 ## Non-federated mods
 Fediy wrapper for basic server functionalities. Benefits could include requiring local authentication to access content.

@@ -29,11 +29,11 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/Mod.hpp
     protocol/Mods.cpp
     protocol/Mods.hpp
+    protocol/ModConnector.cpp
+    protocol/ModConnector.hpp
     protocol/LocalUser.cpp
     protocol/Pages.cpp
     protocol/Pages.hpp
-    protocol/ModConnector.cpp
-    protocol/ModConnector.hpp
     protocol/Server/Server.cpp
     protocol/Server/Server.hpp
     protocol/Server/Router.hpp
@@ -124,7 +124,6 @@ add_library(contacts_mod SHARED
     mods/contacts/src/Pages.hpp
     third_party/base64.hpp
     mods/contacts/src/timezones.hpp
-
 )
 target_link_libraries(contacts_mod
     PRIVATE fediymod

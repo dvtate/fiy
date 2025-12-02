@@ -62,7 +62,9 @@ struct fiy_mod_info_t* start(const struct fiy_host_info_t* host_info) {
     // Prepare and make sure everything is set up and installed correctly
     static struct fiy_mod_info_t mod_info = {
         .on_request=handle_request,
-        .delete_user = user_deleted
+        .delete_user = user_deleted,
+        .id = "example.c",
+        .version = "0.0"
     };
     return &mod_info;
 }

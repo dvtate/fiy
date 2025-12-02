@@ -11,6 +11,11 @@
 #include "Session.hpp"
 #include "Router.hpp"
 
+namespace http = boost::beast::http;
+
+/**
+ * @return [ mod , subpath ]
+ */
 static inline std::pair<std::string, std::string> parse_mod_request_get(const std::shared_ptr<Session>& conn) {
     auto path = conn->req().target();
     if (path.starts_with("/mods")) {
@@ -20,9 +25,9 @@ static inline std::pair<std::string, std::string> parse_mod_request_get(const st
         return { path, conn->req().at("Fiy-Path") };
     }
 
-    auto hostname = conn->req()["Host"];
+    const auto hostname = conn->req()["Host"];
     if (!hostname.empty()) {
-        std::string_view hhn = g_fiy->m_config.m_hostname;
+        const std::string_view hhn = g_fiy->m_config.m_hostname;
         // Subdomain mod  mod.example.com/uri/path
         if (hostname.ends_with(hhn) && hhn.size() != hostname.size())
             return {
@@ -69,7 +74,7 @@ static inline void mod_send_msg(std::shared_ptr<Session> conn) {
         res.result(404);
         boost::beast::ostream(res.body())
                 <<"App '" <<mod <<"' not found\n";
-        res.set(boost::beast::http::field::content_type, "text/html");
+        res.set(http::field::content_type, "text/html");
         conn->respond(conn->prep(std::move(res)));
         DEBUG_LOG("Invalid mod: " <<mod <<" : " <<uri);
         return;
@@ -85,14 +90,14 @@ static Session::StringResponse signup_page(unsigned status = 200, const std::str
     // Cache-able
     Session::StringResponse res;
     res.result(status);
-    res.set(boost::beast::http::field::content_type, "text/html");
+    res.set(http::field::content_type, "text/html");
     res.body() = g_fiy->m_pages->signup_page(err);
     return res;
 }
 static Session::StringResponse login_page(unsigned status = 200, const std::string& err = "") {
     Session::StringResponse res;
     res.result(status);
-    res.set(boost::beast::http::field::content_type, "text/html");
+    res.set(http::field::content_type, "text/html");
     res.body() = g_fiy->m_pages->login_page(err);
     return res;
 }
@@ -180,10 +185,10 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
 
     // Find redirect query parameter
     Session::EmptyResponse res;
-    res.result(boost::beast::http::status::see_other); // 303: post -> get
+    res.result(http::status::see_other); // 303: post -> get
     // FIXME? https://stackoverflow.com/questions/18492576/share-cookies-between-subdomain-and-domain
     conn->clear_cookie_cache();
-    res.set(boost::beast::http::field::set_cookie,
+    res.set(http::field::set_cookie,
         WebUtils::serialize_cookie(
             "fiy_auth",
             auth_token.m_token,
@@ -198,9 +203,9 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
 
     const auto ps = boost::urls::url_view(conn->req().target()).params();
     if (auto it = ps.find("redirect"); it != ps.end())
-        res.set(boost::beast::http::field::location, (*it).value);
+        res.set(http::field::location, (*it).value);
     else
-        res.set(boost::beast::http::field::location, "/portal");
+        res.set(http::field::location, "/portal");
     conn->respond(conn->prep(std::move(res)));
 }
 
@@ -250,10 +255,10 @@ static void login_post(std::shared_ptr<Session>&& conn) {
 
     // Log user in and send them to portal home
     Session::EmptyResponse res;
-    res.result(boost::beast::http::status::see_other); // 303 - redirect them with get request
+    res.result(http::status::see_other); // 303 - redirect them with get request
     // FIXME? https://stackoverflow.com/questions/18492576/share-cookies-between-subdomain-and-domain
     conn->clear_cookie_cache();
-    res.set(boost::beast::http::field::set_cookie,
+    res.set(http::field::set_cookie,
         WebUtils::serialize_cookie(
             "fiy_auth",
             auth_token.m_token,
@@ -266,17 +271,17 @@ static void login_post(std::shared_ptr<Session>&& conn) {
     );
     const auto ps = boost::urls::url_view(conn->req().target()).params();
     if (auto it = ps.find("redirect"); it != ps.end())
-        res.set(boost::beast::http::field::location, (*it).value);
+        res.set(http::field::location, (*it).value);
     else
-        res.set(boost::beast::http::field::location, "/portal");
+        res.set(http::field::location, "/portal");
     conn->respond(conn->prep(std::move(res)));
 }
 
 template <class Str>
 auto server_error(const Str& what) {
     Session::StringResponse res;
-    res.result(boost::beast::http::status::internal_server_error);
-    res.set(boost::beast::http::field::content_type, "text/html");
+    res.result(http::status::internal_server_error);
+    res.set(http::field::content_type, "text/html");
     res.body() = "An error occurred: '" + std::string(what) + "'";
     return res;
 }
@@ -358,7 +363,7 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
         our_token = std::move(bearer_token),
         handshake_sig = std::move(signature),
         conn = std::move(conn)
-    ] (boost::beast::http::response<boost::beast::http::string_body> res) {
+    ] (http::response<http::string_body> res) {
         // Make sure it's success
         if (res.result_int() != 200) {
             Session::StringResponse ret;
@@ -432,9 +437,9 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
         LOG_ERR("Could not get public key for handshake peer " <<domain <<": " <<message);
     };
 
-    boost::beast::http::request<boost::beast::http::empty_body> key_req;
+    http::request<http::empty_body> key_req;
     key_req.target("/peer/key");
-    key_req.method(boost::beast::http::verb::get);
+    key_req.method(http::verb::get);
     // key_req.keep_alive(false);
 
     if (domain.find(':') == std::string_view::npos) {
@@ -454,17 +459,44 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
     }
 }
 
+void login_user_internal(const std::shared_ptr<Session>& conn) {
+    const auto token = conn->req()["fiy-auth"];
+    const auto username = conn->req()["fiy-user"];
+    const auto password = conn->req()["fiy-pass"];
+
+    if (! g_fiy->m_mods.has_net_connector(token)) {
+        http::response<http::empty_body> res;
+        res.result(401);
+        conn->respond(conn->prep(std::move(res)));
+        return;
+    }
+
+    try {
+        auto u = DB::get_user(username, password);
+        http::response<http::empty_body> res;
+        res.result(u == nullptr ? 401 : 200);
+        conn->respond(conn->prep(std::move(res)));
+        return;
+    } catch (const DB::Exception& e) {
+        LOG_ERR("DB Error: " <<e.what());
+        http::response<http::string_body> res;
+        res.result(500);
+        res.body() = "Database Error";
+        conn->respond(conn->prep(std::move(res)));
+    }
+}
+
 void route_request(std::shared_ptr<Session> conn) {
     auto path = conn->req().target();
 
     // Logging
     DEBUG_LOG("Req: "
-        <<boost::beast::http::to_string(conn->req().method())
+        <<http::to_string(conn->req().method())
         <<" -- "
         <<path);
 
     switch (conn->req().method()) {
-        case boost::beast::http::verb::get:
+        case http::verb::get:
             if (path.starts_with("/portal")) {
                 path.remove_prefix(7);
                 if (path.starts_with("/login")) {
@@ -477,11 +509,11 @@ void route_request(std::shared_ptr<Session> conn) {
                     // Send cached file contents
                     static const char subpath[] = "/main.js";
                     Session::StringResponse res{
-                        boost::beast::http::status::ok,
+                        http::status::ok,
                         conn->req().version(),
                         g_fiy->m_pages->file_contents<subpath>()
                     };
-                    res.set(boost::beast::http::field::content_type, "text/javascript");
+                    res.set(http::field::content_type, "text/javascript");
                     conn->respond(conn->prep(std::move(res)));
                     return;
                 } else if (path.starts_with("/redirect")) {
@@ -490,8 +522,8 @@ void route_request(std::shared_ptr<Session> conn) {
                         it != conn->req().end()
                     ) {
                         Session::EmptyResponse res;
-                        res.result(boost::beast::http::status::see_other); // 303 -> redirect as GET
-                        res.set(boost::beast::http::field::location, it->value());
+                        res.result(http::status::see_other); // 303 -> redirect as GET
+                        res.set(http::field::location, it->value());
                         conn->respond(conn->prep(std::move(res)));
                         return;
                     }
@@ -500,15 +532,15 @@ void route_request(std::shared_ptr<Session> conn) {
                     const auto ps = boost::urls::url_view(conn->req().target()).params();
                     if (auto it = ps.find("redirect"); it != ps.end()) {
                         Session::EmptyResponse res;
-                        res.result(boost::beast::http::status::see_other);
-                        res.set(boost::beast::http::field::location, (*it).value);
+                        res.result(http::status::see_other);
+                        res.set(http::field::location, (*it).value);
                         conn->respond(conn->prep(std::move(res)));
                         return;
                     }
 
                     // Invalid request
                     Session::StringResponse res;
-                    res.result(boost::beast::http::status::bad_request);
+                    res.result(http::status::bad_request);
                     res.body() = "Invalid redirect: no destination provided";
                     conn->respond(conn->prep(std::move(res)));
                     return;
@@ -518,8 +550,8 @@ void route_request(std::shared_ptr<Session> conn) {
                     if (user == nullptr) {
                         DEBUG_LOG("User not logged in");
                         Session::EmptyResponse res;
-                        res.result(boost::beast::http::status::see_other);
-                        res.set(boost::beast::http::field::location, "/portal/login");
+                        res.result(http::status::see_other);
+                        res.set(http::field::location, "/portal/login");
                         conn->respond(conn->prep(std::move(res)));
                         return;
                     }
@@ -528,7 +560,7 @@ void route_request(std::shared_ptr<Session> conn) {
                     Session::StringResponse res;
                     res.result(200);
                     res.body() = g_fiy->m_pages->portal_apps(*user);
-                    res.set(boost::beast::http::field::content_type, "text/html");
+                    res.set(http::field::content_type, "text/html");
                     conn->respond(conn->prep(std::move(res)));
                     return;
                 } else {
@@ -544,6 +576,7 @@ void route_request(std::shared_ptr<Session> conn) {
                 // Send key
                 Session::StringResponse res;
                 res.result(200);
+                res.set("Fiy-Now", std::to_string(g_fiy->now()));
                 res.body() = g_fiy->m_config.m_public_key;
                 conn->respond(conn->prep(std::move(res)));
                 return;
@@ -552,7 +585,7 @@ void route_request(std::shared_ptr<Session> conn) {
                 return;
             }
 
-        case boost::beast::http::verb::post:
+        case http::verb::post:
             if (path.starts_with("/portal")) {
                 path.remove_prefix(7);
                 if (path.starts_with("/login")) {

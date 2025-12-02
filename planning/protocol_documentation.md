@@ -40,3 +40,10 @@ After the handshake, p2p app requests include the following HTTP headers to miti
   - above headers
   - the relevant appid
   - the p2p secret from the handshake
+
+## Protocol Server API
+- *<>* /mods/<mod-id> -- other instance mod request
+- *POST* /internal/mods/request/<mod-id> -- local net mod make request to other local mod
+- *POST* /internal/mods/log -- write a log
+- *GET* /internal/mods/user_info/<user> -- get some info on the user
+- *GET* /internal/mods/login -- authenticate a user

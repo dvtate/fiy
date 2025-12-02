@@ -5,17 +5,13 @@
 #pragma once
 
 #include <string>
-#include <functional>
-#include <dlfcn.h>
 #include <memory>
 
 #include "defs.hpp"
 
 #include "../modlib/fediymod.h"
 
-//#include "Server/Session.hpp"
 class Session;
-
 class Mod;
 
 /**
@@ -45,11 +41,13 @@ public:
         void (*callback)(const fiy_response_t*, void*)
     ) = 0;
 
+    virtual void delete_user(const char* user) = 0;
+
     // IPC interface
     enum class Type {
         SHARED_LIBRARY,     // .so file
-        SOCKET,             // unix socket connection
-        NETWORK             // tcp connection
+        NETWORK,            // HTTP/HTTPS
+        // CGI,                // TODO common gateway interface
     };
 
     [[nodiscard]] virtual Type type() = 0;
@@ -77,6 +75,7 @@ public:
 
     bool stop() override;
     bool start() override;
+    void delete_user(const char* user) override;
     void handle_request(std::shared_ptr<Session> conn) override;
     void handle_request(
         const fiy_request_t* req,
@@ -87,42 +86,29 @@ public:
 
 // IPC over the network
 class ModNetConnector : public ModConnector {
-    std::string m_auth_secret;
+    std::string m_bearer_send;
+    std::string m_bearer_accept;
+    bool m_https;
+
 public:
-    ModNetConnector(Mod* mod, std::string path): ModConnector(mod, std::move(path)) {}
+    ModNetConnector(Mod* mod, std::string path, const bool is_https = false):
+        ModConnector(mod, std::move(path)),
+        m_https(is_https)
+    {}
+
+    ~ModNetConnector();
 
     Type type() final {
         return Type::NETWORK;
     }
 
-    virtual bool start() override;
-    virtual bool stop() override;
-        // Invalidate credentials both ways
-
-    // TODO
+    bool start() override;
+    bool stop() override;
+    void delete_user(const char* user) override;
     void handle_request(std::shared_ptr<Session>) override;
     void handle_request(
         const fiy_request_t* req,
         void* context,
         void (*callback)(const fiy_response_t*, void*)
-    ) override {
-        (void)req;
-        (void)context;
-        (void)callback;
-        // TODO
-    }
+    ) override;
 };
-
-// IPC over unix socket
-// there's no reason to use this as it's worse performance than dll
-// and can't be done over network (right?)
-//class ModSockIPC : public ModIPC {
-//public:
-//    ModSockIPC(Mod* mod, std::string path): ModIPC(mod, std::move(path)) {}
-//
-//    IPCType ipc_type() final {
-//        return IPCType::SOCKET;
-//    }
-//
-//    // TODO
-//};

@@ -115,4 +115,18 @@ public:
         else
             return &m_mail[index];
     }
+
+    void delete_user_mail(const char* user) {
+        // Remove user from recipients list
+        for (auto& m : m_mail)
+            std::erase_if(
+                m.m_recipients,
+                [user](const auto& u){ return u == user; }
+            );
+
+        // Delete any mail that they sent or were the sole recipient of
+        std::erase_if(m_mail, [user](const Mail& m) {
+            return m.m_recipients.empty() || m.m_from_user == user;
+        });
+    }
 };

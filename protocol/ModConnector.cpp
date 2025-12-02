@@ -3,15 +3,21 @@
 //
 
 #include <ranges>
+#include <functional>
+
+#include <dlfcn.h>
+
+#include <nlohmann/json.hpp>
+
+#include "ModConnector.hpp"
 
 #include "Server/Session.hpp"
 #include "LocalUser.hpp"
 #include "FIY.hpp"
+#include "../modlib/fediymod.hpp"
 #include "Server/util.hpp"
 
-#include "ModConnector.hpp"
-
-// Message passed to shared library
+/// Message passed to shared library
 class ModDllConnectorRequest : public fiy_request_t {
 public:
     std::shared_ptr<Session> m_conn;
@@ -154,7 +160,7 @@ struct ModDLLHostInfo : fiy_host_info_t {
      *  -1 error
      */
     static int user_info_impl(const char* local_user_name, fiy_local_user_info_t* ret) {
-        auto u = DB::get_user(local_user_name);
+        const auto u = DB::get_user(local_user_name);
         if (u == nullptr)
             return 1;
         if (ret == nullptr)
@@ -190,9 +196,11 @@ bool ModDLLConnector::stop() {
 }
 
 bool ModDLLConnector::start() {
-    if (m_host_info != nullptr)
-        delete m_host_info;
+    // Generate host info
+    delete m_host_info;
     m_host_info = new ModDLLHostInfo(m_mod);
+
+    // Open shared object
     if (m_dl_handle != nullptr) {
         DEBUG_LOG("Handle replaced!");
     }
@@ -200,13 +208,38 @@ bool ModDLLConnector::start() {
     if (m_dl_handle == nullptr)
         return false;
 
-    auto start_fn = (fiy_mod_start_function_t) dlsym(m_dl_handle, "start");
+    // Start mod
+    const auto start_fn = (fiy_mod_start_function_t) dlsym(m_dl_handle, "start");
     m_mod_info = start_fn(m_host_info);
-    return m_mod_info != nullptr;
+    if (m_mod_info == nullptr)
+        return false;
+
+    // Update fields
+    if (m_mod_info->version != nullptr /* && !m_mod->m_version.initialized() */)
+            m_mod->m_version = Mod::Version(m_mod_info->version);
+    if (m_mod_info->id != nullptr && m_mod->m_id.empty())
+        m_mod->m_id = m_mod_info->id;
+    return true;
+}
+
+void ModDLLConnector::delete_user(const char* user) {
+    if (m_mod_info == nullptr || m_mod_info->delete_user == nullptr)
+        return;
+    m_mod_info->delete_user(user);
 }
 
 
 void ModDLLConnector::handle_request(std::shared_ptr<Session> conn) {
+    // Safety check
+    if (m_mod_info == nullptr || m_mod_info->on_request == nullptr) {
+        boost::beast::http::response<boost::beast::http::string_body> res;
+        res.result( 500 );
+        res.body() = "Module not initialized";
+        conn->respond(conn->prep(std::move(res)));
+        DEBUG_LOG("Mod " <<m_mod->m_id <<": called before start()");
+        return;
+    }
+
     fiy_request_t* r = new ModDllConnectorRequest(conn);
     m_mod_info->on_request(
         r,
@@ -255,12 +288,64 @@ void ModDLLConnector::handle_request(
 
 
 bool ModNetConnector::start() {
+    // JSON payload containing fields: bearer token, mod id, base_uri, now
+    do {
+        m_bearer_accept = PeerAuth::get_token_string();
+    } while (!g_fiy->m_mods.add_net_connector(m_bearer_accept, this));
+    const std::string payload = "{\"bearer\":\"" + m_bearer_accept
+        + "\",\"id\":\""+ m_mod->m_id
+        + "\",\"base_uri\":\"" + (
+            strchr(g_fiy->m_config.m_hostname, ':') == nullptr ? "https://" : "http://"
+        ) + g_fiy->m_config.m_hostname + '/' + m_mod->m_path
+        + "\",\"now\":" + std::to_string(g_fiy->now()) + "}";
 
-    // if server uri is localhost/127.0.0.1 then start the server
+    // Generate request
+    using namespace boost::beast;
+    http::request<http::string_body> req;
+    req.method(http::verb::post);
+    req.target("/start");
+    req.body() = payload;
+    req.set("Fiy-Signature", Crypto::SSL::sign(g_fiy->m_config.m_private_key, payload));
+    req.keep_alive(false);
+    req.prepare_payload();
 
-    // Assume the other server is already running
-    // send hostinfo as json
-    // expect modinfo as json
+    // Callback handler
+    auto cb = [this](http::response<http::string_body> res) {
+        std::string s = res.body();
+        auto j = nlohmann::json::parse(s);
+        if (!j.is_object()) {
+            m_mod->error("bad response, should be an object");
+            return;
+        }
+        if (!j.contains("accept") && j["accept"].is_string()) {
+            m_mod->error("bad response, missing 'accept' field ");
+            return;
+        } else {
+            m_bearer_send = j["accept"].get<std::string>();
+        }
+        if (j.contains("id")
+            && m_mod->m_id.empty()
+            && j["id"].is_string()
+        ) {
+            m_mod->m_id = j["id"].get<std::string>();
+        }
+        if (j.contains("version")
+            // && !m_mod->m_version.initialized()
+            && j["version"].is_string()
+        ) {
+            m_mod->m_version = Mod::Version(j["version"].get<std::string>());
+        }
+    };
+    auto err_cb = [this](const std::string& err) {
+        std::cerr << "Mod " << m_mod->m_id <<": Failed to connect to " <<m_uri <<std::endl;
+        m_mod->error(err);
+    };
+
+    // Make request
+    if (m_https)
+        g_fiy->m_https.request(m_uri, req, cb, err_cb);
+    else
+        g_fiy->m_http.request(m_uri, req, cb, err_cb);
 
     // hostinfo should also include authentication system
     // ie - credentials we can validate for every request
@@ -268,24 +353,154 @@ bool ModNetConnector::start() {
 }
 
 bool ModNetConnector::stop() {
+    // Already stopped
+    if (m_bearer_accept.empty()) {
+        DEBUG_LOG("Already stopped");
+        return true;
+    }
+
+    g_fiy->m_mods.remove_net_connector(m_bearer_accept);
+    m_bearer_accept.clear();
+
+    using namespace boost::beast;
+    http::request<http::empty_body> req;
+    req.method(http::verb::post);
+    req.target("/stop");
+    req.set("Fiy-Auth", m_bearer_send);
+    req.keep_alive(false);
+
+    auto cb = [this](auto resp) {
+        if (resp.result() != http::status::ok)
+            DEBUG_LOG("Mod " <<m_mod->m_id <<": failed to stop: HTTP " <<resp.result());
+        else
+            DEBUG_LOG("Mod " <<m_mod->m_id <<": stopped");
+    };
+    auto err_cb = [this](auto err) {
+        DEBUG_LOG("Mod " <<m_mod->m_id <<": failed to stop: " <<err);
+        (void)err;
+    };
+
+    if (m_https)
+        g_fiy->m_https.request(m_uri, req, cb, err_cb);
+    else
+        g_fiy->m_http.request(m_uri, req, cb, err_cb);
     return true;
 }
 
 void ModNetConnector::handle_request(std::shared_ptr<Session> conn) {
-    conn->req().set("Fediy-User", conn->find_user().str());
-    g_fiy->m_http.request(
-        m_uri,
-        conn->req(),
-        [session = std::move(conn)] (auto resp) {
-            session->respond(std::move(resp));
-        },
-        [this, session = std::move(conn)] (std::string err) {
-            Session::StringResponse res;
-            res.result(500);
-            res.body() = "<h1>Server Error</h1><p>Request failed: " + err + "</p>";
-            res.set(boost::beast::http::field::content_type, "text/html");
-            session->respond(session->prep(std::move(res)));
-            LOG_ERR("ModNetConnector[" <<m_mod->m_id <<"]: ");
+    // TODO probably shouldn't send the fiy_auth cookie
+    //  but mods should be trusted so not concerning
+
+    conn->req().set("Fiy-User", conn->find_user().str());
+    conn->req().set("Fiy-Auth", m_bearer_send);
+    std::string target = "/request";
+    target += conn->req().target();
+    conn->req().target() = target;
+
+    auto cb = [session = std::move(conn)] (auto resp) {
+        session->respond(std::move(resp));
+    };
+    auto err_cb = [this, session = std::move(conn)] (std::string err) {
+        Session::StringResponse res;
+        res.result(500);
+        res.body() = "<h1>Server Error</h1><p>Request failed: " + err + "</p>";
+        res.set(boost::beast::http::field::content_type, "text/html");
+        session->respond(session->prep(std::move(res)));
+        LOG_ERR("ModNetConnector[" <<m_mod->m_id <<"]: ");
+    };
+
+    if (m_https)
+        g_fiy->m_https.request(m_uri, conn->req(), cb, err_cb);
+    else
+        g_fiy->m_http.request(m_uri, conn->req(), cb, err_cb);
+}
+
+ModNetConnector::~ModNetConnector() {
+    ModNetConnector::stop();
+}
+
+void ModNetConnector::delete_user(const char* user) {
+    boost::beast::http::request<boost::beast::http::empty_body> req;
+    req.target("/user");
+    req.method(boost::beast::http::verb::delete_);
+    req.set("Fiy-Auth", m_bearer_send);
+    req.set("Fiy-User", user);
+    req.keep_alive(false);
+
+    auto cb = [this] (auto resp) {
+        if (resp.result_int() != 200)
+            DEBUG_LOG("Mod " <<m_mod->m_id <<": failed to stop: HTTP " <<resp.result());
+        else
+            DEBUG_LOG("Mod " <<m_mod->m_id <<": stopped");
+    };
+    auto err_cb = [this, user] (auto err) {
+        DEBUG_LOG("Mod " <<m_mod->m_id <<": failed to delete user: " <<user);
+    };
+
+    if (m_https)
+        g_fiy->m_https.request(m_uri, req, cb, err_cb);
+    else
+        g_fiy->m_http.request(m_uri, req, cb, err_cb);
+}
+
+void ModNetConnector::handle_request(
+    const fiy_request_t* req,
+    void* context,
+    void (*callback)(const fiy_response_t*, void*)
+) {
+    const fiy::Request& r = *req;
+    namespace http = boost::beast::http;
+    http::request<http::string_body> net_req;
+    net_req.method(http::verb::post);
+    net_req.target() = std::string("/request") + r.path;
+    net_req.set("Fiy-Auth", m_bearer_send);
+    net_req.set("Fiy-User", r.user);
+    net_req.set("Fiy-Domain", r.domain);
+    net_req.set("Fiy-Method",
+        http::to_string(static_cast<http::verb>(r.method)));
+    for ( const auto& [k, v] : r.headers_map())
+        net_req.set(k, v);
+    net_req.body() = r.body;
+    net_req.keep_alive(false);
+    net_req.prepare_payload();
+
+    auto cb = [context, callback] (auto resp) {
+        if (callback == nullptr)
+            return;
+
+        // Convert headers into a string
+        std::string headers_str;
+        for (const auto& f : resp.base()) {
+            headers_str += f.name_string();
+            headers_str += ": ";
+            headers_str += f.value();
+            headers_str += '\n';
         }
-    );
+
+        const fiy_response_t response{
+            .status = static_cast<int>(resp.result_int()),
+            .body = resp.body().data(),
+            .body_len = resp.body().size(),
+            .headers = headers_str.c_str(),
+        };
+        callback(&response, context);
+    };
+    auto err_cb = [this, context, callback] (auto err) {
+        DEBUG_LOG("Mod " <<m_mod->m_id <<": handle request failed " <<err);
+        if (callback == nullptr)
+            return;
+
+        const fiy_response_t response{
+            .status = -1,
+            .body = err.c_str(),
+            .body_len = err.size(),
+            .headers = "",
+        };
+        callback(&response, context);
+    };
+
+    if (m_https)
+        g_fiy->m_https.request(m_uri, net_req, cb, err_cb);
+    else
+        g_fiy->m_http.request(m_uri, net_req, cb, err_cb);
 }

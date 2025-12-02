@@ -13,7 +13,7 @@
 static const fiy_host_info_t* g_host_info;
 
 static void handle_request(fiy_request_t* _request, fiy_callback_t callback) {
-    auto req = (fiy::Request*) _request;
+    const auto* req = (fiy::Request*) _request;
 
     std::string body = "<ul>";
     body += "<b>Method: </b>";
@@ -56,7 +56,9 @@ extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
         .on_request=handle_request,
         .delete_user = [](const char* username) {
             std::cout <<"User deleted: " <<username <<std::endl;
-        }
+        },
+        .id = "example.cpp",
+        .version = "0.0"
     };
     return &mod_info;
 }

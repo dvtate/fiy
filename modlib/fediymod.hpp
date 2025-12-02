@@ -193,6 +193,9 @@ namespace fiy {
         [[nodiscard]] const char* method_str() const {
             return fiy_http_verb_strings[method];
         }
+        [[nodiscard]] static const char* method_str(const uint8_t method) {
+            return fiy_http_verb_strings[method];
+        }
         [[nodiscard]] bool is_local() const {
             return user != nullptr && domain == nullptr;
         }

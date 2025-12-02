@@ -379,7 +379,9 @@ void delete_user(const char* username) {
 extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
     static fiy_mod_info_t mod_info = {
         .on_request = handle_request,
-        .delete_user = nullptr
+        .delete_user = nullptr,
+        .id="fiy.contacts",
+        .version = "0.0"
     };
     g_host_info = *host_info;
 

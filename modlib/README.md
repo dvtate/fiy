@@ -2,8 +2,9 @@
 Fediy mods are federated apps that run on top of Fediy.
 
 ## Module.json
-This file contains relevant information about the mod. For example: this would work for the demo mod
+This section describes the module.json file which contains relevant information about the mod.
 
+For example: this would work for the demo mod
 ```json
 {
     "id": "demo",
@@ -17,6 +18,49 @@ This file contains relevant information about the mod. For example: this would w
     "path": "demo"
 }
 ```
+
+### `id`
+A globally unique name given to the mod to facilitate federation. Ideally this should be in reverse domain name notation in order to eliminate namespace collisions. Some built-in and example mods may not follow this notation. 
+
+Examples:
+- org.fediy.chat
+- com.example.app
+
+### `version`
+Version of the module. Currently, this only matters to inform admins that updates may be available.
+
+In the future the first number would indicate breaking changes and the second number indicates patches, minor feature additions, etc.
+
+The mod can also provide this value.
+
+### `name`
+User understandable name for the mod.
+
+### `description`
+User understandable description for the mod.
+
+### `icon`
+Path to an icon that represents the mod. The path should be served by the mod.
+
+ie - /icon.png should be accessible as <instance>/<mod>/icon.png
+
+### `enabled`
+Should this mod be enabled or not?
+
+### `connector`
+How does the fediy protocol server communicate with this mod?
+- For now, the options are `"shared_object"`, `"http"` or `"https"`
+
+### `connector_uri`
+Where does the fediy protocol server communicate with this mod?
+- `/opt/fediy/mods/demo/module.so` -- shared_object
+- `cloud.example.com:3000` -- http/https
+
+### `path`
+Default path for this mod. For example, "chat" would make the mod accessible via
+- chat.example.com and example.com/chat
+
+- user can override this
 
 ## TODO
 - struct fiy_user_t ?

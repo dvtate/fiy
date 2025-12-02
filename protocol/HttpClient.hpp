@@ -44,7 +44,6 @@ public:
         m_err_cb(std::move(err_cb))
     {}
 
-
     // Start the asynchronous operation
     void run() {
         // Look up the domain name

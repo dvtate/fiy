@@ -364,7 +364,7 @@ void Peers::request_peer(
             return;
         auto headers_str = get_headers_string(res);
         const fiy_response_t response{
-            .status = (int) res.result(),
+            .status = static_cast<int>(res.result_int()),
             .body = res.body().data(),
             .body_len = res.body().size(),
             .headers = headers_str.c_str(),

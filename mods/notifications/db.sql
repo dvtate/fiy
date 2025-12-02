@@ -2,7 +2,7 @@
 
 CREATE TABLE Notifications (
     id INTEGER PRIMARY KEY,
-    appid TEXT,
+    modid TEXT,
     title TEXT,
 
     --
@@ -11,13 +11,15 @@ CREATE TABLE Notifications (
     -- Where to send the user if they click on it
     link TEXT,
 
-    -- Unix timestamp the message was created at
+    -- Unix timestamp the notif was created at
     ts INTEGER,
+
+    -- Unix timestamp the notif was viewed at
+    viewTs INTEGER,
 
     -- What notification state
     -- 0 - not viewed
     -- 1 - viewed
-    -- 2 - cleared
+    -- 2 - archived
     status INTEGER DEFAULT 0
-
 );
