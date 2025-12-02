@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "../../../third_party/json/include/nlohmann/json.hpp"
+#include "../../../third_party/json/single_include/nlohmann/json.hpp"
 
 /**
  * Get timezone database entries from the system
