@@ -27,6 +27,7 @@ function build_contacts_mod {
 }
 
 # Run build tasks in parallel
-build_cpp "$1" &
-build_contacts_mod &
-wait
+build_cpp "$1" & CPP_PID=$!
+build_contacts_mod & CONTACTS_PID=$!
+wait $CPP_PID || exit 1
+wait $CONTACTS_PID || exit 2
