@@ -69,9 +69,6 @@ namespace Crypto {
         return ret;
     }
 
-    std::string gpg_encrypt_text(const std::string& pubkey, const std::string& data);
-    std::string gpg_sign(const std::string& privkey, const std::string& data);
-
     namespace SSL {
         EVP_PKEY* load_private_key_from_pem(const std::string& privkey_pem);
         std::string encrypt(const std::string& pubkey, const std::string& data);

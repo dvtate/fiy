@@ -1,11 +1,8 @@
-#include <gpgme.h>
-
 #include "FIY.hpp"
 
 #include "Server/util.hpp"
 
 #include "Peers.hpp"
-
 
 Peers::Peers() {
     m_cron = std::thread([this]() {
