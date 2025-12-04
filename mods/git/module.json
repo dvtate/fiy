@@ -1,0 +1,8 @@
+{
+  "name":"Giy-IY",
+  "description": "Federated Git Hosting and Collaboration",
+  "enabled": true,
+  "icon": "git.png",
+  "connector": "shared_object",
+  "path": "git"
+}
