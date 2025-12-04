@@ -13,11 +13,11 @@
 #include <filesystem>
 #include <algorithm>
 #include <cctype>
+
 #include <boost/beast/core/detail/base64.hpp>
 
 #include "../../../util/CGI.hpp"
 #include "../../../modlib/fediymod.hpp"
-#include "../../../util/Crypto.hpp"
 
 extern fiy::HostInfo g_host_info;
 
@@ -134,15 +134,15 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
             ret.status = atoi(line.substr(i + 1, line.find(' ')).c_str()); // TODO use strtol + string_view
             if (ret.status == 0)
                 ret.status = 500;
-            std::cout <<" Status: " << ret.status << std::endl;
+            // std::cout <<" Status: " << ret.status << std::endl;
         } else if (header == "Content-Length") {
             // Extra Validation later
             ret.body_len = atoi(line.substr(i + 1 ).c_str());  // TODO use strtol + string_view
             ret.add_header(line);
-            std::cout <<" Content-length" << ret.body_len << std::endl;
+            // std::cout <<" Content-length" << ret.body_len << std::endl;
         } else {
             ret.add_header(line);
-            std::cout <<"Header: " << line << std::endl;
+            // std::cout <<"Header: " << line << std::endl;
         }
         start = end + 2;
     } while (end != std::string::npos && start < s.size() && s[start] != '\n');
@@ -151,7 +151,7 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
     if (end != std::string::npos) {
         // Body length
         ret.body = s.c_str() + start; // extra \r\n
-        size_t body_len = s.size() - start - 1;
+        size_t body_len = s.size() - start;
         if (ret.body_len != 0 && body_len != ret.body_len) {
             g_host_info.log(2, "Incorrect Content-Length header");
         }
@@ -170,7 +170,6 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
     CGI cgi{{"git", "http-backend" }};
 
     cgi.REQUEST_METHOD = req.method_str();
-    cgi.CONTENT_TYPE = req.find_header("content-type");
     if (req.body != nullptr) {
         cgi.CONTENT_LENGTH = std::to_string(req.body_len);
         cgi.body = std::string(req.body, req.body_len);
@@ -195,7 +194,14 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
     cgi.REMOTE_USER = req.user_str();
 
     // Add other http headers altho probably not needed
+    // std::cout <<"Headers string: "
+    //     << (req.headers == nullptr ? "null" : req.headers)
+    //     << "\n=========================\n";
     for (const auto& [h , v] : req.headers_map()) {
+        if (h == "content-type") {
+            cgi.CONTENT_TYPE = v;
+            continue;
+        }
         std::string ev = "HTTP_";
         ev += h;
         for (size_t i = 4; i < ev.size(); i++)
@@ -204,20 +210,28 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
             else
                 ev[i] = std::toupper(ev[i]);
         cgi.set_env(ev, std::string(v));
+        // std::cerr << "Set header env: '" <<ev <<"' = '" << v << "'\n";
     }
 
     auto r = cgi.run();
     if (r.status != 0 || r.stdout.empty()) {
+        g_host_info.log(1, "git http-backend cgi failed");
         req.respond(cb, 500, "Git CGI failed");
-        std::cerr <<"\nstatus: " << r.status << std::endl;
-        std::cerr <<"\nstdout: " << r.stdout << std::endl;
-        std::cerr <<"err!\n";
+        // std::cerr <<"\nstatus: " << r.status << std::endl;
+        // std::cerr <<"\nstdout: " << r.stdout << std::endl;
+        // std::cerr <<"err!\n";
+        //
+        // for (auto& e : cgi.get_env())
+        //     std::cout <<"env: '" <<e <<"'\n";
+        //
+        // std::cerr << "\n====================================\nBody:"
+        //     << cgi.body << "\n====================================\n";
         return;
     }
 
-    std::cout << "--------------------------------------------\n";
-    std::cout << "\nCGI Result: " <<r.stdout << std::endl;
-    std::cout << "--------------------------------------------\n";
+    // std::cout << "--------------------------------------------\n";
+    // std::cout << "\nCGI Result: " <<r.stdout << std::endl;
+    // std::cout << "--------------------------------------------\n";
     req.respond(cb, parse_cgi_output(r.stdout));
 }
 
@@ -227,4 +241,5 @@ void git_repo_auth(const fiy::Request& req, fiy_callback_t cb) {
         // git http password auth handled by protocol server
     }
 
+    // TODO
 }

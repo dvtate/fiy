@@ -13,6 +13,8 @@
 #include "Contact.hpp"
 #include "DB.hpp"
 
+// TODO replace this with FileCache?
+
 extern fiy::HostInfo g_host_info;
 
 namespace Pages {

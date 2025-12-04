@@ -20,6 +20,9 @@ function build_cpp {
 # Build contacts mod which has uses TS/JS+webpack
 # TODO make a separate cmake module for it and run npm commands from it
 function build_contacts_mod {
+    if [ $SKIP_CONTACTS -eq 1 ]; then
+        return 0
+    fi
     cd mods/contacts/frontend
     npm install
     npm run build

@@ -18,8 +18,7 @@
 #include "Server/util.hpp"
 
 /// Message passed to shared library
-class ModDllConnectorRequest : public fiy_request_t {
-public:
+struct ModDllConnectorRequest : public fiy_request_t {
     std::shared_ptr<Session> m_conn;
 
     explicit ModDllConnectorRequest(std::shared_ptr<Session> conn):
@@ -37,13 +36,14 @@ public:
         this->user = (user.user.empty() || user.user == " ")
                      ? nullptr
                      : new_cstr_from_string(user.user);
-        this->headers = nullptr;
+        set_this_headers(m_conn->req().base());
     }
 
     virtual ~ModDllConnectorRequest() {
         delete[] this->body;
         delete[] this->path;
         delete[] this->user;
+        delete[] this->headers;
     }
 
     void remove_from_task_queue() {
@@ -69,6 +69,20 @@ public:
         ret[l] = '\0';
         return ret;
     }
+    void set_this_headers(const boost::beast::http::fields& f) {
+        std::string ret;
+        for (const auto& h : f) {
+            ret += h.name_string();
+            ret += ": ";
+            ret += h.value();
+            ret += "\r\n";
+        }
+        // Copy but skip trailing \r\n
+        char* p = new char[ret.size() - 1];
+        memset(p, 0, ret.size() - 1);
+        strncpy(p, ret.data(), ret.size() - 2);
+        this->headers = p;
+    }
 };
 
 struct ModDLLHostInfo : fiy_host_info_t {
@@ -77,7 +91,7 @@ struct ModDLLHostInfo : fiy_host_info_t {
     std::string m_data_dir;
 
     explicit ModDLLHostInfo(Mod* mod) {
-        this->log = [](int n, const char* s){
+        this->log = [](const int n, const char* s){
             static const char* types[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG" };
             const char* type_str;
             if (n > 5 || n < 0) {
@@ -87,7 +101,7 @@ struct ModDLLHostInfo : fiy_host_info_t {
                 type_str = types[n];
             }
 
-            std::cout <<"Mod: " <<type_str <<": " <<s <<std::endl;
+            std::cerr <<"Mod: " <<type_str <<": " <<s <<std::endl;
         };
         this->now = []() { return g_fiy->now(); };
 

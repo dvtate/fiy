@@ -18,7 +18,8 @@ CREATE TABLE OrgMembers (
 CREATE TABLE Repos (
     id INTEGER PRIMARY KEY,
     userName TEXT NOT NULL,
-    name TEXT NOT NULL,
+    repoName TEXT NOT NULL,
+    description TEXT DEFAULT NULL,
 
     -- Who can see this field?
     -- 0 = only me/people I share to
@@ -27,15 +28,15 @@ CREATE TABLE Repos (
     -- 3 = public
     visibility INTEGER DEFAULT 0,
 
-    UNIQUE(id, name)
+    UNIQUE(userName, repoName)
 );
 
 CREATE TABLE RepoAccess (
     userName TEXT NOT NULL,     -- Users.name (can be on another domain)
-    repoName TEXT NOT NULL,         -- user[@domain]/repo
+    repoPath TEXT NOT NULL,     -- user[@domain]/repo
     level INTEGER DEFAULT 0,    -- 0 for read-only, 1 if they can also push
 
-    UNIQUE(userName, repoName)
+    UNIQUE(userName, repoPath)
 );
 
 CREATE TABLE Contributions (

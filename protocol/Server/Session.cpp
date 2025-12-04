@@ -1,23 +1,82 @@
 //
 // Created by tate on 7/24/25.
 //
+#include "Session.hpp"
+
+#include <cstdlib>
+#include <iostream>
+#include <thread>
+
+// #include <boost/beast/version.hpp>
+#include <boost/asio/dispatch.hpp>
+#include <boost/config.hpp>
+
 #include "../util/WebUtils.hpp"
 #include "../FIY.hpp"
 
 #include "Router.hpp"
-#include "Session.hpp"
 
+void Session::run() {
+    // We need to be executing within a strand to perform async operations
+    // on the I/O objects in this session. Although not strictly necessary
+    // for single-threaded contexts, this example code is written to be
+    // thread-safe by default.
+    boost::asio::dispatch(m_stream.get_executor(),
+        boost::beast::bind_front_handler(
+            &Session::do_read,
+            shared_from_this()
+        )
+    );
+}
+
+void Session::respond(boost::beast::http::message_generator&& res) {
+    bool keep_alive = res.keep_alive();
+
+    // Write the response
+    boost::beast::async_write(
+        m_stream,
+        std::move(res),
+        boost::beast::bind_front_handler(
+            &Session::on_write,
+            shared_from_this(),
+            keep_alive
+        )
+    );
+}
+
+void Session::close() {
+    // Send a TCP shutdown
+    boost::beast::error_code ec;
+    m_stream.socket().shutdown(tcp::socket::shutdown_send, ec);
+
+    // At this point the connection is closed gracefully
+}
+
+void Session::do_read() {
+    // Make the request empty before reading,
+    // otherwise the operation behavior is undefined.
+    m_req = {};
+
+    // Set the timeout.
+    // m_stream.expires_after(std::chrono::seconds(30));
+
+    // Read a request
+    boost::beast::http::async_read(m_stream, m_buffer, m_req,
+         boost::beast::bind_front_handler(
+             &Session::on_read,
+             shared_from_this()));
+}
 
 void Session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred) {
     boost::ignore_unused(bytes_transferred);
 
     // This means they closed the connection
-    // FIXME why does this close the session?
     if (ec == boost::beast::http::error::end_of_stream) {
-        DEBUG_LOG("end of stream, connection closed");
+        // DEBUG_LOG("end of stream, connection closed");
         return close();
     }
 
+#ifdef DEBUG_LOG
     if (ec) {
         std::cerr <<"HTTP Session Read failed: " << ec.message() <<'\n';
         auto bd = (char*) m_buffer.data().data();
@@ -34,8 +93,30 @@ void Session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred
         std::cout <<std::endl;
         return;
     }
+#endif
 
     route_request(shared_from_this());
+}
+
+
+void Session::on_write(
+    bool keep_alive,
+    boost::beast::error_code ec,
+    std::size_t bytes_transferred
+) {
+    boost::ignore_unused(bytes_transferred);
+
+    if (ec) {
+        std::cerr <<"HTTP Session Write failed: " <<ec.message() <<'\n';
+        return;
+    }
+
+    // This means we should close the connection, usually because
+    // the response indicated the "Connection: close" semantic.
+    if (!keep_alive)
+        return close();
+
+    do_read();
 }
 
 
@@ -100,18 +181,18 @@ Session::User Session::find_user() {
         return { .domain=nullptr, .user=u->get_username() };
 
     // Peer authentication
-    auto it = m_req.find("Fiy-Peer");
+    const auto it = m_req.find("Fiy-Peer");
     if (it == m_req.end() || it->value().empty()) {
 //    if (*it.empty()) {
 //        std::cout << "missing auth token\n";
         return unauthenticated;
     }
-    auto peer = g_fiy->m_peers.get_peer_from_token(it->value());
+    const auto peer = g_fiy->m_peers.get_peer_from_token(it->value());
     if (!peer) {
         DEBUG_LOG("Invalid peer auth token: " << it->value());
         return unauthenticated;
     }
-    auto user = m_req.at("Fiy-User");
+    const auto user = m_req.at("Fiy-User");
     DEBUG_LOG("remote user authenticated\n");
     return { .domain=peer->m_domain, .user=user };
 }

@@ -8,9 +8,12 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 template <auto(*GetBaseDirFunctor)(void)>
 struct FileCache {
+
+    using ReplacementMap = std::vector<std::pair<std::string, std::string>>;
 
     /// Load entire file contents into a string
     /// returns "" if file could not be opened
@@ -82,9 +85,10 @@ struct FileCache {
         return haystack;
     }
 
+    template <class Replacements>
     static std::string replace_all(
         std::string template_string,
-        const std::vector<std::pair<std::string_view, std::string_view>>& replacements
+        const Replacements& replacements
     ) {
         for (const auto& [ from, to ] : replacements)
             template_string = replace_all(std::move(template_string), from, to);

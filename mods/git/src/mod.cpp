@@ -7,15 +7,10 @@
 #include "../../../modlib/fediymod.hpp"
 
 #include "git_http_backend.hpp"
-#include "pages.hpp"
+#include "Pages.hpp"
 
 fiy::HostInfo g_host_info;
 
-
-// after auth forward request to the git http cgi
-// then parse output, split on \r\n\r\n to get headers v body
-
-// #include "../../../util/CGI.hpp"
 
 void repo_create_page(const fiy::Request& req, const fiy_callback_t cb) {
     std::string p = "<form method='POST'>"
@@ -38,7 +33,11 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     std::string_view path = req.path;
 
     if (path == "/") {
-        req.respond(cb, 200, "Welcome to Git-IY -- Federated Git hosting!");
+        static constexpr char file_path[] = "/landing.html";
+        req.respond(cb, 200,
+            Pages::file_contents<file_path>(),
+            "Content-Type: text/html; charset=utf-8\nCache-Control: max-age=604800"
+        );
         return;
     }
 

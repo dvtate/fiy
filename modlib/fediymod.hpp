@@ -262,6 +262,7 @@ namespace fiy {
          * @param key HTTP header key to find
          * @return First value associated with given header
          */
+        // FIXME
         [[nodiscard]] std::string_view find_header(const std::string_view key) const {
             if (this->headers == nullptr)
                 return "";
@@ -307,15 +308,16 @@ next_field:
 
             std::string_view fields = this->headers;
             std::size_t start = 0;
+            std::string key;
+            key.reserve(32);
             do {
                 // Find colon
-                const std::size_t end = fields.find(':', start);
+                std::size_t end = fields.find(':', start);
                 if (end == std::string_view::npos)
                     return ret;
 
                 // Convert key to lower case
-                std::string key;
-                key.reserve(end - start);
+                key.clear();
                 for (size_t i = 0; i < end - start; i++)
                     key += static_cast<char>(tolower(fields[start + i]));
 
@@ -325,7 +327,13 @@ next_field:
                     start = fields.size();
 
                 // Put it into the map
-                ret.emplace(std::move(key), fields.substr(end + 1, start - end - 1));
+                end++;
+                if (fields[end] == ' ')
+                    end++;
+                auto v = fields.substr(end, start - end);
+                if (v.back() == '\r')
+                    v.remove_suffix(1);
+                ret.emplace(key, v);
 
                 // Check next field
                 start++; // after \n

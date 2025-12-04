@@ -61,6 +61,10 @@ struct CGI {
     }
 
     Result run() const {
+        return run_cmd(args, get_env(), body);
+    }
+
+    std::vector<std::string> get_env() const {
         // Construct environment variables
         std::vector<std::string> env = m_env;
         static const std::string gateway_interface =
@@ -98,14 +102,9 @@ struct CGI {
             env.emplace_back("SERVER_PROTOCOL=" + SERVER_PROTOCOL);
         if (!SERVER_SOFTWARE.empty())
             env.emplace_back("SERVER_SOFTWARE=" + SERVER_SOFTWARE);
-
-        // std::cout <<"env.size() = " << env.size() << std::endl;
-        // for (auto& e : env)
-        //     std::cout <<"env: " <<e <<std::endl;
-        return run_cmd(args, env, body);
+        return env;
     }
 
-protected:
     static Result run_cmd(
         const std::vector<std::string>& argv,
         const std::vector<std::string>& env,

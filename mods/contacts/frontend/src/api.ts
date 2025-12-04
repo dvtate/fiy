@@ -9,7 +9,6 @@ export async function getUserContacts() {
     return await r.text();
 }
 
-
 export async function importSafeVcfString(vcf: string) {
     const r = await fetch(base_uri + '/save', {
         method: 'POST',
@@ -28,7 +27,6 @@ export async function deleteContact(contact: VC) {
     });
     return r.text();
 }
-
 
 export interface TzDb {
     version: string,
