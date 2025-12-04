@@ -157,7 +157,8 @@ protected:
 
         // Write stdin
         if (!stdin_input.empty())
-            write(pipe_stdin[1], stdin_input.data(), stdin_input.size());
+            if (write(pipe_stdin[1], stdin_input.data(), stdin_input.size()) < 0)
+                perror("write()");
         close(pipe_stdin[1]); // send EOF
 
         // Read stdout

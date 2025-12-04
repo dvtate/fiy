@@ -86,14 +86,14 @@ struct FileCache {
         std::string template_string,
         const std::vector<std::pair<std::string_view, std::string_view>>& replacements
     ) {
-        for (const auto [ from, to ] : replacements)
+        for (const auto& [ from, to ] : replacements)
             template_string = replace_all(std::move(template_string), from, to);
         return template_string;
     }
 
     /// Get cached contents of file as a string
     template<class Replacements>
-    [[nodiscard]] static const std::string&
+    [[nodiscard]] static std::string
     mustache(std::string template_string, const Replacements& rules) {
         std::size_t i = 0;
         while ((i = template_string.find("{{", i)) != std::string::npos) {
