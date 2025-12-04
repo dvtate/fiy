@@ -15,6 +15,7 @@ See [built-in apps in /apps](../mods).
 - Chat-IY: Matrix competitor
     - text, vc, teams, etc.
     - some features may require websockets/webrtc
+- BBS-IY: Lemmy/reddit competitor
 - Social-IY: Mastodon competitor
 - Contacts: Rolodex
 - Wiki-IY: mediawiki killer

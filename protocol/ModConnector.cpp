@@ -415,10 +415,6 @@ void ModNetConnector::handle_request(std::shared_ptr<Session> conn) {
         g_fiy->m_http.request(m_uri, conn->req(), cb, err_cb);
 }
 
-ModNetConnector::~ModNetConnector() {
-    ModNetConnector::stop();
-}
-
 void ModNetConnector::delete_user(const char* user) {
     boost::beast::http::request<boost::beast::http::empty_body> req;
     req.target("/user");
@@ -429,12 +425,10 @@ void ModNetConnector::delete_user(const char* user) {
 
     auto cb = [this] (auto resp) {
         if (resp.result_int() != 200)
-            DEBUG_LOG("Mod " <<m_mod->m_id <<": failed to stop: HTTP " <<resp.result());
-        else
-            DEBUG_LOG("Mod " <<m_mod->m_id <<": stopped");
+            LOG("Mod " <<m_mod->m_id <<": failed to delete user: HTTP code " <<resp.result());
     };
     auto err_cb = [this, user] (auto err) {
-        DEBUG_LOG("Mod " <<m_mod->m_id <<": failed to delete user: " <<user);
+        LOG("Mod " <<m_mod->m_id <<": failed to delete user: " <<user <<" -- " <<err);
     };
 
     if (m_https)

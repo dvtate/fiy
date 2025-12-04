@@ -12,18 +12,23 @@
 
 using namespace kainjow;
 
+std::string fiy_templates_dir() {
+    return g_fiy->m_config.m_data_dir + "/pages/";
+}
+
+
 mustache::mustache Pages::open_mustache_file(std::string&& path) {
-    std::string ret = load_file_as_string(std::move(path));
+    const std::string ret = load_file_as_string(path);
     // TODO fix or replace mustache instead of this
     return std::regex_replace(ret, std::regex("\\{\\{domain\\}\\}"), g_fiy->m_config.m_hostname);
 }
 
-Pages::Pages(): FileCache(g_fiy->m_config.m_data_dir + "/pages/" ) {
+Pages::Pages() {
 //    mustache::data global_data;
 //    global_data.set("domain", g_app->m_config.m_hostname);
 
     // Load templates with global data already filled in
-    const auto dir = prefix();
+    const auto& dir = prefix();
     m_portal_apps_template = open_mustache_file(dir + "home.html");//.render(global_data);
     m_portal_settings_template = open_mustache_file(dir + "settings.html");//.render(global_data);
     m_login_template = open_mustache_file(dir + "login.html");//.render(global_data);

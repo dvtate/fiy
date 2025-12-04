@@ -33,6 +33,28 @@ With this roadmap, and the pages below, it would probably take about a man-year 
 
 
 ## Pages
+- **GET** `/` (auth): activity overview page
+- **GET** `/` (guest): About Git-IY
+
+- **GET** `/repo/create` (auth): create a new repo
+- **POST** `/repo/create` (auth):
+
+- `/api` (APIs for federated instances):  
+  - **GET** `/api/<user>`: basic user info
+  - **GET** `/api/<user>/repo/<repo>`: basic repo info
+  - ...
+
+- **GET** /settings
+
+- **GET** `/<user>` or `/@<user>`: user overview page
+  - `@` prefix in case username is 'api', 'settings', 'repo', etc. 
+  - ?tab=<tab> :
+    - connections: user followers+following
+    - activity: user activity overview
+    - ...
+- **GET** `/<user>/<repo>`: repo page
+- **GET** `/<user>/<repo>.git`: forward to the 
+
 - Organization page
   - Organization members
   - Settings

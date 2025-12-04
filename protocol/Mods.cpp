@@ -5,18 +5,23 @@
 #include "Mods.hpp"
 
 void Mods::find_modules() {
-    auto mods_dir = g_fiy->m_config.m_data_dir + "/mods";
+    const auto mods_dir = g_fiy->m_config.m_data_dir + "/mods";
     std::string fail_reason;
 
-    // TODO parallel
     for (auto& p : std::filesystem::directory_iterator(mods_dir))
         if (p.is_directory()) {
             auto&& id = p.path().filename().string();
-            m_mods.emplace_back(new Mod(id));
+            auto* m = new Mod(id);
+            if (!m->m_enabled) {
+                DEBUG_LOG("Mod" <<m->m_id <<" is disabled.");
+                delete m;
+                continue;
+            }
+            m_mods.emplace_back(m);
         }
 
     // m_mtx should be locked for write
-    auto mod_count = m_mods.size();
+    const size_t mod_count = m_mods.size();
     m_mods_lookup.reserve(mod_count * 2);
 
     // Add lookup by id

@@ -4,7 +4,7 @@
   "name": "Contacts",
   "description": "Manage your public profile and contacts",
   "icon": "icon.png",
-  "enabled": false,
+  "enabled": true,
   "connector": "shared_object",
   "path": "contacts"
 }

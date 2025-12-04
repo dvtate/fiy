@@ -19,13 +19,15 @@ class Mod;
  */
 class ModConnector {
 public:
-    /// Relevant apps
+    /// Owner
     Mod* m_mod{nullptr};
 
+    /// Where can we connect to it?
     std::string m_uri;
 
     ModConnector(Mod* mod, std::string path): m_mod(mod), m_uri(std::move(path)) {}
-    virtual ~ModConnector() = default;
+
+    virtual ~ModConnector() = default; // owning mod should call stop before destructor
 
     /// Initialize the app
     virtual bool start() = 0;
@@ -41,9 +43,10 @@ public:
         void (*callback)(const fiy_response_t*, void*)
     ) = 0;
 
+    /// Handle user data deletion request
     virtual void delete_user(const char* user) = 0;
 
-    // IPC interface
+    /// IPC interface
     enum class Type {
         SHARED_LIBRARY,     // .so file
         NETWORK,            // HTTP/HTTPS
@@ -53,10 +56,9 @@ public:
     [[nodiscard]] virtual Type type() = 0;
 };
 
-
-// Communicates with the module by dynamically linking
 struct ModDLLHostInfo;
 
+/// Communicates with the module by dynamically linking
 class ModDLLConnector : public ModConnector {
     void* m_dl_handle{nullptr};
     fiy_mod_info_t* m_mod_info{nullptr};
@@ -65,14 +67,7 @@ class ModDLLConnector : public ModConnector {
 public:
     ModDLLConnector(Mod* mod, std::string path): ModConnector(mod, std::move(path)) {}
 
-    ~ModDLLConnector() {
-        ModDLLConnector::stop();
-    }
-
-    Type type() override {
-        return Type::SHARED_LIBRARY;
-    }
-
+    Type type() override { return Type::SHARED_LIBRARY; }
     bool stop() override;
     bool start() override;
     void delete_user(const char* user) override;
@@ -91,17 +86,13 @@ class ModNetConnector : public ModConnector {
     bool m_https;
 
 public:
+    // TODO uri could have a subpath component that needs to be separated
     ModNetConnector(Mod* mod, std::string path, const bool is_https = false):
         ModConnector(mod, std::move(path)),
         m_https(is_https)
     {}
 
-    ~ModNetConnector();
-
-    Type type() final {
-        return Type::NETWORK;
-    }
-
+    Type type() final { return Type::NETWORK; }
     bool start() override;
     bool stop() override;
     void delete_user(const char* user) override;

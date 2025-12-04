@@ -12,24 +12,28 @@ void Session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred
     boost::ignore_unused(bytes_transferred);
 
     // This means they closed the connection
-    if (ec == boost::beast::http::error::end_of_stream)
+    // FIXME why does this close the session?
+    if (ec == boost::beast::http::error::end_of_stream) {
+        DEBUG_LOG("end of stream, connection closed");
         return close();
-//    if (ec) {
-//        std::cerr <<"HTTP Session Read failed: " << ec.message() <<'\n';
-//        auto bd = (char*) m_buffer.data().data();
-//        size_t i = 0;
-//        std::cout <<"Buffer: ";
-//        while (i < m_buffer.size()) {
-//            size_t incr = (i+10) > m_buffer.size() ? (m_buffer.size() - i) : 10;
-//            for (size_t j = 0; j < incr; j++) {
-//                std::cout <<"" <<bd[i+j];
-//            }
-////            std::cout <<'\n';
-//            i+= incr;
-//        }
-//        std::cout <<std::endl;
-//        return;
-//    }
+    }
+
+    if (ec) {
+        std::cerr <<"HTTP Session Read failed: " << ec.message() <<'\n';
+        auto bd = (char*) m_buffer.data().data();
+        size_t i = 0;
+        std::cout <<"Buffer: ";
+        while (i < m_buffer.size()) {
+            size_t incr = (i+10) > m_buffer.size() ? (m_buffer.size() - i) : 10;
+            for (size_t j = 0; j < incr; j++) {
+                std::cout <<"" <<bd[i+j];
+            }
+//            std::cout <<'\n';
+            i+= incr;
+        }
+        std::cout <<std::endl;
+        return;
+    }
 
     route_request(shared_from_this());
 }
@@ -46,20 +50,54 @@ std::map<std::string, std::string>& Session::get_cookies() {
     return m_cookies;
 }
 
+std::shared_ptr<LocalUser> Session::find_user_local() {
+    // Try using cookies
+    const auto& cookies = get_cookies();
+    const auto token = cookies.find("fiy_auth");
+    if (token != cookies.end())
+        return g_fiy->m_users.auth_user(token->second);
+
+    // Basic auth (used by git mod)
+    const auto it = m_req.find("Authorization");
+    if (it == m_req.end())
+        return nullptr;
+
+    // Get the encoded part
+    auto v = it->value();
+    if (!v.starts_with("Basic "))
+        return nullptr;
+    v.remove_prefix(6);
+
+    // Decode base64
+    namespace b64 = boost::beast::detail::base64;
+    const auto p = std::make_unique<char[]>(b64::decoded_size(v.size()));
+    b64::decode(p.get(), v.data(), v.size());
+
+    // Split username+password
+    std::string_view auth {p.get()};
+    const auto i = auth.find(':');
+    if (i == std::string_view::npos)
+        return nullptr;
+
+    // Check login
+    auto ret = DB::get_user(
+        std::string(auth.substr(0, i)),
+        std::string(auth.substr(i + 1))
+    );
+
+    // Remove header so that we don't forward valid password anywhere else
+    if (ret != nullptr)
+        m_req.erase(it);
+
+    return ret;
+}
 
 Session::User Session::find_user() {
     static const User unauthenticated = { .domain=nullptr, .user=" " };
-    auto& cookies = get_cookies();
 
     // Local User authentication
-    auto user_auth_token = cookies.find("fiy_auth");
-    if (user_auth_token != cookies.end()) {
-        auto user = g_fiy->m_users.auth_user(user_auth_token->second);
-        if (user == nullptr)
-            return unauthenticated;
-        else
-            return { .domain=nullptr, .user=user->get_username() };
-    }
+    if (const auto u = find_user_local(); u != nullptr)
+        return { .domain=nullptr, .user=u->get_username() };
 
     // Peer authentication
     auto it = m_req.find("Fiy-Peer");
@@ -76,15 +114,4 @@ Session::User Session::find_user() {
     auto user = m_req.at("Fiy-User");
     DEBUG_LOG("remote user authenticated\n");
     return { .domain=peer->m_domain, .user=user };
-}
-
-std::shared_ptr<LocalUser> Session::find_user_local() {
-    auto& cookies = get_cookies();
-    if (cookies.empty()) {
-        DEBUG_LOG("NO COOKIES?!");
-    }
-    auto user_auth_token = cookies.find("fiy_auth");
-    if (user_auth_token != cookies.end())
-        return g_fiy->m_users.auth_user(user_auth_token->second);
-    return nullptr;
 }

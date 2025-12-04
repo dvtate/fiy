@@ -39,6 +39,8 @@ struct CGI {
     std::string SERVER_PROTOCOL{"HTTP/1.1"};  // 4.1.16. SERVER_PROTOCOL
     std::string SERVER_SOFTWARE;  // 4.1.17. SERVER_SOFTWARE
 
+    std::vector<std::string> m_env;
+
     std::vector<std::string> args;
     std::string body;
 
@@ -50,13 +52,17 @@ struct CGI {
     {}
 
     struct Result {
-        int status;
-        std::string stdout;
+        int status{0};
+        std::string stdout{};
     };
 
-    std::string run() const {
+    void set_env(const std::string& var, const std::string& val) {
+        m_env.emplace_back(var + "=" + val);
+    }
+
+    Result run() const {
         // Construct environment variables
-        std::vector<std::string> env;
+        std::vector<std::string> env = m_env;
         static const std::string gateway_interface =
             std::string("GATEWAY_INTERFACE=") + GATEWAY_INTERFACE;
         env.push_back(gateway_interface);
@@ -93,7 +99,10 @@ struct CGI {
         if (!SERVER_SOFTWARE.empty())
             env.emplace_back("SERVER_SOFTWARE=" + SERVER_SOFTWARE);
 
-        auto r = run_cmd(args, env, body);
+        // std::cout <<"env.size() = " << env.size() << std::endl;
+        // for (auto& e : env)
+        //     std::cout <<"env: " <<e <<std::endl;
+        return run_cmd(args, env, body);
     }
 
 protected:
@@ -102,6 +111,8 @@ protected:
         const std::vector<std::string>& env,
         const std::string& stdin_input
     ) {
+        // TODO timeout
+
         // --- Create pipes ---
         int pipe_stdin[2], pipe_stdout[2];
         if (pipe(pipe_stdin) < 0 || pipe(pipe_stdout) < 0)
@@ -153,7 +164,7 @@ protected:
         Result ret;
         char buffer[4096];
         ssize_t n;
-        while (0 > (n = read(pipe_stdout[0], buffer, sizeof(buffer))))
+        while (0 < (n = read(pipe_stdout[0], buffer, sizeof(buffer))))
             ret.stdout.append(buffer, n);
         close(pipe_stdout[0]);
 

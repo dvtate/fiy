@@ -117,7 +117,7 @@ namespace fiy {
 
     protected:
         std::string m_headers;
-
+    public:
         void add_header(const std::string_view field, const std::string_view value) {
             m_headers += field;
             m_headers += ": ";
@@ -277,7 +277,7 @@ namespace fiy {
                 // Check if matching key
                 if (end == key.size()) {
                     for (size_t i = 0; i < end - start; i++)
-                        if (tolower(key[start + i]) != tolower(key[i]))
+                        if (tolower(fields[start + i]) != tolower(key[i]))
                             goto next_field;
 
                     // Return corresponding value
@@ -309,7 +309,7 @@ next_field:
             std::size_t start = 0;
             do {
                 // Find colon
-                std::size_t end = fields.find(':', start);
+                const std::size_t end = fields.find(':', start);
                 if (end == std::string_view::npos)
                     return ret;
 

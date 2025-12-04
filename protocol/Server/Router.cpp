@@ -244,7 +244,6 @@ static void login_post(std::shared_ptr<Session>&& conn) {
 //        return;
 //    }
 
-
     // Get auth token for user
     auto auth_token = g_fiy->m_users.login_user(username, std::move(password));
     if (auth_token.m_user == nullptr) {

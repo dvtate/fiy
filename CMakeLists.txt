@@ -123,6 +123,8 @@ add_library(contacts_mod SHARED
     mods/contacts/src/Pages.hpp
     third_party/base64.hpp
     mods/contacts/src/timezones.hpp
+    mods/git/src/git_http_backend.cpp
+    mods/git/src/git_http_backend.hpp
 )
 target_link_libraries(contacts_mod
     PRIVATE fediymod
@@ -132,6 +134,22 @@ target_link_libraries(contacts_mod
     PUBLIC dl
 )
 
+# Git builtin mod
+add_library(git_mod SHARED
+    modlib/fediymod.h
+    modlib/fediymod.hpp
+    mods/git/src/mod.cpp
+    mods/git/src/pages.hpp
+    mods/git/src/git_http_backend.hpp
+)
+target_link_libraries(git_mod
+    PRIVATE fediymod
+    PUBLIC SQLiteCpp
+    PUBLIC sqlite3
+    PUBLIC pthread
+    PUBLIC git2
+    PUBLIC dl
+)
 
 target_include_directories(contacts_mod PUBLIC
     third_party/SQLiteCpp/include

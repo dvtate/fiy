@@ -6,14 +6,18 @@
 
 #include <string>
 #include <string_view>
+#include <random>
+
+#include <boost/beast/core/detail/base64.hpp>
+
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
-#include <random>
-
 
 namespace Crypto {
+
+    namespace b64 = boost::beast::detail::base64;
 
     // TODO instead use one a more performant library
     inline std::string b64enc(const unsigned char* buffer, size_t length) {

@@ -4,7 +4,7 @@
   "name": "Mail",
   "description": "Demo to send and receive mail (lots of bugs)",
   "icon": "icon.png",
-  "enabled": false,
+  "enabled": true,
   "connector":"shared_object",
   "path":"mail"
 }

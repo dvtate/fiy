@@ -72,9 +72,10 @@ public:
     };
 
     // Metadata
+    std::string m_data_dir;
     std::string m_id;
-    std::string m_name;
     std::string m_path;
+    std::string m_name;
     std::string m_description;
     std::string m_icon;
     std::filesystem::file_time_type m_install_ts;

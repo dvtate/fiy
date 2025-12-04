@@ -13,15 +13,19 @@
 #include "HttpClient.hpp"
 #include "HttpsClient.hpp"
 
+class FIY;
+
+// Global Singleton set in main.cpp
+extern FIY* g_fiy;
 
 /**
  * Global protocol server app singleton
  */
 class FIY {
-    volatile std::time_t m_now;
+    volatile std::time_t m_now{0};
 
 public:
-    boost::asio::io_context* m_ioc;
+    boost::asio::io_context* m_ioc{nullptr};
 
     FediyConfig m_config;
     Peers m_peers;
@@ -42,6 +46,3 @@ public:
         return m_now;
     }
 };
-
-// Global Singleton set in main.c
-extern FIY* g_fiy;

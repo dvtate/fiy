@@ -18,11 +18,6 @@ namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
-// Report a failure
-void fail(beast::error_code ec, char const* what) {
-    std::cerr << what << ": " << ec.message() << "\n";
-}
-
 // Accepts incoming connections and launches the sessions
 class Listener : public std::enable_shared_from_this<Listener> {
     net::io_context& m_ioc;
@@ -78,14 +73,19 @@ private:
                 shared_from_this()));
     }
 
+    // Report a failure
+    void fail(beast::error_code ec, char const* what) {
+        std::cerr << what << ": " << ec.message() << "\n";
+    }
+
     void on_accept(beast::error_code ec, tcp::socket socket) {
         if (ec) {
             fail(ec, "accept");
             return; // To avoid infinite loop
-        } else {
-            // Create the session and run it
-            std::make_shared<Session>(std::move(socket))->run();
         }
+
+        // Create the session and run it
+        std::make_shared<Session>(std::move(socket))->run();
 
         // Accept another connection
         do_accept();

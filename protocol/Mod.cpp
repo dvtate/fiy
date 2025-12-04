@@ -13,7 +13,8 @@
 }
 
 Mod::Mod(std::string id) {
-    m_id = std::move(id);
+    m_data_dir = std::move(id);
+    m_id = m_data_dir;
     m_path = m_id;
 
     // Set error and log
@@ -42,12 +43,12 @@ Mod::Mod(std::string id) {
         auto conf_id = conf.at("id");
         if (!conf_id.is_string()) {
             err("module.json: \"id\" should be a string");
+        } else {
+            auto new_id = conf_id.get<std::string>();
+            if (m_id != new_id)
+                err("module.json: \"id\" field does not match directory name, the mod may not work");
+            m_id = new_id;
         }
-
-        auto new_id = conf_id.get<std::string>();
-        if (m_id != new_id)
-            err("module.json: \"id\" field does not match directory name, the mod may not work");
-        m_id = new_id;
     }
 
     // Get routing path
@@ -55,9 +56,10 @@ Mod::Mod(std::string id) {
         auto path = conf.at("path");
         if (!path.is_string()) {
             err("module.json: \"path\" should contain a uri component string");
+        } else {
+            // TODO validate uri component
+            m_path = path.get<std::string>();
         }
-        // TODO validate uri component
-        m_path = path.get<std::string>();
     }
 
     // Get name
@@ -67,8 +69,9 @@ Mod::Mod(std::string id) {
         auto name = conf.at("name");
         if (!name.is_string()) {
             err("module.json: \"name\" should be a string");
+        } else {
+            m_name = name.get<std::string>();
         }
-        m_name = name.get<std::string>();
     }
 
     // Get version
@@ -76,8 +79,9 @@ Mod::Mod(std::string id) {
         auto version = conf.at("version");
         if (!version.is_string()) {
             err("module.json: \"version\" should be a string of format NN.nn");
+        } else {
+            m_version = Mod::Version(version.get<std::string>());
         }
-        m_version = Mod::Version(version.get<std::string>());
     } else {
         // err("module.json: missing key: version");
     }
@@ -89,8 +93,9 @@ Mod::Mod(std::string id) {
         auto description = conf.at("description");
         if (!description.is_string()) {
             err("module.json: \"description\" should be a string");
+        } else {
+            m_description = description.get<std::string>();
         }
-        m_description = description.get<std::string>();
     }
 
     // Set up IPC (order matters)
@@ -99,18 +104,21 @@ Mod::Mod(std::string id) {
         auto p = conf.at("connector_uri");
         if (!p.is_string()) {
             err("module.json: \"connector_uri\" should be a string");
+        } else {
+            connector_uri = p.get<std::string>();
         }
-        connector_uri = p.get<std::string>();
     }
     if (!conf.contains("connector")) {
         err("module.json: missing key: connector");
     } else {
         auto t = conf.at("connector");
+        std::string ts;
         if (!t.is_string()) {
             err("module.json: \"connector\" should be either \"shared_object\", \"socket\" or \"tcp\"");
+        } else {
+            ts = t.get<std::string>();
         }
 
-        const auto ts = t.get<std::string>();
         if (ts == "http" || ts == "https") {
             if (connector_uri.empty()) {
                 err("module.json: \"connector_uri\" must be defined when \"ipc\" is set to \"" + ts + "\"");
@@ -158,13 +166,14 @@ Mod::Mod(std::string id) {
         auto icon = conf.at("icon");
         if (!icon.is_string()) {
             err("module.json: \"icon\" should be a string containing the icon file name");
+        } else {
+            m_icon = std::string(mp) + "/" + icon.get<std::string>();
         }
-        m_icon = std::string(mp) + "/" + icon.get<std::string>();
     }
 
     // Get install ts
     try {
-        m_install_ts = last_write_time(mp);
+        m_install_ts = std::filesystem::last_write_time(mp);
     } catch (const std::filesystem::filesystem_error& e) {
         LOG_ERR("Mod::load: failed to get fs::last_write_time" <<e.what());
     }

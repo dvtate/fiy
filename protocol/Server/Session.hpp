@@ -64,8 +64,8 @@ public:
     inline Req& req() { return m_req; };
     std::map<std::string, std::string>& get_cookies();
     void clear_cookie_cache() { m_cookies.clear(); }
-    User find_user();
     std::shared_ptr<LocalUser> find_user_local();
+    User find_user();
 
     void run() {
         // We need to be executing within a strand to perform async operations
@@ -99,6 +99,7 @@ public:
     boost::beast::http::message_generator prep(boost::beast::http::response<T> msg) {
         msg.keep_alive(m_req.keep_alive());
         msg.prepare_payload();
+        // std::cout << "Keep-Alive: " << msg.keep_alive() << std::endl;
         return boost::beast::http::message_generator(std::move(msg));
     }
 
@@ -106,6 +107,8 @@ public:
         // Send a TCP shutdown
         boost::beast::error_code ec;
         m_stream.socket().shutdown(tcp::socket::shutdown_send, ec);
+
+        // std::cout <<"closing socket.\n";
 
         // At this point the connection is closed gracefully
     }

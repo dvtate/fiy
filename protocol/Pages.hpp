@@ -16,10 +16,12 @@
 
 class LocalUser;
 
+extern std::string fiy_templates_dir();
+
 /**
  * Handles server-side rendering of pages via templating engine
  */
-class Pages : public FileCache {
+class Pages : public FileCache<fiy_templates_dir> {
     kainjow::mustache::mustache
         m_portal_apps_template,
         m_portal_settings_template,

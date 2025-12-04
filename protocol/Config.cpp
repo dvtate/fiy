@@ -1,11 +1,14 @@
+#include "Config.hpp"
+
 #include <thread>
 #include <filesystem>
-#include "../third_party/inih/ini.h"
 
-#include "Config.hpp"
+#include "../third_party/inih/ini.h"
 
 #include "../util/Crypto.hpp"
 #include "../util/FileCache.hpp"
+
+#include "Pages.hpp"
 
 bool Config::parse(const std::string& path) {
     if (!std::filesystem::exists(path)) {
@@ -75,13 +78,13 @@ bool FediyConfig::set_key(const char* section, const char* key, const char* valu
             m_concurrency = threads;
         }
     } else if (strcmp(key, "public_key") == 0) {
-        m_public_key = FileCache::load_file_as_string(value);
+        m_public_key = Pages::load_file_as_string(value);
         if (m_public_key.empty()) {
             LOG_ERR("Config file: public_key: could not read file: " << value);
         }
     } else if (strcmp(key, "private_key") == 0) {
         m_private_key = Crypto::SSL::load_private_key_from_pem(
-            FileCache::load_file_as_string(value)
+            Pages::load_file_as_string(value)
         );
         if (m_private_key == nullptr) {
             LOG_ERR("Config file: private_key: could not load file: " << value);
@@ -98,7 +101,7 @@ void FediyConfig::set_defaults() {
     // Try to get keys from their default locations
     if (m_public_key.empty()) {
         const std::string path = m_data_dir + "/auth/pubkey.crt";
-        m_public_key = FileCache::load_file_as_string(path);
+        m_public_key = Pages::load_file_as_string(path);
         if (m_public_key.empty()) {
             LOG_ERR("Config file: public_key: could not read file: " << path);
         }
@@ -106,7 +109,7 @@ void FediyConfig::set_defaults() {
     if (m_private_key == nullptr) {
         const std::string path = m_data_dir + "/auth/privkey.pem";
         m_private_key = Crypto::SSL::load_private_key_from_pem(
-            FileCache::load_file_as_string(path)
+            Pages::load_file_as_string(path)
         );
         if (m_private_key == nullptr) {
             LOG_ERR("Config file: private_key: could not load file: " << path);

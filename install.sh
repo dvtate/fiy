@@ -87,7 +87,7 @@ private_key=$INSTALL_PATH/auth/privkey.pem
 
 # Initialize database
 sqlite3 "$INSTALL_PATH/db.db3" < ./protocol/db.sql
-echo "Initialized database"
+echo "Initialized database."
 
 declare CP_INSTALL_FLAG
 if [ "$DEVEL_INSTALL" -eq 1 ]; then
@@ -97,6 +97,19 @@ else
 fi
 
 # Install builtin mods
+if [ "$DEVEL_INSTALL" -eq 1 ]; then
+    mkdir "$INSTALL_PATH/mods/demo_cpp"
+    echo '{"name": "Demo",
+  "description": "This is an example mod made with C++",
+  "icon": null,
+  "enabled": true,
+  "connector": "shared_object",
+  "path": "test"
+}' > "$INSTALL_PATH/mods/demo_cpp/module.json"
+    cp $CP_INSTALL_FLAG "$(realpath ./build/libdemo_mod_cpp.so)" "$INSTALL_PATH/mods/demo_cpp/module.so"
+    echo "Installed C++ testing mod."
+fi
+
 mkdir "$INSTALL_PATH/mods/mail"
 cp $CP_INSTALL_FLAG "$(realpath ./mods/mail/module.json)" "$INSTALL_PATH/mods/mail/module.json"
 cp $CP_INSTALL_FLAG "$(realpath ./build/libdemo_mod_mail.so)" "$INSTALL_PATH/mods/mail/module.so"
@@ -109,6 +122,15 @@ cp $CP_INSTALL_FLAG "$(realpath ./build/libcontacts_mod.so)" "$INSTALL_PATH/mods
 cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/frontend/dist)"/* "$INSTALL_PATH/mods/contacts/assets"
 sqlite3 "$INSTALL_PATH/mods/contacts/db.db3" < ./mods/contacts/db.sql
 echo "Installed Contacts mod."
+
+mkdir "$INSTALL_PATH/mods/git"
+mkdir "$INSTALL_PATH/mods/git/repos"
+mkdir "$INSTALL_PATH/mods/git/static"
+cp $CP_INSTALL_FLAG "$(realpath ./mods/git/module.json)" "$INSTALL_PATH/mods/git/."
+cp $CP_INSTALL_FLAG "$(realpath ./build/libgit_mod.so)" "$INSTALL_PATH/mods/git/module.so"
+sqlite3 "$INSTALL_PATH/mods/git/db.db3" < ./mods/git/db.sql
+# TODO frontend
+echo "Installed Git mod."
 
 # TODO install other mods
 
