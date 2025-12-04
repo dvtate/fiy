@@ -151,7 +151,7 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
     if (end != std::string::npos) {
         // Body length
         ret.body = s.c_str() + start; // extra \r\n
-        size_t body_len = s.size() - start;
+        const size_t body_len = s.size() - start;
         if (ret.body_len != 0 && body_len != ret.body_len) {
             g_host_info.log(2, "Incorrect Content-Length header");
         }
@@ -174,7 +174,6 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
         cgi.CONTENT_LENGTH = std::to_string(req.body_len);
         cgi.body = std::string(req.body, req.body_len);
     }
-    cgi.CONTENT_LENGTH = req.find_header("content-length");
     cgi.set_env("GIT_HTTP_EXPORT_ALL", "1"); // not accepting raw paths so no worries
     cgi.set_env("GIT_HTTP_MAX_REQUEST_BUFFER", "1000M");
 
@@ -189,6 +188,7 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
     cgi.PATH_TRANSLATED += "/repos";
     cgi.PATH_TRANSLATED += path.substr(0, path.find('?'));
 
+    // TODO instead manually set name + email combo?
     cgi.REMOTE_ADDR = req.domain ? req.domain : g_host_info.domain;
     cgi.REMOTE_HOST = "NULL";
     cgi.REMOTE_USER = req.user_str();
@@ -202,6 +202,12 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
             cgi.CONTENT_TYPE = v;
             continue;
         }
+        // if (h == "content-length") {
+        //     if (v != cgi.CONTENT_LENGTH) {
+        //         std::cerr <<"Content length mismatch!!!\n";
+        //     }
+        //     cgi.CONTENT_LENGTH = v;
+        // }
         std::string ev = "HTTP_";
         ev += h;
         for (size_t i = 4; i < ev.size(); i++)
@@ -224,8 +230,11 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
         // for (auto& e : cgi.get_env())
         //     std::cout <<"env: '" <<e <<"'\n";
         //
-        // std::cerr << "\n====================================\nBody:"
-        //     << cgi.body << "\n====================================\n";
+        // std::cerr << "\n====================================\nBody:\n";
+        // int fd = open("/tmp/dbg.data", O_CREAT | O_RDWR, 0666);
+        // if (write(fd, cgi.body.data(), cgi.body.size()) < 0)
+        //     perror("write()");
+        // std::cerr << cgi.body << "\n====================================\n";
         return;
     }
 

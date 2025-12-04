@@ -62,10 +62,9 @@ struct ModDllConnectorRequest : public fiy_request_t {
         this->remove_from_task_queue();
     }
     static char* new_cstr_from_string(const std::string_view s) {
-        auto l = s.size();
-//    std::cout <<"new cstr: '" << s <<"' -- Size: " <<l <<std::endl;
+        const auto l = s.size();
         char* ret = new char[l + 1];
-        strncpy(ret, s.data(), l);
+        memcpy(ret, s.data(), l + 1);
         ret[l] = '\0';
         return ret;
     }
@@ -279,7 +278,7 @@ void ModDLLConnector::handle_request(
         ): fiy_request_t(req), m_callback(callback), m_context(context)
         {}
 
-        void callback(const fiy_response_t* res) {
+        void callback(const fiy_response_t* res) const {
             m_callback(res, m_context);
             delete this;
         }

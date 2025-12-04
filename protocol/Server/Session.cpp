@@ -76,24 +76,27 @@ void Session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred
         return close();
     }
 
-#ifdef DEBUG_LOG
     if (ec) {
         std::cerr <<"HTTP Session Read failed: " << ec.message() <<'\n';
+#if 0
         auto bd = (char*) m_buffer.data().data();
         size_t i = 0;
         std::cout <<"Buffer: ";
         while (i < m_buffer.size()) {
             size_t incr = (i+10) > m_buffer.size() ? (m_buffer.size() - i) : 10;
             for (size_t j = 0; j < incr; j++) {
-                std::cout <<"" <<bd[i+j];
+                if (isalnum(bd[i+j]))
+                    std::cout <<"" <<bd[i+j];
+                else
+                    std::cout <<" " <<std::setw(2) << std::setfill('0') << std::hex << (int)( bd[i+j] ) <<" ";
             }
 //            std::cout <<'\n';
             i+= incr;
         }
         std::cout <<std::endl;
+#endif
         return;
     }
-#endif
 
     route_request(shared_from_this());
 }
