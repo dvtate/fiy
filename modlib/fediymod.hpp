@@ -79,14 +79,14 @@ namespace fiy {
          * @param user user string of format user@domain
          * @return pair < user, domain > of same format
          */
-        std::pair<std::string_view, std::string_view> split_user_str(std::string_view user) {
-            const auto at_idx = user.find('@');
-
+        [[nodiscard]] std::pair<std::string_view, std::string_view>
+        split_user_str(const std::string_view user) const {
             // No user
             if (user.empty())
                 return std::make_pair("","");
 
             // Local user
+            const auto at_idx = user.find('@');
             if (at_idx >= user.size() - 1 // includes "user@" and "user"
                 || user.substr(at_idx + 1) == this->domain
             )
@@ -110,9 +110,9 @@ namespace fiy {
             m_headers(std::move(headers_str))
         {
             this->status = status;
-            this->body = body;
+            this->headers = m_headers.c_str();
             this->body_len = body_len;
-            headers = m_headers.c_str();
+            this->body = body;
         }
 
     protected:
@@ -148,6 +148,14 @@ namespace fiy {
 #endif
     };
 
+    /// Degrees of separation
+    enum class Locality {
+        USER = 0,       /// Request is from the user
+        INSTANCE = 1,   /// Request is from another user on same instance
+        FEDIVERSE = 2,  /// Request is from another user in the fediverse
+        PUBLIC = 3      /// Request is anonymous
+    };
+
     // Must not add members or else not pointer compatible
     struct Request : public fiy_request_t {
 
@@ -173,11 +181,11 @@ namespace fiy {
         ): fiy_request_t{
             .domain=domain,
             .user=user,
+            .method=method,
             .path=path,
             .headers=headers,
-            .body=body,
             .body_len=body_len,
-            .method=method
+            .body=body,
         } {
         }
 
@@ -217,11 +225,11 @@ namespace fiy {
             const std::string_view body = "",
             const std::string_view headers = ""
         ) const {
-            fiy_response_t res = {
+            const fiy_response_t res = {
                 .status=status,
-                .body=body.empty() ? nullptr : body.data(),
+                .headers=headers.empty() ? nullptr : headers.data(),
                 .body_len=body.size(),
-                .headers=headers.empty() ? nullptr : headers.data()
+                .body=body.empty() ? nullptr : body.data(),
             };
             cb(this, &res);
         }
@@ -232,13 +240,6 @@ namespace fiy {
         ) const {
             respond(cb, 200, body, headers);
         }
-
-        enum class Locality {
-            USER = 0,       // Request is from the user
-            INSTANCE = 1,   // Request is from another user on same instance
-            FEDIVERSE = 2,  // Request is from another user in the fediverse
-            PUBLIC = 3      // Request is anonymous
-        };
 
         /**
          * Get the trust level of a given request wrt. a local user

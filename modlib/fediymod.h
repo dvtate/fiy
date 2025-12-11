@@ -34,6 +34,11 @@ struct fiy_request_t {
     const char* user;       // null = unauthenticated
 
     /**
+     * Enum value corresponding to the HTTP verb sent
+     */
+    uint8_t method;   // http method (from boost::beast::http::verb)
+
+    /**
      * Request path
      *
      * ie - "/post/create"
@@ -54,22 +59,37 @@ struct fiy_request_t {
      */
 
     /**
-     * Request body
-     */
-    const char* body;       // null = get request
-
-    /**
      * How big is the body
      * @note can't rely on null-terminators bc body could be binary format
      */
     size_t body_len;
 
     /**
-     * Enum value corresponding to the HTTP verb sent
+     * Request body
      */
-    uint8_t method;   // http method (from boost::beast::http::verb)
-
+    const char* body;       // null = get request
 };
+
+struct fiy_buffer_t {
+    char* data;
+    size_t size;
+};
+
+struct fiy_buffer_generator_t {
+    // Have we reached the end of the buffer
+    bool (*is_done)(struct fiy_buffer_generator_t*);
+
+    // Get null-terminated array of buffers
+    struct fiy_buffer_t* (*prepare)(struct fiy_buffer_generator_t*);
+
+    // Reader is ready for another call to prepare
+    void (*consume)(struct fiy_buffer_generator_t*);
+};
+
+#define FIY_BODY_TYPE_TEXT 0
+#define FIY_BODY_TYPE_FILE 1
+#define FIY_BODY_TYPE_BUFF 2
+
 
 struct fiy_response_t {
     /**
@@ -78,19 +98,33 @@ struct fiy_response_t {
     int status;
 
     /**
-     * HTTP body
-     */
-    const char* body;
-
-    /**
-     * How many characters are in the body
-     */
-    size_t body_len;
-
-    /**
      * HTTP Headers to set
      */
     const char* headers;
+
+    /**
+     * What type of body do we have?
+     * 0 - text body
+     * 1 - file
+     * 2 - buffer generator
+     */
+    // uint8_t body_type : 2;
+
+    /**
+     * How many characters are in the body
+     * -1 to skip Content-Length field
+     */
+    size_t body_len : 62;
+
+    /**
+     * HTTP body
+     */
+    const char* body;
+    // union body {
+    //     const char* body_text;
+    //     int body_file;
+    //     struct fiy_buffer_generator_t* generator;
+    // };
 };
 
 typedef void (* fiy_callback_t)(const struct fiy_request_t* request, const struct fiy_response_t*);
@@ -222,6 +256,7 @@ struct fiy_host_info_t {
     time_t (*now)();
 
     // TODO also send module.json contents
+    const char* mod_config;
 };
 
 typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host_info_t*);

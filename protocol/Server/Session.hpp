@@ -18,7 +18,9 @@ class LocalUser;
 class Session : public std::enable_shared_from_this<Session> {
     boost::beast::tcp_stream m_stream;
     boost::beast::flat_buffer m_buffer;
-    boost::beast::http::request<boost::beast::http::string_body> m_req;
+    std::optional<
+        boost::beast::http::request_parser<
+            boost::beast::http::string_body>> m_req_parser;
 
     std::map<std::string, std::string> m_cookies;
 
@@ -50,9 +52,13 @@ public:
     };
 
     // Take ownership of the stream
-    explicit Session(tcp::socket&& socket): m_stream(std::move(socket)) { }
+    explicit Session(tcp::socket&& socket):
+        m_stream(std::move(socket)),
+        m_req_parser(Req{})
+    {
+    }
 
-    Req& req() { return m_req; };
+    Req& req() { return m_req_parser->get(); };
 
     void clear_cookie_cache() { m_cookies.clear(); }
     std::map<std::string, std::string>& get_cookies();
@@ -64,7 +70,7 @@ public:
 
     template<class T>
     boost::beast::http::message_generator prep(boost::beast::http::response<T> msg) {
-        msg.keep_alive(m_req.keep_alive());
+        msg.keep_alive(m_req_parser->keep_alive());
         msg.prepare_payload();
         return boost::beast::http::message_generator(std::move(msg));
     }

@@ -1,5 +1,8 @@
--- CREATE DATABASE fiygit;
--- USE fiygit;
+-- It might make sense to split this into multiple databases
+
+-----------------------------
+-- Users
+-----------------------------
 
 -- PROBLEM: what if someone creates a user with org name?
 -- SOLUTION: orgs are just users
@@ -7,53 +10,84 @@ CREATE TABLE Organizations (
     userName TEXT PRIMARY KEY
 );
 
+-- Organization membership
 CREATE TABLE OrgMembers (
     orgName TEXT REFERENCES Organizations,
     userName TEXT NOT NULL,
-    level INTEGER DEFAULT 0, -- privilege bitfield
+    role TEXT NOT NULL DEFAULT 'member', -- priveleges
     UNIQUE(orgName, userName)
 );
 
--- remote repos are not stored in our database?
+
+-----------------------------
+-- Repos
+-----------------------------
+
+-- Instance Local Repos
+-- Note: remote repos are not stored in our database!
 CREATE TABLE Repos (
     id INTEGER PRIMARY KEY,
     userName TEXT NOT NULL,
     repoName TEXT NOT NULL,
     description TEXT DEFAULT NULL,
 
-    -- Who can see this field?
+    -- Who can see this repo?
     -- 0 = only me/people I share to
     -- 1 = users on my instance
     -- 2 = users on other instances
     -- 3 = public
     visibility INTEGER DEFAULT 0,
 
-    UNIQUE(userName, repoName)
+    PRIMARY KEY(userName, repoName)
 );
 
+CREATE TABLE RepoForks (
+    fromRepoPath TEXT NOT NULL, -- could be on another instance
+    toRepoPath TEXT NOT NULL UNIQUE, -- a fork can only have one parent
+    user TEXT NOT NULL, -- user that created the fork
+    createTs INTEGER NOT NULL, -- When was the fork created
+);
+
+-- Note: this could be a remote repo!
 CREATE TABLE RepoAccess (
+    repoPath TEXT NOT NULL,     -- could be on another instance
     userName TEXT NOT NULL,     -- Users.name (can be on another domain)
-    repoPath TEXT NOT NULL,     -- user[@domain]/repo
+    permission TEXT NOT NULL DEFAULT 'write',
     level INTEGER DEFAULT 0,    -- 0 for read-only, 1 if they can also push
 
-    UNIQUE(userName, repoPath)
+    PRIMARY KEY(repoPath, userName)
 );
 
-CREATE TABLE Contributions (
+--
+CREATE TABLE RepoTickets (
+    repoId INTEGER REFERENCES Repos,
+    ticketNumber INTEGER NOT NULL,
     userName TEXT NOT NULL,
-    repo TEXT NOT NULL,             -- user[@domain]/repo
-    ts INTEGER NOT NULL,
-    id TEXT NOT NULL
+    title TEXT NOT NULL,
+    description NOT NULL DEFAULT '',
+    createTs INTEGER NOT NULL,
+    status INT DEFAULT 0, -- enum values open, closed, merged, rejected, etc.
+
+    PRIMARY KEY(repoId, ticketNumber)
+);
+-- CREATE TABLE RepoTicketEdits ( ts, oldDescription ); -- title edits also get added to comments
+
+-- a PR is a specific type of ticket
+CREATE TABLE RepoPullRequest (
+    repoId INTEGER REFERENCES Repos,
+    ticketNumber INTEGER NOT NULL,
+    fromRepoPath TEXT NOT NULL, -- could be on a different instance
+    fromBranch TEXT NOT NULL,
+    toBranch TEXT NOT NULL,
+
+    PRIMARY KEY(repoId, ticketNumber)
 );
 
-CREATE TABLE Collabs (
-    authorUserName TEXT NOT NULL,
-    ts INTEGER NOT NULL,
-    repoId INTEGER NOT NULL,
-    body TEXT NOT NULL
+CREATE TABLE RepoTicketComments (
+    id INTEGER PRIMARY KEY,
+    repoId INTEGER REFERENCES Repos,
+    ticketNumber INTEGER NOT NULL,
+    createTs INTEGER NOT NULL,
 );
+-- CREATE TABLE RepoTicketCommentEdits
 
-
--- Queries planning
--- check if user can view a repo
--- check if user can commit to a repo

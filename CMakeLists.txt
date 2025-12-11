@@ -13,6 +13,16 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(CMAKE_CXX_STANDARD 20)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    file(READ "/etc/os-release" OS_RELEASE_CONTENT)
+    # Skip static libs on Fedora
+    if(NOT OS_RELEASE_CONTENT MATCHES "ID=.*fedora")
+        set(Boost_USE_STATIC_LIBS ON)
+    endif()
+else()
+    set(Boost_USE_STATIC_LIBS ON)
+endif()
+
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/SQLiteCpp)
 
 find_package(Boost REQUIRED COMPONENTS url)
@@ -140,6 +150,12 @@ add_library(git_mod SHARED
     mods/git/src/Pages.hpp
     mods/git/src/git_http_backend.cpp
     mods/git/src/git_http_backend.hpp
+    mods/git/src/Repo.cpp
+    mods/git/src/Repo.hpp
+    mods/git/src/Repos.cpp
+    mods/git/src/Repos.hpp
+    mods/git/src/git.cpp
+    mods/git/src/git.hpp
 )
 target_link_libraries(git_mod
     PRIVATE fediymod

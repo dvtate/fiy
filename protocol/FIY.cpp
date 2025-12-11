@@ -40,9 +40,22 @@ bool FIY::start() {
     // Run the I/O service on the requested number of threads
     std::vector<std::thread> v;
     v.reserve(m_config.m_concurrency - 1);
+    DEBUG_LOG("Using " << m_config.m_concurrency << " threads");
     for(auto i = m_config.m_concurrency - 1; i > 0; --i)
         v.emplace_back([this]{ m_ioc->run(); });
     m_ioc->run();
 
     return true;
+}
+
+static std::string get_base_uri(const char* hostname) {
+    const bool is_https = strchr(hostname, ':') == nullptr;
+    std::string ret = (is_https ? "https://" : "http://");
+    ret += hostname;
+    return ret;
+}
+
+const std::string& FIY::base_uri() const {
+    static const std::string ret = get_base_uri(m_config.m_hostname);
+    return ret;
 }

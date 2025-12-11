@@ -124,20 +124,20 @@ public:
             }
         };
         struct TokenEquals {
-            inline bool operator()(const AuthToken& a, const AuthToken& b) const {
+            bool operator()(const AuthToken& a, const AuthToken& b) const {
                 return a.m_token == b.m_token;
-            };
-            inline bool operator()(const AuthToken* a, const AuthToken* b) const {
+            }
+            bool operator()(const AuthToken* a, const AuthToken* b) const {
                 return a->m_token == b->m_token;
-            };
+            }
         };
         struct Compare {
-            inline bool operator()(const AuthToken& a, const AuthToken& b) const {
+            bool operator()(const AuthToken& a, const AuthToken& b) const {
                 return a.m_token < b.m_token;
-            };
-            inline bool operator()(const AuthToken* a, const AuthToken* b) const {
+            }
+            bool operator()(const AuthToken* a, const AuthToken* b) const {
                 return a->m_token < b->m_token;
-            };
+            }
         };
     };
 };

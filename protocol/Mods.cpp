@@ -8,6 +8,7 @@ void Mods::find_modules() {
     const auto mods_dir = g_fiy->m_config.m_data_dir + "/mods";
     std::string fail_reason;
 
+    // TODO sort alphabetically?
     for (auto& p : std::filesystem::directory_iterator(mods_dir))
         if (p.is_directory()) {
             auto&& id = p.path().filename().string();

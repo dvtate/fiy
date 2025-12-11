@@ -7,7 +7,9 @@
 #include <string>
 #include <vector>
 
+/// vCard
 struct VC {
+    /// vCard Property
     struct Prop {
         int64_t id{-1};
         std::string name, params, value;
@@ -34,7 +36,6 @@ struct VC {
         "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEW10NBjB"
         "BbqAAAAH0lEQVRoge3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAvg0hAAABmmDh1Q"
         "AAAABJRU5ErkJggg==";
-
     static constexpr unsigned char default_pfp_raw[] = {
         0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
         0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
@@ -48,7 +49,7 @@ struct VC {
     };
 
     /// Convert to vCard text
-    std::string to_vcard();
+    std::string to_vcard() const;
 
     bool parse(std::string vc);
 

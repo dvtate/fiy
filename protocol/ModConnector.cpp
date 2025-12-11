@@ -69,6 +69,10 @@ struct ModDllConnectorRequest : public fiy_request_t {
         return ret;
     }
     void set_this_headers(const boost::beast::http::fields& f) {
+        if (f.cbegin() == f.cend()) {
+            this->headers = nullptr;
+            return;
+        }
         std::string ret;
         for (const auto& h : f) {
             ret += h.name_string();
@@ -76,10 +80,12 @@ struct ModDllConnectorRequest : public fiy_request_t {
             ret += h.value();
             ret += "\r\n";
         }
+
         // Copy but skip trailing \r\n
-        char* p = new char[ret.size() - 1];
-        memset(p, 0, ret.size() - 1);
-        strncpy(p, ret.data(), ret.size() - 2);
+        const size_t len = ret.size() - 1;
+        char* p = new char[len];
+        memset(p, 0, len);
+        strncpy(p, ret.data(), len - 1);
         this->headers = p;
     }
 };
@@ -196,14 +202,24 @@ struct ModDLLHostInfo : fiy_host_info_t {
 };
 
 bool ModDLLConnector::stop() {
+    // Nothing to stop
     if (m_dl_handle == nullptr)
         return true;
+
+    // Call stop function
+    const auto stop_fn = (void(*)()) dlsym(m_dl_handle, "start");
+    if (stop_fn != nullptr)
+        stop_fn();
+
+    // Close handle
     auto ret = dlclose(m_dl_handle);
     if (ret == 0) {
         m_dl_handle = nullptr;
     } else {
         LOG_ERR("dlclose() gave" << ret <<": " <<dlerror());
     }
+
+    // Cleanup
     delete m_host_info;
     return ret == 0;
 }
@@ -240,7 +256,6 @@ void ModDLLConnector::delete_user(const char* user) {
         return;
     m_mod_info->delete_user(user);
 }
-
 
 void ModDLLConnector::handle_request(std::shared_ptr<Session> conn) {
     // Safety check
@@ -486,9 +501,9 @@ void ModNetConnector::handle_request(
 
         const fiy_response_t response{
             .status = static_cast<int>(resp.result_int()),
-            .body = resp.body().data(),
-            .body_len = resp.body().size(),
             .headers = headers_str.c_str(),
+            .body_len = resp.body().size(),
+            .body = resp.body().data(),
         };
         callback(&response, context);
     };
@@ -499,9 +514,9 @@ void ModNetConnector::handle_request(
 
         const fiy_response_t response{
             .status = -1,
-            .body = err.c_str(),
-            .body_len = err.size(),
             .headers = "",
+            .body_len = err.size(),
+            .body = err.c_str(),
         };
         callback(&response, context);
     };

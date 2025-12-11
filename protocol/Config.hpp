@@ -25,11 +25,11 @@ protected:
     virtual bool set_key(const char* section, const char* key, const char* value) = 0;
 
     static int parse_bool(const char* str) {
-        auto len = strlen(str);
-        if (len == 4 && strcasecmp(str, "true"))
-            return true;
-        if (len == 5 && strcasecmp(str, "false"))
-            return false;
+        const auto len = strlen(str);
+        if (len == 4)
+            return strcasecmp(str, "true") == 0;
+        if (len == 5)
+            return strcasecmp(str, "false") == 0;
         if (len >= 1) {
             if (str[0] == 'y' || str[0] == 't' || str[0] == 'Y' || str[0] == 'T' || str[0] == '1')
                 return true;

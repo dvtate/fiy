@@ -16,7 +16,7 @@
 /**
  * CGI Script Runner
  *
- * @remark this solution is designed to be easy to use, not micro-optimized
+ * @remark this ugly solution has a lot of room for improvement
  */
 struct CGI {
     // -- Environment variables --
@@ -176,4 +176,73 @@ struct CGI {
 
         return ret;
     }
+
+    /**
+     * Overload that writes to a file descriptor
+     * @param argv command line arguments to run the script
+     * @param env environment variables
+     * @param stdin_input input to forward to the script
+     * @param stdout_capture_fd file descriptor to capture standard output from the script
+     * @return script return code
+     */
+    static int run_cmd(
+        const std::vector<std::string>& argv,
+        const std::vector<std::string>& env,
+        const std::string& stdin_input,
+        const int stdout_capture_fd
+    ) {
+        // --- Create pipes ---
+        int pipe_stdin[2];
+        if (pipe(pipe_stdin) < 0)
+            throw std::runtime_error("pipe() failed");
+
+        const pid_t pid = fork();
+        if (pid < 0)
+            throw std::runtime_error("fork() failed");
+
+        if (pid == 0) {
+            // --- Child process ---
+            // Redirect stdin/out
+            dup2(pipe_stdin[0], STDIN_FILENO);
+            dup2(stdout_capture_fd, STDOUT_FILENO);
+
+            // Close unused ends
+            close(pipe_stdin[1]);
+
+            // Build argv array
+            std::vector<char*> c_argv;
+            c_argv.reserve(argv.size() + 1);
+            for (auto& s : argv)
+                c_argv.push_back(const_cast<char*>(s.c_str()));
+            c_argv.push_back(nullptr);
+
+            // Build environment array
+            std::vector<char*> c_env;
+            c_env.reserve(env.size() + 1);
+            for (auto& e : env)
+                c_env.push_back(const_cast<char*>(e.c_str()));
+            c_env.push_back(nullptr);
+
+            // exec
+            execvpe(c_argv[0], c_argv.data(), c_env.data());
+            _exit(127); // execvpe failed
+        }
+
+        // --- Parent process ---
+        close(pipe_stdin[0]);
+
+        // Write stdin
+        if (!stdin_input.empty())
+            if (write(pipe_stdin[1], stdin_input.data(), stdin_input.size()) < 0)
+                perror("write()");
+        close(pipe_stdin[1]); // send EOF
+
+        // Wait for child
+        int ret;
+        waitpid(pid, &ret, 0);
+        return WIFEXITED(ret)
+            ? WEXITSTATUS(ret)
+            : -1;
+    }
+
 };

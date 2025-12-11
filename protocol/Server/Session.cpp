@@ -48,6 +48,9 @@ void Session::close() {
     // Send a TCP shutdown
     boost::beast::error_code ec;
     m_stream.socket().shutdown(tcp::socket::shutdown_send, ec);
+    if (ec) {
+        DEBUG_LOG("Failed to shutdown socket connection: " << ec.message());
+    }
 
     // At this point the connection is closed gracefully
 }
@@ -55,13 +58,13 @@ void Session::close() {
 void Session::do_read() {
     // Make the request empty before reading,
     // otherwise the operation behavior is undefined.
-    m_req = {};
 
-    // Set the timeout.
-    // m_stream.expires_after(std::chrono::seconds(30));
+    m_req_parser.reset();
+    m_req_parser.emplace(Req{});
+    m_req_parser->body_limit(boost::none);
 
     // Read a request
-    boost::beast::http::async_read(m_stream, m_buffer, m_req,
+    boost::beast::http::async_read(m_stream, m_buffer, m_req_parser.value(),
          boost::beast::bind_front_handler(
              &Session::on_read,
              shared_from_this()));
@@ -125,7 +128,7 @@ void Session::on_write(
 
 std::map<std::string, std::string>& Session::get_cookies() {
     if (m_cookies.empty()) {
-        auto cookie_header = m_req["Cookie"];
+        const auto cookie_header = req()["Cookie"];
         if (!cookie_header.empty()) {
             m_cookies = WebUtils::parse_cookies(cookie_header);
 //            std::cout << "Cookies: " << cookie_header << ": " << m_cookies.size() << std::endl;
@@ -142,8 +145,8 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
         return g_fiy->m_users.auth_user(token->second);
 
     // Basic auth (used by git mod)
-    const auto it = m_req.find("Authorization");
-    if (it == m_req.end())
+    const auto it = req().find("Authorization");
+    if (it == req().end())
         return nullptr;
 
     // Get the encoded part
@@ -158,7 +161,7 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
     b64::decode(p.get(), v.data(), v.size());
 
     // Split username+password
-    std::string_view auth {p.get()};
+    std::string_view auth(p.get());
     const auto i = auth.find(':');
     if (i == std::string_view::npos)
         return nullptr;
@@ -171,7 +174,7 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
 
     // Remove header so that we don't forward valid password anywhere else
     if (ret != nullptr)
-        m_req.erase(it);
+        req().erase(it);
 
     return ret;
 }
@@ -184,8 +187,8 @@ Session::User Session::find_user() {
         return { .domain=nullptr, .user=u->get_username() };
 
     // Peer authentication
-    const auto it = m_req.find("Fiy-Peer");
-    if (it == m_req.end() || it->value().empty()) {
+    const auto it = req().find("Fiy-Peer");
+    if (it == req().end() || it->value().empty()) {
 //    if (*it.empty()) {
 //        std::cout << "missing auth token\n";
         return unauthenticated;
@@ -195,7 +198,7 @@ Session::User Session::find_user() {
         DEBUG_LOG("Invalid peer auth token: " << it->value());
         return unauthenticated;
     }
-    const auto user = m_req.at("Fiy-User");
+    const auto user = req().at("Fiy-User");
     DEBUG_LOG("remote user authenticated\n");
     return { .domain=peer->m_domain, .user=user };
 }

@@ -32,7 +32,7 @@ inline time_t parse_timestamp_str(const std::string& str) {
     return std::mktime(&t);
 }
 
-std::string VC::to_vcard() {
+std::string VC::to_vcard() const {
     std::string ret = "BEGIN:VCARD\r\nVERSION:4.0\r\n";
 
     if (this->id >= 0) {

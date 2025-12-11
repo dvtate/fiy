@@ -3,6 +3,8 @@
 #include <string>
 #include <filesystem>
 
+#include "nlohmann/json.hpp"
+
 #include "defs.hpp"
 
 #include "ModConnector.hpp"
@@ -80,7 +82,6 @@ public:
     std::string m_icon;
     std::filesystem::file_time_type m_install_ts;
     Version m_version;
-    std::string m_daemon; // make it a BackgroundProcess ?
 
     // Communicate with mod
     std::unique_ptr<ModConnector> m_ipc{nullptr};
@@ -93,7 +94,7 @@ public:
     bool stop();
 
     void set_enabled(bool enabled);
-    void set_path(const std::string& id);
+    void set_path(const std::string& path);
 
     enum class Status {
         INVALID,    // failed to read module
@@ -115,9 +116,13 @@ public:
         return Status::FAILED;
     }
 
+
     std::string json();
     std::string user_json();
+    nlohmann::json parse_file();
+
     void save();
+    void load();
 
     void error(const std::string& err) {
         m_error = err;
@@ -127,4 +132,7 @@ public:
     inline std::filesystem::path dir() const;
 
     friend class Mods;
+
+protected:
+    void load_error(const std::string& message);
 };

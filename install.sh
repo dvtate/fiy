@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+#
+# This script is a temporary way to install the fediy protocol server.
+# Eventually this will be replaced by an installation package.
+#
+
 ###
 # Safety checks
 ###
@@ -16,6 +21,30 @@ fi
 # Prompt user
 ###
 
+prompt_Y_n () {
+    ESC_BOLD='\033[1m'
+    ESC_NC='\033[0m'
+    printf "${ESC_BOLD}$1${ESC_NC} (Y/n): "
+    read
+    if [[ -z "$REPLY" ]] || [[ "${REPLY:0:1}" == "y" ]] || [[ "${REPLY:0:1}" == "Y" ]]; then
+        return 0
+    fi
+    return 1
+}
+prompt_y_N () {
+    ESC_BOLD='\033[1m'
+    ESC_NC='\033[0m'
+    printf "${ESC_BOLD}$1${ESC_NC} (y/N): "
+    read
+    if [[ -z "$REPLY" ]]; then
+        return 1
+    fi
+    if [[ "${REPLY:0:1}" == "y" ]] || [[ "${REPLY:0:1}" == "Y" ]]; then
+        return 0
+    fi
+    return 1
+}
+
 if [ ! -f build/protocol_server ]; then
     echo "Project not built yet";
     read -p "Press Enter to build Fediy or ctrl+c to cancel..."
@@ -24,11 +53,7 @@ if [ ! -f build/protocol_server ]; then
 fi
 
 declare DEVEL_INSTALL
-
-read -p "Is this a development setup? [y/N] " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
+if prompt_y_N "Is this a development setup?"; then
     DEVEL_INSTALL=1
 else
     DEVEL_INSTALL=0
@@ -52,6 +77,11 @@ if [[ -z "$HOSTNAME" ]]; then
     HOSTNAME=localhost:8848
 fi
 
+INSTALL_SYSTEMD_UNIT=0
+if prompt_y_N "Install sample systemd unit file?"; then
+    INSTALL_SYSTEMD_UNIT=1
+fi
+
 echo
 
 ###
@@ -68,9 +98,9 @@ SALT="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 36)"
 
 declare CONCURRENCY
 if [ "$DEVEL_INSTALL" -eq 1 ]; then
-    CONCURRENCY=1
+    CONCURRENCY="$(nproc --ignore=4)"
 else
-    CONCURRENCY="`nproc`"
+    CONCURRENCY="$(nproc)"
 fi
 
 # Make config.ini
@@ -96,7 +126,9 @@ else
     CP_INSTALL_FLAG=""
 fi
 
+###
 # Install builtin mods
+###
 if [ "$DEVEL_INSTALL" -eq 1 ]; then
     mkdir "$INSTALL_PATH/mods/demo_cpp"
     echo '{"name": "Demo",
@@ -130,10 +162,8 @@ cp $CP_INSTALL_FLAG "$(realpath ./mods/git/module.json)" "$INSTALL_PATH/mods/git
 cp $CP_INSTALL_FLAG "$(realpath ./build/libgit_mod.so)" "$INSTALL_PATH/mods/git/module.so"
 cp $CP_INSTALL_FLAG "$(realpath ./mods/git/frontend)"/* "$INSTALL_PATH/mods/git/static"
 sqlite3 "$INSTALL_PATH/mods/git/db.db3" < ./mods/git/db.sql
-# TODO frontend
 echo "Installed Git mod."
 
-# TODO install other mods
 
 # Install protocol server
 cp $CP_INSTALL_FLAG "$(realpath ./build/protocol_server)" "$INSTALL_PATH/server"
@@ -148,6 +178,7 @@ else
 fi
 echo "Installed Portal Frontend."
 
+# systemd unit file
 echo "
 [Unit]
 Description=FedIY Protocol Server
@@ -158,31 +189,19 @@ ExecStart=$INSTALL_PATH/server $INSTALL_PATH/config.ini
 #User=$(whoami) # replace this and uncomment
 # For security, it's recommended to run the server as a dedicated non-privileged user
 " > "$INSTALL_PATH/fediy.service"
-echo "Generated sample systemd unit file."
-
-# TODO use openssl instead
-## Generate and install GPG keys
-#echo "Generating server key pair..."
-#GPG_BATCH_CONF="$(mktemp)"
-#GPG_TMP_HOME="$(mktemp -d)"
-#echo "
-#%echo Generating a GPG key
-#Key-Type: RSA
-#Key-Length: 2048
-#Name-Real: Fediy Instance $HOSTNAME
-#Name-Email: admin@example.com
-#Expire-Date: 0
-#Passphrase: not-used
-#%no-protection
-#%commit
-#%echo Done
-#" > "$GPG_BATCH_CONF"
-#gpg --batch --homedir "$GPG_TMP_HOME" --generate-key "$GPG_BATCH_CONF"
-#gpg --homedir "$GPG_TMP_HOME" --armor --export-secret-keys > "$INSTALL_PATH/auth/_privkey.gpg"
-#gpg --homedir "$GPG_TMP_HOME" --armor --export > "$INSTALL_PATH/auth/key"
-#rm "$GPG_BATCH_CONF"
-#rm -rf "$GPG_TMP_HOME"
-#echo "Generated server key pair."
+if [ "$INSTALL_SYSTEMD_UNIT" -eq 1 ]; then
+    mv "$INSTALL_PATH/fediy.service" "$INSTALL_PATH/fediy.service.sample"
+    sudo cp "$INSTALL_PATH/fediy.service.sample" /etc/systemd/system/fediy.service
+    echo
+    echo "To enable and start the fediy systemd daemon run"
+    echo "sudo systemctl daemon-reload"
+    echo "sudo systemctl edit fediy.service"
+    echo "sudo systemctl enable --now fediy.service"
+    echo
+else
+    echo "Wrote sample systemd unit file to: $INSTALL_PATH/fediy.service"
+fi
+printf "\t$INSTALL_PATH/fediy.service\n"
 
 ## Generate and install server keys
 echo "Generating server key pair..."
@@ -192,7 +211,7 @@ openssl rsa -in "$INSTALL_PATH/auth/privkey.pem" -pubout -out "$INSTALL_PATH/aut
 openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in "$INSTALL_PATH/auth/privkey.pem" -out "$INSTALL_PATH/auth/privkey.pem"
 echo "Generated server key pair."
 
-# TODO keys should be more restricted
+# FIXME
 chmod -R 777 "$INSTALL_PATH"
 
 ###

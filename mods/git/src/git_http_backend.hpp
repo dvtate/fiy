@@ -242,13 +242,33 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
     // std::cout << "\nCGI Result: " <<r.stdout << std::endl;
     // std::cout << "--------------------------------------------\n";
     req.respond(cb, parse_cgi_output(r.stdout));
+
+    // FIXME integrate closer with cgi class
+    //  parse the header, send the header
+    //  then forward stdout over network
+    // this prevents socket idle
 }
 
 void git_repo_auth(const fiy::Request& req, fiy_callback_t cb) {
     auto repo = get_repo_path(req.path);
     if (req.user && req.domain == nullptr) {
         // git http password auth handled by protocol server
+        req.respond(cb, 401, "Unauthenticated");
+        return;
     }
 
-    // TODO
+    git_repo_cgi(req, cb);
 }
+
+/*
+Requests:
+
+// git pull
+GET -- /git/test/test.git/info/refs?service=git-upload-pack
+POST -- /git/test/test.git/git-upload-pack
+POST -- /git/test/test.git/git-upload-pack
+
+// git push
+GET -- /git/test/test.git/info/refs?service=git-receive-pack
+POST -- /git/test/test.git/git-receive-pack
+*/

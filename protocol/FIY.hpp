@@ -45,4 +45,6 @@ public:
     inline std::time_t now() const {
         return m_now;
     }
+
+    [[nodiscard]] const std::string& base_uri() const;
 };

@@ -23,59 +23,59 @@ fiy::HostInfo g_host_info;
  * @param req request for profile
  * @param cb request callback
  */
-inline void get_profile(std::string_view user_str, fiy::Request& req, fiy_callback_t cb) {
+static void get_profile(std::string_view user_str, fiy::Request& req, fiy_callback_t cb) {
     // TODO if local request, check and see if the user already has a contact for that user
 
     const auto [user, dom] = g_host_info.split_user_str(user_str);
 
-    // Handle remote user
-    if (!dom.empty()) {
-        // Remote user
-        struct Ctx {
-            fiy_callback_t cb;
-            fiy::Request* req;
-            std::string domain;
-        };
-        auto* ctx = new Ctx{
-            .cb=cb,
-            .req=&req,
-            .domain=std::string(dom)
-        };
-        req.domain = ctx->domain.c_str();
-
-        g_host_info.request(
-            "contacts",
-            &req,
-            ctx,
-            [](const struct fiy_response_t* res, void* pctx){
-                auto* ctx = (struct Ctx*) pctx;
-
-                if (!res || res->status < 0) {
-                    // Failed
-                    std::string body = "Failed to get profile from " + ctx->domain + ": ";
-                    if (res != nullptr)
-                        body += res->body;
-                    ctx->req->respond(ctx->cb,
-                        500,
-                        body,
-                        "Content-Type: text/html"
-                    );
-                } else {
-                    // Success, forward the response
-                    ctx->req->respond(ctx->cb, *res);
-                }
-
-                delete ctx;
-            }
-        );
+    // Handle local user
+    if (dom.empty()) {
+        const auto card = DB::get_profile(std::string(user), req.user, req.domain);
+        if (card.empty())
+            req.respond(cb, 404, "Not found");
+        else
+            req.respond(cb, 200, card, "Content-Type:text/vcard");
         return;
     }
 
-    const auto card = DB::get_profile(std::string(user), req.user, req.domain);
-    if (card.empty())
-        req.respond(cb, 404, "Not found");
-    else
-        req.respond(cb, 200, card, "Content-Type:text/vcard");
+    // Handle remote user
+    struct Ctx {
+        fiy_callback_t cb;
+        fiy::Request* req;
+        std::string domain;
+    };
+    auto* ctx = new Ctx{
+        .cb=cb,
+        .req=&req,
+        .domain=std::string(dom)
+    };
+    req.domain = ctx->domain.c_str();
+
+    g_host_info.request(
+        "contacts",
+        &req,
+        ctx,
+        [](const struct fiy_response_t* res, void* pctx){
+            auto* ctx = (struct Ctx*) pctx;
+
+            if (!res || res->status < 0) {
+                // Failed
+                std::string body = "Failed to get profile from " + ctx->domain + ": ";
+                if (res != nullptr)
+                    body += res->body;
+                ctx->req->respond(ctx->cb,
+                    500,
+                    body,
+                    "Content-Type: text/html"
+                );
+            } else {
+                // Success, forward the response
+                ctx->req->respond(ctx->cb, *res);
+            }
+
+            delete ctx;
+        }
+    );
 }
 
 /**
@@ -84,14 +84,14 @@ inline void get_profile(std::string_view user_str, fiy::Request& req, fiy_callba
  * @param req request
  * @param cb request callback
  */
-inline void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t cb) {
+static void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t cb) {
     auto [user, dom] = g_host_info.split_user_str(user_str);
 
     static const fiy_response_t default_pfp {
-        404,
-        (const char*) VC::default_pfp_raw,
-        sizeof VC::default_pfp_raw,
-        "Content-Type: image/png\nCache-Control: max-age=300"
+        .status = 404,
+        .headers = "Content-Type: image/png\nCache-Control: max-age=300",
+        .body_len = sizeof VC::default_pfp_raw,
+        .body = (const char*) VC::default_pfp_raw,
     };
 
     // Local request
@@ -183,7 +183,7 @@ inline void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t
     req.respond(cb, 200, std::move(raw_data), headers);
 }
 
-void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
+static void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     auto& req = *(fiy::Request*) request;
 
     std::string_view path{req.path};
@@ -362,7 +362,7 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     req.respond(cb, 404, "Not found");
 }
 
-void delete_user(const char* username) {
+static void delete_user(const char* username) {
     // Invalid input
     if (username == nullptr || username[0] == '\0')
         return;

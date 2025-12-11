@@ -8,8 +8,8 @@
 #define FEDIY_VERSION_STRING #FEDIY_VERSION_MAJOR "." #FEDIY_VERSION_MINOR
 
 // TODO better logging system
-// maybe write these to a file?
 #define LOG_ERR(MSG) std::cerr << MSG <<std::endl
+#define LOG_WARN(MSG) std::cerr << MSG <<std::endl
 #define LOG(MSG) std::cout << MSG <<std::endl
 
 #ifdef FEDIY_DEBUG

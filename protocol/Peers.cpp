@@ -279,11 +279,11 @@ struct ScopedRequest {
         return fiy_request_t{
             .domain=m_domain.empty() ? nullptr : m_domain.c_str() ,
             .user=m_user.empty() ? nullptr : m_user.c_str(),
+            .method=m_method,
             .path=m_path.empty() ? nullptr : m_path.c_str(),
             .headers=m_headers.empty() ? nullptr : m_headers.c_str(),
-            .body=m_body.empty() ? nullptr : m_body.data(),
             .body_len=m_body.size(),
-            .method=m_method
+            .body=m_body.empty() ? nullptr : m_body.data(),
         };
     }
 };
@@ -362,9 +362,9 @@ void Peers::request_peer(
         auto headers_str = get_headers_string(res);
         const fiy_response_t response{
             .status = static_cast<int>(res.result_int()),
-            .body = res.body().data(),
-            .body_len = res.body().size(),
             .headers = headers_str.c_str(),
+            .body_len = res.body().size(),
+            .body = res.body().data(),
         };
         callback(&response, context);
     };
@@ -374,9 +374,9 @@ void Peers::request_peer(
             return;
         const fiy_response_t response{
             .status = -1,
-            .body = err.c_str(),
-            .body_len = err.size(),
             .headers = "",
+            .body_len = err.size(),
+            .body = err.c_str(),
         };
         callback(&response, context);
         LOG_ERR("Peer request failed: " << err);

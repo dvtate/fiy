@@ -43,6 +43,7 @@
     // From server
     const user = {{{user_data}}};
     const installedApps = {{{installed_apps}}};
+    installedApps.sort((a,b) => a.name.localeCompare(b.name));
 
     // id, path, version, name, description, icon, status, loaded, enabled, running, error
     function makeAppEntry({ name, icon, version, description, id, path, canUpdate }) {

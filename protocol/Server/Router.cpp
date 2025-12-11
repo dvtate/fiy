@@ -2,6 +2,7 @@
 // Created by tate on 6/25/25.
 //
 
+// TODO shouldn't need this
 #include <boost/url.hpp>
 
 #include "../util/WebUtils.hpp"
@@ -73,7 +74,10 @@ static inline void mod_send_msg(std::shared_ptr<Session> conn) {
         Session::DynamicResponse res;
         res.result(404);
         boost::beast::ostream(res.body())
-                <<"App '" <<mod <<"' not found\n";
+            << "<h1>404 - No mod for path '" <<mod
+            << "'</h1>\n<hr/>\n<p>For a list of apps: check the <a href=\""
+            << g_fiy->base_uri()
+            << "/portal\">portal</a></p>\n";
         res.set(http::field::content_type, "text/html");
         conn->respond(conn->prep(std::move(res)));
         DEBUG_LOG("Invalid mod: " <<mod <<" : " <<uri);

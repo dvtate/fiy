@@ -2,6 +2,7 @@
 // Created by tate on 12/2/25.
 //
 
+#include <git2.h>
 #include <string_view>
 
 #include "../../../modlib/fediymod.hpp"
@@ -42,7 +43,7 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     }
 
     if (path.starts_with("/repo")) {
-        if (req.locality(g_host_info.domain) > fiy::Request::Locality::INSTANCE) {
+        if (req.locality(g_host_info.domain) > fiy::Locality::INSTANCE) {
             unauthenticated(req, cb);
             return;
         }
@@ -69,18 +70,34 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
 }
 
 void delete_user(const char* username) {
-    // TODO
+    // TODO delete their repos, interactions, etc.
 }
 
-
+/// Export: Start module
 extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
+    // Initialize libgit2
+    if (git_libgit2_init() < 0) {
+        const git_error *e = giterr_last();
+        std::string message = "Failed to initialize libgit2: ";
+        message += e->message;
+        host_info->log(0, message.c_str());
+        std::cerr << message << std::endl;
+        return nullptr;
+    }
+
+    // Exchange info
     static fiy_mod_info_t mod_info = {
         .on_request = handle_request,
-        .delete_user = nullptr,
+        .delete_user = delete_user,
         .id="fiy.git",
         .version = "0.0"
     };
     g_host_info = *host_info;
-
     return &mod_info;
+}
+
+/// Export: Stop module
+extern "C" void stop() {
+    // Shutdown libgit2
+    git_libgit2_shutdown();
 }
