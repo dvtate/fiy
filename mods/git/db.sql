@@ -38,14 +38,14 @@ CREATE TABLE Repos (
     -- 3 = public
     visibility INTEGER DEFAULT 0,
 
-    PRIMARY KEY(userName, repoName)
+    UNIQUE(userName, repoName)
 );
 
 CREATE TABLE RepoForks (
     fromRepoPath TEXT NOT NULL, -- could be on another instance
     toRepoPath TEXT NOT NULL UNIQUE, -- a fork can only have one parent
     user TEXT NOT NULL, -- user that created the fork
-    createTs INTEGER NOT NULL, -- When was the fork created
+    createTs INTEGER NOT NULL -- When was the fork created
 );
 
 -- Note: this could be a remote repo!
@@ -87,7 +87,7 @@ CREATE TABLE RepoTicketComments (
     id INTEGER PRIMARY KEY,
     repoId INTEGER REFERENCES Repos,
     ticketNumber INTEGER NOT NULL,
-    createTs INTEGER NOT NULL,
+    createTs INTEGER NOT NULL
 );
 -- CREATE TABLE RepoTicketCommentEdits
 

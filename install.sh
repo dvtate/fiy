@@ -201,7 +201,6 @@ if [ "$INSTALL_SYSTEMD_UNIT" -eq 1 ]; then
 else
     echo "Wrote sample systemd unit file to: $INSTALL_PATH/fediy.service"
 fi
-printf "\t$INSTALL_PATH/fediy.service\n"
 
 ## Generate and install server keys
 echo "Generating server key pair..."
