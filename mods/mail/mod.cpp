@@ -42,7 +42,7 @@ std::string user_str(const fiy_request_t* request) {
     return ret;
 }
 
-void send_mail(fiy::Request& req, fiy_callback_t cb) {
+void send_mail(fiy::Request& req, const fiy::Callback cb) {
     // Unauthenticated
     if (req.user == nullptr) {
         req.respond(cb, 401, "Unauthenticated");
@@ -85,8 +85,8 @@ void send_mail(fiy::Request& req, fiy_callback_t cb) {
         // Get unique remote destinations
         std::set<std::string> doms;
         for (const auto& user : to) {
-            auto i = user.find('@');
-            if (i != std::string::npos) {
+            auto at_pos = user.find('@');
+            if (at_pos != std::string::npos) {
                 doms.emplace(user.substr(i + 1));
             }
         }
@@ -102,27 +102,29 @@ void send_mail(fiy::Request& req, fiy_callback_t cb) {
     req.respond(cb);
 }
 
-const char* compose_html = "<!doctype html><html><body>\n"
-                           "<form action='javascript:submit()'>\n"
-                           "To: <input type='text' id='inp-to' placeholder='tate@dvtt.net,test@example.com,jerry' />\n"
-                           "<br/>Subject: <input type='text' id='inp-subject' placeholder='Important message' />\n"
-                           "<br/>Body: <textarea id='inp-body'>Write your email here</textarea>\n"
-                           "<br/><button type='submit'>Send</button>\n"
-                           "</form>\n"
-                           "<script>\n"
-                           "async function submit() {\n"
-                           "    fetch('send', {\n"
-                           "            method: 'POST',\n"
-                           "            body: document.getElementById('inp-to').value\n"
-                           "                  + '\\n' + document.getElementById('inp-subject').value\n"
-                           "                  + '\\n' + document.getElementById('inp-body').value\n"
-                           "    }).then(v => window.location = 'outbox')\n"
-                           "    .catch(console.error);\n"
-                           "}\n"
-                           "</script>\n"
-                           "</body></html>";
+fiy::Body compose_html{
+    "<!doctype html><html><body>\n"
+   "<form action='javascript:submit()'>\n"
+   "To: <input type='text' id='inp-to' placeholder='tate@dvtt.net,test@example.com,jerry' />\n"
+   "<br/>Subject: <input type='text' id='inp-subject' placeholder='Important message' />\n"
+   "<br/>Body: <textarea id='inp-body'>Write your email here</textarea>\n"
+   "<br/><button type='submit'>Send</button>\n"
+   "</form>\n"
+   "<script>\n"
+   "async function submit() {\n"
+   "    fetch('send', {\n"
+   "            method: 'POST',\n"
+   "            body: document.getElementById('inp-to').value\n"
+   "                  + '\\n' + document.getElementById('inp-subject').value\n"
+   "                  + '\\n' + document.getElementById('inp-body').value\n"
+   "    }).then(v => window.location = 'outbox')\n"
+   "    .catch(console.error);\n"
+   "}\n"
+   "</script>\n"
+   "</body></html>"
+};
 
-static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
+static void handle_request(fiy_request_t* request, fiy::Callback cb) {
     auto& req = *(fiy::Request*) request;
 
     std::cout <<"Mail: Path: "<<req.path <<std::endl;
@@ -131,8 +133,9 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
     // Everything here requires a login
     if (req.user == nullptr) {
         static const fiy::Response no_auth_resp{
-            303, nullptr, 0,
-            "Location: " + g_host_info.host_base_uri() + "/portal/login"
+            303,
+            "Location: " + g_host_info.host_base_uri() + "/portal/login",
+            fiy::Body()
         };
         req.respond(cb, no_auth_resp);
         return;
@@ -143,18 +146,18 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
         return;
     } else if (strcmp(req.path, "/") == 0) {
         static const std::string root = g_host_info.base_uri;
-        static const std::string body = "<ul>"
-                           "<li><a href='" + root + "/inbox'>Inbox</a></li>"
-                           "<li><a href='" + root + "/outbox'>Outbox</a></li>"
-                           "<li><a href='" + root + "/compose'>Compose</a></li>"
-                           "</ul>";
-        req.respond(cb, body, "Content-Type: text/html");
+        static const fiy::Body body{"<ul>"
+            "<li><a href='" + root + "/inbox'>Inbox</a></li>"
+            "<li><a href='" + root + "/outbox'>Outbox</a></li>"
+            "<li><a href='" + root + "/compose'>Compose</a></li>"
+            "</ul>"};
+        req.respond(cb, 200, "Content-Type: text/html", body);
         return;
     } else if (strcmp(req.path, "/inbox") == 0) {
         // Authenticated local user
         if (req.domain == nullptr && req.user != nullptr) {
-            auto inbox_str = g_mailbox.get_inbox_str(user_str(&req));
-            req.respond(cb, inbox_str, "Content-Type: text/html");
+            const auto inbox = fiy::Body(g_mailbox.get_inbox_str(user_str(&req)));
+            req.respond(cb, 200, "Content-Type: text/html", inbox);
             return;
         }
 
@@ -163,8 +166,8 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
         return;
     } else if (strcmp(req.path, "/outbox") == 0) {
         if (req.domain == nullptr && req.user != nullptr) {
-            auto outbox_str = g_mailbox.get_outbox_str(user_str(&req));
-            req.respond(cb, outbox_str, "Content-Type: text/html");
+            const auto outbox = fiy::Body(g_mailbox.get_outbox_str(user_str(&req)));
+            req.respond(cb, 200, "Content-Type: text/html", outbox);
             return;
         }
 
@@ -173,18 +176,17 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
         return;
 
     } else if (strcmp(req.path, "/compose") == 0) {
-        req.respond(cb, compose_html, "Content-Type: text/html");
+        req.respond(cb, 200, "Content-Type: text/html", compose_html);
         return;
     } else if (strncmp(req.path, "/view/", strlen("/view/")) == 0) {
-        size_t idx = strtoul(req.path + strlen("/view/"), nullptr, 10);
+        const size_t idx = strtoul(req.path + strlen("/view/"), nullptr, 10);
         // TODO verify that the user has access to the email
         Mail* m = g_mailbox.get(idx);
         if (m == nullptr) {
             req.respond(cb, 404, "Not found");
             return;
         }
-        std::string view = m->long_view();
-        req.respond(cb, view, "Content-Type: text/html");
+        req.respond(cb, 200, "Content-Type: text/html", fiy::Body(m->long_view()));
         return;
     }
 
@@ -203,8 +205,8 @@ static void handle_request(fiy_request_t* request, fiy_callback_t cb) {
     req.respond(cb, 404, "Not found.");
 }
 
-extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
-    static fiy_mod_info_t mod_info = {
+extern "C" fiy::ModInfo* start(const fiy_host_info_t* host_info) {
+    static fiy::ModInfo mod_info = {
         .on_request = handle_request,
         .delete_user = [](const char* user) {
             g_mailbox.delete_user_mail(user);

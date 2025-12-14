@@ -13,22 +13,22 @@
 fiy::HostInfo g_host_info;
 
 
-void repo_create_page(const fiy::Request& req, const fiy_callback_t cb) {
+void repo_create_page(const fiy::Request& req, const fiy::Callback cb) {
     std::string p = "<form method='POST'>"
                     ""
                     "</form>";
 }
 
-void repo_create_action(const fiy::Request& req, const fiy_callback_t cb) {
+void repo_create_action(const fiy::Request& req, const fiy::Callback cb) {
 
 }
 
-void unauthenticated(const fiy::Request& req, const fiy_callback_t cb) {
+void unauthenticated(const fiy::Request& req, const fiy::Callback cb) {
     // TODO either make a pretty page or redirect them to the portal/login page
     req.respond(cb, 401, "Unauthorized");
 }
 
-void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
+void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
     auto& req = *static_cast<fiy::Request*>(request);
 
     std::string_view path = req.path;
@@ -36,8 +36,8 @@ void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     if (path == "/") {
         static constexpr char file_path[] = "/landing.html";
         req.respond(cb, 200,
-            Pages::file_contents<file_path>(),
-            "Content-Type: text/html; charset=utf-8\nCache-Control: max-age=604800"
+            "Content-Type: text/html; charset=utf-8\nCache-Control: max-age=604800",
+            Pages::file_body<file_path>()
         );
         return;
     }
@@ -74,7 +74,7 @@ void delete_user(const char* username) {
 }
 
 /// Export: Start module
-extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
+extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
     // Initialize libgit2
     if (git_libgit2_init() < 0) {
         const git_error *e = giterr_last();
@@ -86,7 +86,7 @@ extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
     }
 
     // Exchange info
-    static fiy_mod_info_t mod_info = {
+    static fiy::ModInfo mod_info = {
         .on_request = handle_request,
         .delete_user = delete_user,
         .id="fiy.git",

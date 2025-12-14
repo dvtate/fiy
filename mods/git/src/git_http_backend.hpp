@@ -93,25 +93,13 @@ void get_uri_components(
     SERVER_NAME = g_host_info.domain;
 }
 
-/*
- Response header fields
-      header-field    = CGI-field | other-field
-      CGI-field       = Content-Type | Location | Status
-      other-field     = protocol-field | extension-field
-      protocol-field  = generic-field
-      extension-field = generic-field
-      generic-field   = field-name ":" [ field-value ] NL
-      field-name      = token
-      field-value     = *( field-content | LWSP )
-      field-content   = *( token | separator | quoted-string )
-*/
-
 inline fiy::Response parse_cgi_output(const std::string& s) {
-    fiy::Response ret{200, nullptr, 0 };
+    fiy::Response ret;
 
     // Parse headers
     size_t start = 0;
     size_t end;
+    size_t body_len = 0;
     do {
         end = s.find("\r\n", start);
         auto line = s.substr(start, end - start);
@@ -137,25 +125,24 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
             // std::cout <<" Status: " << ret.status << std::endl;
         } else if (header == "Content-Length") {
             // Extra Validation later
-            ret.body_len = atoi(line.substr(i + 1 ).c_str());  // TODO use strtol + string_view
+            body_len = atoi(line.substr(i + 1 ).c_str());  // TODO use strtol + string_view
             ret.add_header(line);
             // std::cout <<" Content-length" << ret.body_len << std::endl;
         } else {
             ret.add_header(line);
             // std::cout <<"Header: " << line << std::endl;
         }
-        start = end + 2;
+        start = end + 2; // \r\n
     } while (end != std::string::npos && start < s.size() && s[start] != '\n');
 
     // Extract body
     if (end != std::string::npos) {
         // Body length
-        ret.body = s.c_str() + start; // extra \r\n
-        const size_t body_len = s.size() - start;
-        if (ret.body_len != 0 && body_len != ret.body_len) {
+        const size_t body_len2 = s.size() - start;
+        ret.body = fiy::Body(s.c_str() + start, body_len2);
+        if (body_len != 0 && body_len != body_len2) {
             g_host_info.log(2, "Incorrect Content-Length header");
         }
-        ret.body_len = body_len;
     }
 
     return ret;
@@ -164,7 +151,7 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
 /**
  * Wrapper around the git-http-backend CGI plugin included with git
  */
-void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
+void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
     std::string_view path{req.path};
 
     CGI cgi{{"git", "http-backend" }};
@@ -219,29 +206,35 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
         // std::cerr << "Set header env: '" <<ev <<"' = '" << v << "'\n";
     }
 
-    auto r = cgi.run();
-    if (r.status != 0 || r.stdout.empty()) {
-        g_host_info.log(1, "git http-backend cgi failed");
-        req.respond(cb, 500, "Git CGI failed");
-        // std::cerr <<"\nstatus: " << r.status << std::endl;
-        // std::cerr <<"\nstdout: " << r.stdout << std::endl;
-        // std::cerr <<"err!\n";
-        //
-        // for (auto& e : cgi.get_env())
-        //     std::cout <<"env: '" <<e <<"'\n";
-        //
-        // std::cerr << "\n====================================\nBody:\n";
-        // int fd = open("/tmp/dbg.data", O_CREAT | O_RDWR, 0666);
-        // if (write(fd, cgi.body.data(), cgi.body.size()) < 0)
-        //     perror("write()");
-        // std::cerr << cgi.body << "\n====================================\n";
-        return;
-    }
+    FILE* f = tmpfile();
+    if (f == nullptr) {
+        auto r = cgi.run();
+        if (r.status != 0) {
+            g_host_info.log(1, "git http-backend cgi failed");
+            req.respond(cb, 500, "Git CGI failed");
+            // std::cerr <<"\nstatus: " << r.status << std::endl;
+            // std::cerr <<"\nstdout: " << r.stdout << std::endl;
+            // std::cerr <<"err!\n";
+            //
+            // for (auto& e : cgi.get_env())
+            //     std::cout <<"env: '" <<e <<"'\n";
+            //
+            // std::cerr << "\n====================================\nBody:\n";
+            // int fd = open("/tmp/dbg.data", O_CREAT | O_RDWR, 0666);
+            // if (write(fd, cgi.body.data(), cgi.body.size()) < 0)
+            //     perror("write()");
+            // std::cerr << cgi.body << "\n====================================\n";
+            return;
+        }
 
-    // std::cout << "--------------------------------------------\n";
-    // std::cout << "\nCGI Result: " <<r.stdout << std::endl;
-    // std::cout << "--------------------------------------------\n";
-    req.respond(cb, parse_cgi_output(r.stdout));
+        // std::cout << "--------------------------------------------\n";
+        // std::cout << "\nCGI Result: " <<r.stdout << std::endl;
+        // std::cout << "--------------------------------------------\n";
+        req.respond(cb, parse_cgi_output(r.stdout));
+        return;
+
+    }
+    auto r = cgi.run();
 
     // FIXME integrate closer with cgi class
     //  parse the header, send the header
@@ -249,13 +242,16 @@ void git_repo_cgi(const fiy::Request& req, fiy_callback_t cb) {
     // this prevents socket idle
 }
 
-void git_repo_auth(const fiy::Request& req, fiy_callback_t cb) {
+void git_repo_auth(const fiy::Request& req, const fiy::Callback cb) {
     auto repo = get_repo_path(req.path);
     if (req.user && req.domain == nullptr) {
         // git http password auth handled by protocol server
         req.respond(cb, 401, "Unauthenticated");
         return;
     }
+
+    // TODO verify they have access to the repo
+    //      check path to see if it's a push or pull
 
     git_repo_cgi(req, cb);
 }

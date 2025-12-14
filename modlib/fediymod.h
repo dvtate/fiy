@@ -12,8 +12,13 @@
 #include <time.h>
 #else
 #include <cstdint>
-#include <string>
 #include <ctime>
+#include <cstdio>
+#include <string>
+#endif
+
+#ifdef __cplusplus
+namespace fiy {
 #endif
 
 /// String versions of http verb
@@ -70,27 +75,63 @@ struct fiy_request_t {
     const char* body;       // null = get request
 };
 
-struct fiy_buffer_t {
-    char* data;
-    size_t size;
+/**
+ * Buffered reader
+ * @param context (in) user-defined context used to determine content to read
+ * @param buffer (out) buffer to hold data that's being read
+ * @param max_bytes (in) maximum number of bytes to accept
+ * @return number of bytes read, returns zero when done reading
+ * @remark when done reading, do cleanup on context object then return zero
+ */
+typedef ssize_t (*fiy_buffered_reader_fn)(
+    void* context,
+    char* buffer,
+    size_t max_bytes
+);
+
+/**
+ * Enum for body tagged union
+ */
+typedef enum {
+    FIY_BODY_NONE,
+    FIY_BODY_BUFFER,
+    FIY_BODY_FILE,
+    FIY_BODY_READER
+} fiy_body_type;
+
+/**
+ * Various ways to pass the body of a response
+ *
+ * For now this is only used for responses
+ */
+struct fiy_body_t {
+    fiy_body_type type;
+
+    union {
+        /// String/buffer
+        struct {
+            const char* data;
+            size_t length;
+        } buffer;
+
+        /// File
+        // TODO instead int fd + int offset
+        struct {
+            int fd;
+            long offset;
+        } file;
+
+        /// Buffered reader
+        struct {
+            fiy_buffered_reader_fn read;
+            void* context;
+        } reader;
+    };
 };
 
-struct fiy_buffer_generator_t {
-    // Have we reached the end of the buffer
-    bool (*is_done)(struct fiy_buffer_generator_t*);
-
-    // Get null-terminated array of buffers
-    struct fiy_buffer_t* (*prepare)(struct fiy_buffer_generator_t*);
-
-    // Reader is ready for another call to prepare
-    void (*consume)(struct fiy_buffer_generator_t*);
-};
-
-#define FIY_BODY_TYPE_TEXT 0
-#define FIY_BODY_TYPE_FILE 1
-#define FIY_BODY_TYPE_BUFF 2
-
-
+/**
+ * Response to a request
+ */
 struct fiy_response_t {
     /**
      * HTTP Status code
@@ -103,31 +144,12 @@ struct fiy_response_t {
     const char* headers;
 
     /**
-     * What type of body do we have?
-     * 0 - text body
-     * 1 - file
-     * 2 - buffer generator
+     * HTTP Body
      */
-    // uint8_t body_type : 2;
-
-    /**
-     * How many characters are in the body
-     * -1 to skip Content-Length field
-     */
-    size_t body_len : 62;
-
-    /**
-     * HTTP body
-     */
-    const char* body;
-    // union body {
-    //     const char* body_text;
-    //     int body_file;
-    //     struct fiy_buffer_generator_t* generator;
-    // };
+    struct fiy_body_t body;
 };
 
-typedef void (* fiy_callback_t)(const struct fiy_request_t* request, const struct fiy_response_t*);
+typedef void (*fiy_callback_t)(const struct fiy_request_t* request, const struct fiy_response_t*);
 
 /// This is used to provide callbacks to the host
 struct fiy_mod_info_t {
@@ -202,6 +224,7 @@ struct fiy_host_info_t {
      *  - 4 : debug
      * @param message
      */
+    // TODO should take host_info self pointer so that it's handled correctly
     void (*log)(int level, const char* message);
 
     /**
@@ -261,6 +284,8 @@ struct fiy_host_info_t {
 
 typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host_info_t*);
 
-
+#ifdef __cplusplus
+} // namespace fiy
+#endif
 
 #endif //FEDIY_FEDIYMOD_H

@@ -17,8 +17,10 @@
 #include "../modlib/fediymod.hpp"
 #include "Server/util.hpp"
 
+
+
 /// Message passed to shared library
-struct ModDllConnectorRequest : public fiy_request_t {
+struct ModDllConnectorRequest : public fiy::fiy_request_t {
     std::shared_ptr<Session> m_conn;
 
     explicit ModDllConnectorRequest(std::shared_ptr<Session> conn):
@@ -51,14 +53,46 @@ struct ModDllConnectorRequest : public fiy_request_t {
         delete this;
     }
 
-    void callback(const fiy_response_t* r){
-        Session::StringResponse res;
-        res.body() = std::string(r->body, r->body_len);
-        res.result(r->status);
-        response_set_headers(res, r->headers);
+    void callback(const fiy::fiy_response_t* r) {
+        std::string str;
+        switch (r->body.type) {
+            case fiy::BodyType::FIY_BODY_NONE: {
+                Session::EmptyResponse res;
+                res.result(r->status);
+                response_set_headers(res, r->headers);
+                m_conn->respond(m_conn->prep(std::move(res)));
+                break;
+            }
 
-        // TODO add headers
-        m_conn->respond(m_conn->prep(std::move(res)));
+            case fiy::BodyType::FIY_BODY_FILE: {
+                // Convert to boost file type
+                Session::FileBody::file_type f;
+                f.native_handle(r->body.file.fd);
+                boost::beast::error_code ec;
+                f.seek(r->body.file.offset, ec);
+                if (ec) {
+                    LOG_ERR("Seek failed: " << ec.message());
+                }
+
+                // Construct response
+                Session::FileResponse res;
+                res.body().file() = std::move(f);
+                res.result(r->status);
+                response_set_headers(res, r->headers);
+                m_conn->respond(m_conn->prep(std::move(res)));
+                break;
+            }
+
+            case fiy::BodyType::FIY_BODY_BUFFER:
+            case fiy::BodyType::FIY_BODY_READER: {
+                Session::StringResponse res;
+                res.body() = fiy::Body::to_string(r->body);
+                res.result(r->status);
+                response_set_headers(res, r->headers);
+                m_conn->respond(m_conn->prep(std::move(res)));
+                break;
+            }
+        }
         this->remove_from_task_queue();
     }
     static char* new_cstr_from_string(const std::string_view s) {
@@ -90,7 +124,7 @@ struct ModDllConnectorRequest : public fiy_request_t {
     }
 };
 
-struct ModDLLHostInfo : fiy_host_info_t {
+struct ModDLLHostInfo : fiy::fiy_host_info_t {
     // TODO these should probably be unique_ptr's ?
     std::string m_base_uri;
     std::string m_data_dir;
@@ -99,8 +133,8 @@ struct ModDLLHostInfo : fiy_host_info_t {
         this->log = [](const int n, const char* s){
             static const char* types[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG" };
             const char* type_str;
-            if (n > 5 || n < 0) {
-                std::cerr << "Mod used fiy_host_info.log with invalid log type\n";
+            if (n > 4 || n < 0) {
+                LOG_WARN("Mod used fiy_host_info.log with invalid log type");
                 type_str = "INVALID";
             } else {
                 type_str = types[n];
@@ -140,11 +174,11 @@ struct ModDLLHostInfo : fiy_host_info_t {
      *    - this prevents false impersonation
      */
     static void request_impl(
-//    const struct fiy_host_info_t* host,
+//    const struct fiy::fiy_host_info_t* host,
         const char* app_id,
-        const fiy_request_t* request,
+        const fiy::fiy_request_t* request,
         void* context,
-        void (*callback)(const struct fiy_response_t*, void*)
+        void (*callback)(const struct fiy::fiy_response_t*, void*)
     ) {
         // Send request to peer
         g_fiy->m_peers.request_peer(request->domain, app_id, request, context, callback);
@@ -178,7 +212,7 @@ struct ModDLLHostInfo : fiy_host_info_t {
      *  1 if the user does not exist
      *  -1 error
      */
-    static int user_info_impl(const char* local_user_name, fiy_local_user_info_t* ret) {
+    static int user_info_impl(const char* local_user_name, fiy::fiy_local_user_info_t* ret) {
         const auto u = DB::get_user(local_user_name);
         if (u == nullptr)
             return 1;
@@ -238,7 +272,7 @@ bool ModDLLConnector::start() {
         return false;
 
     // Start mod
-    const auto start_fn = (fiy_mod_start_function_t) dlsym(m_dl_handle, "start");
+    const auto start_fn = (fiy::StartFunction) dlsym(m_dl_handle, "start");
     m_mod_info = start_fn(m_host_info);
     if (m_mod_info == nullptr)
         return false;
@@ -268,12 +302,12 @@ void ModDLLConnector::handle_request(std::shared_ptr<Session> conn) {
         return;
     }
 
-    fiy_request_t* r = new ModDllConnectorRequest(conn);
+    fiy::fiy_request_t* r = new ModDllConnectorRequest(conn);
     m_mod_info->on_request(
         r,
         [](
-            const fiy_request_t* req,
-            const fiy_response_t* resp
+            const fiy::fiy_request_t* req,
+            const fiy::fiy_response_t* resp
         ){
             ((ModDllConnectorRequest*) req)->callback(resp);
         }
@@ -281,33 +315,33 @@ void ModDLLConnector::handle_request(std::shared_ptr<Session> conn) {
 }
 
 void ModDLLConnector::handle_request(
-    const fiy_request_t* req,
+    const fiy::fiy_request_t* req,
     void* context,
-    void (*callback)(const struct fiy_response_t*, void*)
+    void (*callback)(const struct fiy::fiy_response_t*, void*)
 ) {
-    struct ModDllConnectorRequestWrapper : public fiy_request_t {
+    struct ModDllConnectorRequestWrapper : public fiy::fiy_request_t {
         ModDllConnectorRequestWrapper(
-            const fiy_request_t& req,
-            void (*callback)(const fiy_response_t*, void* context),
+            const fiy::fiy_request_t& req,
+            void (*callback)(const fiy::fiy_response_t*, void* context),
             void* context
-        ): fiy_request_t(req), m_callback(callback), m_context(context)
+        ): fiy::fiy_request_t(req), m_callback(callback), m_context(context)
         {}
 
-        void callback(const fiy_response_t* res) const {
+        void callback(const fiy::fiy_response_t* res) const {
             m_callback(res, m_context);
             delete this;
         }
     private:
-        void (*m_callback)(const fiy_response_t*, void* context);
+        void (*m_callback)(const fiy::fiy_response_t*, void* context);
         void* m_context;
     };
 
-    fiy_request_t* r = new ModDllConnectorRequestWrapper(*req, callback, context);
+    fiy::fiy_request_t* r = new ModDllConnectorRequestWrapper(*req, callback, context);
     m_mod_info->on_request(
         r,
         [](
-            const fiy_request_t* req,
-            const fiy_response_t* resp
+            const fiy::fiy_request_t* req,
+            const fiy::fiy_response_t* resp
         ){
             ((ModDllConnectorRequestWrapper*) req)->callback(resp);
         }
@@ -466,9 +500,9 @@ void ModNetConnector::delete_user(const char* user) {
 }
 
 void ModNetConnector::handle_request(
-    const fiy_request_t* req,
+    const fiy::fiy_request_t* req,
     void* context,
-    void (*callback)(const fiy_response_t*, void*)
+    void (*callback)(const fiy::fiy_response_t*, void*)
 ) {
     const fiy::Request& r = *req;
     namespace http = boost::beast::http;
@@ -499,11 +533,10 @@ void ModNetConnector::handle_request(
             headers_str += '\n';
         }
 
-        const fiy_response_t response{
+        const fiy::fiy_response_t response{
             .status = static_cast<int>(resp.result_int()),
             .headers = headers_str.c_str(),
-            .body_len = resp.body().size(),
-            .body = resp.body().data(),
+            .body = fiy::Body(resp.body())
         };
         callback(&response, context);
     };
@@ -512,11 +545,10 @@ void ModNetConnector::handle_request(
         if (callback == nullptr)
             return;
 
-        const fiy_response_t response{
+        const fiy::fiy_response_t response{
             .status = -1,
             .headers = "",
-            .body_len = err.size(),
-            .body = err.c_str(),
+            .body = fiy::Body(err),
         };
         callback(&response, context);
     };

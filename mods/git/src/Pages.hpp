@@ -18,18 +18,21 @@ inline std::string get_frontend_dir() {
 
 struct Pages : FileCache<get_frontend_dir> {
 
-    static const ReplacementMap& get_host_data() {
-        static Pages::ReplacementMap host_data = {
+    static ReplacementMap get_host_data() {
+        return {
             { "{{fiy_domain}}", g_host_info.domain },
             { "{{fiy_baseuri}}", g_host_info.base_uri },
         };
-        return host_data;
     }
 
     /// Automatically replace host_data in the loaded template
     template<const char* FileSubPath>
     static const std::string& file_contents() {
         return FileCache<get_frontend_dir>::file_contents<FileSubPath>(get_host_data());
+    }
+    template<const char* FileSubPath>
+    static fiy::Body file_body() {
+        return fiy::Body(file_contents<FileSubPath>());
     }
 };
 

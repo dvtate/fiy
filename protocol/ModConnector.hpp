@@ -38,9 +38,9 @@ public:
     /// Handle user request
     virtual void handle_request(std::shared_ptr<Session> conn) = 0;
     virtual void handle_request(
-        const fiy_request_t* req,
+        const fiy::fiy_request_t* req,
         void* context,
-        void (*callback)(const fiy_response_t*, void*)
+        void (*callback)(const fiy::fiy_response_t*, void*)
     ) = 0;
 
     /// Handle user data deletion request
@@ -61,7 +61,7 @@ struct ModDLLHostInfo;
 /// Communicates with the module by dynamically linking
 class ModDLLConnector : public ModConnector {
     void* m_dl_handle{nullptr};
-    fiy_mod_info_t* m_mod_info{nullptr};
+    fiy::fiy_mod_info_t* m_mod_info{nullptr};
     ModDLLHostInfo* m_host_info{nullptr};
 
 public:
@@ -73,9 +73,9 @@ public:
     void delete_user(const char* user) override;
     void handle_request(std::shared_ptr<Session> conn) override;
     void handle_request(
-        const fiy_request_t* req,
+        const fiy::fiy_request_t* req,
         void* context,
-        void (*callback)(const fiy_response_t*, void*)
+        void (*callback)(const fiy::fiy_response_t*, void*)
     ) override;
 };
 
@@ -98,8 +98,8 @@ public:
     void delete_user(const char* user) override;
     void handle_request(std::shared_ptr<Session>) override;
     void handle_request(
-        const fiy_request_t* req,
+        const fiy::fiy_request_t* req,
         void* context,
-        void (*callback)(const fiy_response_t*, void*)
+        void (*callback)(const fiy::fiy_response_t*, void*)
     ) override;
 };

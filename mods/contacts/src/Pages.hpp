@@ -18,7 +18,6 @@
 extern fiy::HostInfo g_host_info;
 
 namespace Pages {
-
     static std::string full_path(const std::string& subpath) {
         return std::string(g_host_info.data_dir) + "/assets/" + subpath;
     }
@@ -64,16 +63,21 @@ namespace Pages {
         static const std::string contents = load_file_as_string(full_path(FileSubPath));
         return contents;
     }
+    template<const char* FileSubPath>
+    fiy::Body file_body() {
+        return fiy::Body(file_contents<FileSubPath>());
+    }
 
     /// Primitive templating engine
-    std::string replace_one(std::string haystack, const std::string_view needle, const std::string_view replacement) {
+    inline std::string replace_one(std::string haystack, const std::string_view needle, const std::string_view replacement) {
         std::size_t i = haystack.find(needle);
         if (i == std::string::npos)
             return haystack;
         haystack.replace(i, needle.size(), replacement);
         return haystack;
     }
-    std::string replace_all(std::string haystack, const std::string_view needle, const std::string_view replacement) {
+
+    inline std::string replace_all(std::string haystack, const std::string_view needle, const std::string_view replacement) {
         std::size_t i = 0;
         while ((i = haystack.find(needle, i)) != std::string::npos) {
             haystack.replace(i, needle.size(), replacement);
@@ -82,7 +86,7 @@ namespace Pages {
         return haystack;
     }
 
-    std::string replace_all(
+    inline std::string replace_all(
         std::string template_string,
         const std::vector<std::pair<std::string_view, std::string_view>>& replacements
     ) {
@@ -95,8 +99,7 @@ namespace Pages {
     // Cached Static Pages
     //////
 
-
-    const std::string& main_js() {
+    inline fiy::Body main_js() {
         static const std::string contents = Pages::replace_all(
             load_file_as_string(full_path("main.bundle.js")),
             {
@@ -108,10 +111,10 @@ namespace Pages {
                 }
             }
         );
-        return contents;
+        return fiy::Body(contents);
     }
 
-    const std::string& index_html() {
+    inline fiy::Body index_html() {
         static std::string contents = replace_all(
             load_file_as_string(full_path("index.html")),
             {
@@ -119,11 +122,11 @@ namespace Pages {
                 { "{{fediy_contacts_domain}}", g_host_info.domain }
             }
         );
-        return contents;
+        return fiy::Body(contents);
     }
 
-    const std::string& main_css() {
+    inline fiy::Body main_css() {
         static const char path[] = "main.css";
-        return file_contents<path>();
+        return fiy::Body(file_contents<path>());
     }
 };

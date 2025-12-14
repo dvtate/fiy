@@ -23,7 +23,7 @@ fiy::HostInfo g_host_info;
  * @param req request for profile
  * @param cb request callback
  */
-static void get_profile(std::string_view user_str, fiy::Request& req, fiy_callback_t cb) {
+static void get_profile(std::string_view user_str, fiy::Request& req, fiy::Callback cb) {
     // TODO if local request, check and see if the user already has a contact for that user
 
     const auto [user, dom] = g_host_info.split_user_str(user_str);
@@ -32,15 +32,15 @@ static void get_profile(std::string_view user_str, fiy::Request& req, fiy_callba
     if (dom.empty()) {
         const auto card = DB::get_profile(std::string(user), req.user, req.domain);
         if (card.empty())
-            req.respond(cb, 404, "Not found");
+            req.respond(cb, 404, "", fiy::Body("Not found"));
         else
-            req.respond(cb, 200, card, "Content-Type:text/vcard");
+            req.respond(cb, 200, "Content-Type:text/vcard", fiy::Body(card));
         return;
     }
 
     // Handle remote user
     struct Ctx {
-        fiy_callback_t cb;
+        fiy::Callback cb;
         fiy::Request* req;
         std::string domain;
     };
@@ -55,18 +55,18 @@ static void get_profile(std::string_view user_str, fiy::Request& req, fiy_callba
         "contacts",
         &req,
         ctx,
-        [](const struct fiy_response_t* res, void* pctx){
+        [](const struct fiy::fiy_response_t* res, void* pctx){
             auto* ctx = (struct Ctx*) pctx;
 
-            if (!res || res->status < 0) {
+            if (res == nullptr || res->status < 0) {
                 // Failed
                 std::string body = "Failed to get profile from " + ctx->domain + ": ";
                 if (res != nullptr)
-                    body += res->body;
+                    body += fiy::Body::to_string(res->body);
                 ctx->req->respond(ctx->cb,
                     500,
-                    body,
-                    "Content-Type: text/html"
+                    "Content-Type: text/html",
+                    fiy::Body(body)
                 );
             } else {
                 // Success, forward the response
@@ -84,14 +84,16 @@ static void get_profile(std::string_view user_str, fiy::Request& req, fiy_callba
  * @param req request
  * @param cb request callback
  */
-static void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t cb) {
+static void get_pfp(std::string_view user_str, fiy::Request& req, fiy::Callback cb) {
     auto [user, dom] = g_host_info.split_user_str(user_str);
 
-    static const fiy_response_t default_pfp {
+    static const fiy::fiy_response_t default_pfp {
         .status = 404,
         .headers = "Content-Type: image/png\nCache-Control: max-age=300",
-        .body_len = sizeof VC::default_pfp_raw,
-        .body = (const char*) VC::default_pfp_raw,
+        .body = fiy::Body(
+            (const char*)VC::default_pfp_raw,
+            sizeof VC::default_pfp_raw
+        )
     };
 
     // Local request
@@ -115,7 +117,7 @@ static void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t
         //  -> forward request to remote server
 
         struct Ctx {
-            fiy_callback_t cb;
+            fiy::Callback cb;
             fiy::Request* req;
             std::string domain;
         };
@@ -130,7 +132,7 @@ static void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t
             "contacts",
             &req,
             ctx,
-            [](const struct fiy_response_t* res, void* pctx){
+            [](const struct fiy::fiy_response_t* res, void* pctx){
                 auto* ctx = (struct Ctx*) pctx;
 
                 if (!res || res->status < 0) {
@@ -149,7 +151,7 @@ static void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t
 
     // Redirect
     if (pfp_dataurl.starts_with("http")) {
-        req.respond(cb, 307, "","Location: " + pfp_dataurl);
+        req.respond(cb, 307, "Location: " + pfp_dataurl, fiy::Body());
     }
 
     if (!pfp_dataurl.starts_with("data:")) {
@@ -176,14 +178,14 @@ static void get_pfp(std::string_view user_str, fiy::Request& req, fiy_callback_t
     media_type = pfp.substr(0, std::min(end_type, start_data));
 
     const auto data = pfp.substr(start_data + 1);
-    auto raw_data = base64::decode_into<std::string>(data);
+    const auto raw_data = base64::decode_into<std::string>(data);
 
     std::string headers = "Cache-Control: max-age=300\nContentType: ";
     headers += media_type;
-    req.respond(cb, 200, std::move(raw_data), headers);
+    req.respond(cb, 200, headers, fiy::Body(raw_data));
 }
 
-static void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
+static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
     auto& req = *(fiy::Request*) request;
 
     std::string_view path{req.path};
@@ -205,9 +207,10 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     if (path == "/tzdb") {
         // TODO 30 mins cache
         static const std::string tzdb_json = get_timezones_json();
-        static const fiy::Response tzdb_json_resp{
-            200, tzdb_json.c_str(), tzdb_json.size(),
-            "Content-Type: application/json\nCache-Control: max-age=604800"
+        static const fiy::fiy_response_t tzdb_json_resp{
+            .status = 200,
+            .headers = "Content-Type: application/json\nCache-Control: max-age=604800",
+            .body = fiy::Body(tzdb_json)
         };
         req.respond(cb, tzdb_json_resp);
         return;
@@ -216,24 +219,26 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     // Everything here requires a login
     if (req.user == nullptr) {
         static const fiy::Response no_auth_resp{
-            303, nullptr, 0,
-            "Location: " + g_host_info.host_base_uri() + "/portal/login"
+            303,
+            "Location: " + g_host_info.host_base_uri() + "/portal/login",
+            fiy::Body()
         };
+
         req.respond(cb, no_auth_resp);
         return;
     }
 
     if (path.starts_with("/main.css")) {
         req.respond(cb, 200,
-            Pages::main_css(),
-            "Content-Type: text/css\nCache-Control: max-age=604800"
+            "Content-Type: text/css\nCache-Control: max-age=604800",
+            Pages::main_css()
         );
         return;
     }
     if (path.starts_with("/main.js")) {
         req.respond(cb, 200,
-            Pages::main_js(),
-            "Content-Type: text/javascript\nCache-Control: max-age=604800"
+            "Content-Type: text/javascript\nCache-Control: max-age=604800",
+            Pages::main_js()
         );
         return;
     }
@@ -242,9 +247,8 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
     if (path == "/fa/fa.css") {
         static constexpr char file_path[] = "font-awesome.css";
         req.respond(cb, 200,
-            Pages::file_contents<file_path>(),
-            "\nContent-Type: text/css"
-            "\nCache-Control: max-age=604800"
+            "Content-Type: text/css\nCache-Control: max-age=604800",
+            Pages::file_body<file_path>()
         );
         return;
     }
@@ -253,61 +257,59 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         if (path.starts_with("eot")) {
             static constexpr char file_path[] = "fontawesome-webfont.eot";
             req.respond(cb, 200,
-                Pages::file_contents<file_path>(),
-                "Content-Type: application/vnd.ms-fontobject\nCache-Control: max-age=604800"
+                "Content-Type: application/vnd.ms-fontobject\nCache-Control: max-age=604800",
+                Pages::file_body<file_path>()
             );
             return;
         }
         if (path.starts_with("woff2")) {
             static constexpr char file_path[] = "fontawesome-webfont.woff2";
             req.respond(cb, 200,
-                Pages::file_contents<file_path>(),
-                "Content-Type: font/woff2\nCache-Control: max-age=604800"
+                "Content-Type: font/woff2\nCache-Control: max-age=604800",
+                Pages::file_body<file_path>()
             );
             return;
         }
         if (path.starts_with("woff")) {
             static constexpr char file_path[] = "fontawesome-webfont.woff";
             req.respond(cb, 200,
-                Pages::file_contents<file_path>(),
-                "Content-Type: font/woff\nCache-Control: max-age=604800"
+                "Content-Type: font/woff\nCache-Control: max-age=604800",
+                Pages::file_body<file_path>()
             );
             return;
         }
         if (path.starts_with("ttf")) {
             static constexpr char file_path[] = "fontawesome-webfont.ttf";
             req.respond(cb, 200,
-                Pages::file_contents<file_path>(),
-                "Content-Type: font/ttf\nCache-Control: max-age=604800"
+                "Content-Type: font/ttf\nCache-Control: max-age=604800",
+                Pages::file_body<file_path>()
             );
             return;
         }
         if (path.starts_with("svg")) {
             static constexpr char file_path[] = "fontawesome-webfont.svg";
             req.respond(cb, 200,
-                Pages::file_contents<file_path>(),
-                "Cache-Control: max-age=604800"
+                "Cache-Control: max-age=604800",
+                Pages::file_body<file_path>()
             );
             return;
         }
     }
 
-
+    // Landing page
     if (path == "/" || (path.size() > 1 && path[1] == '?')) {
-        req.respond(cb, 200, Pages::index_html(), "Content-Type: text/html");
+        req.respond(cb, 200, "Content-Type: text/html", Pages::index_html());
         return;
     }
 
-    if (path.starts_with("/profile/")) {
-        path.remove_prefix(9);
-        get_profile(path, req, cb);
-        return;
-    }
-
+    // Download all contacts
     if (path == "/all") {
         if (req.domain != nullptr)
             return;
-        req.respond(cb, 200, DB::get_user_rolodex(req.user), "Content-Type: text/vcard");
+        req.respond(cb, 200,
+            "Content-Type: text/vcard",
+            fiy::Body(DB::get_user_rolodex(req.user))
+        );
         return;
     }
 
@@ -318,7 +320,7 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         card.parse(std::string(request->body, request->body_len));
         switch (DB::save_contact(card)) {
             case DB::Success:
-                req.respond(cb, 200, card.to_vcard(), "Content-Type: text/vcard");
+                req.respond(cb, 200, "Content-Type: text/vcard", fiy::Body(card.to_vcard()));
                 return;
             case DB::Error:
                 req.respond(cb, 500, "Server Error");
@@ -342,7 +344,7 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t cb) {
         card.owner = req.user;
 
         if (DB::get_contact(card))
-            req.respond(cb, 200, card.to_vcard(), "Content-Type: text/vcard");
+            req.respond(cb, 200, "Content-Type: text/vcard", fiy::Body(card.to_vcard()));
         else
             req.respond(cb, 404, "No card with given id");
         return;
@@ -375,9 +377,8 @@ static void delete_user(const char* username) {
     DB::delete_user(username);
 }
 
-
-extern "C" fiy_mod_info_t* start(const fiy_host_info_t* host_info) {
-    static fiy_mod_info_t mod_info = {
+extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
+    static fiy::ModInfo mod_info = {
         .on_request = handle_request,
         .delete_user = nullptr,
         .id="fiy.contacts",

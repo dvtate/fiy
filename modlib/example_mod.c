@@ -3,10 +3,9 @@
 
 #include "fediymod.h"
 
-//////////////////////////
-// Exports
-////////////////////////
+struct fiy_host_info_t* g_host_info;
 
+/// Handle incoming requests to for this mod
 static void handle_request(struct fiy_request_t* request, fiy_callback_t callback) {
     // Allocate a body string to send to the user
     size_t body_len = 50
@@ -14,7 +13,7 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t callbac
         + (request->domain != NULL ? strlen(request->domain) : 4)
         + (10)
         + (request->path != NULL ? strlen(request->path) : 4);
-    char* body = (char*) malloc(sizeof(char) * body_len);
+    char* body = malloc(sizeof(char) * body_len);
 
     // Construct body string
     snprintf(
@@ -29,10 +28,12 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t callbac
 
     // Pass response to callback
     struct fiy_response_t resp = {
-        .status=200,
-        .body=body,
-        .body_len=strlen(body),
-        .headers="Content-Type: text/html"
+        .status = 200,
+        .headers = "Content-Type: text/html",
+        .body = {
+            .type = FIY_BODY_BUFFER,
+            .buffer = { .data = body, .length = strlen(body) }
+        }
     };
     callback(request, &resp);
 
@@ -40,31 +41,24 @@ static void handle_request(struct fiy_request_t* request, fiy_callback_t callbac
     free(body);
 }
 
-static void update_peer_domain(const char* old_domain, const char* new_domain) {
-    printf("Peer moved from %s to %s\n", old_domain, new_domain);
-}
-
-static void update_username(const char* old_username, const char* new_username) {
-    printf("User moved from %s to %s\n", old_username, new_username);
-}
-
+/// Handle user deletion
 static void user_deleted(const char* username) {
     printf("User %s deleted, removing their data (ie - for GDPR compliance)", username);
 }
 
-/**
- * Initialize the module so that it can begin accepting requests
- * @param domain
- * @param module_dir
- * @return
- */
+/// Export that gets called before anything else
 struct fiy_mod_info_t* start(const struct fiy_host_info_t* host_info) {
     // Prepare and make sure everything is set up and installed correctly
     static struct fiy_mod_info_t mod_info = {
-        .on_request=handle_request,
+        .on_request = handle_request,
         .delete_user = user_deleted,
         .id = "example.c",
         .version = "0.0"
     };
     return &mod_info;
+}
+
+/// Export that gets called for the mod to do any cleanup before exit/dlclose
+void stop() {
+    printf("Stopping mod");
 }

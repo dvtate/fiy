@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -20,6 +19,7 @@
  */
 struct CGI {
     // -- Environment variables --
+    // TODO probably should just move these in with m_env
     std::string AUTH_TYPE;        // 4.1.1.  AUTH_TYPE
     std::string CONTENT_LENGTH;   // 4.1.2.  CONTENT_LENGTH
     std::string CONTENT_TYPE;     // 4.1.3.  CONTENT_TYPE
@@ -60,11 +60,23 @@ struct CGI {
         m_env.emplace_back(var + "=" + val);
     }
 
+    /**
+     * Run the CGI script
+     */
     Result run() const {
         return run_cmd(args, get_env(), body);
     }
 
-    std::vector<std::string> get_env() const {
+    /**
+     * Run the CGI script
+     * @param output_fd file to pipe the CGI's stdout to
+     * @return CGI script's exit code
+     */
+    int run(const int output_fd) const {
+        return run_cmd(args, get_env(), body, output_fd);
+    }
+
+    [[nodiscard]] std::vector<std::string> get_env() const {
         // Construct environment variables
         std::vector<std::string> env = m_env;
         static const std::string gateway_interface =

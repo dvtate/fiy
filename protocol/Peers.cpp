@@ -203,7 +203,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
             DEBUG_LOG("New peer: " <<domain);
         };
 
-        auto handshake_err_cb = [this, domain, cb2 = std::move(cb)] (std::string err) {
+        auto handshake_err_cb = [domain, cb2 = std::move(cb)] (std::string err) {
             cb2(nullptr);
             LOG_ERR("Peer handshake failed " <<domain <<": " <<err);
             // Safe to leave the peer stub in the cache
@@ -363,8 +363,7 @@ void Peers::request_peer(
         const fiy_response_t response{
             .status = static_cast<int>(res.result_int()),
             .headers = headers_str.c_str(),
-            .body_len = res.body().size(),
-            .body = res.body().data(),
+            .body = fiy::Body(res.body())
         };
         callback(&response, context);
     };
@@ -375,8 +374,7 @@ void Peers::request_peer(
         const fiy_response_t response{
             .status = -1,
             .headers = "",
-            .body_len = err.size(),
-            .body = err.c_str(),
+            .body = fiy::Body(err)
         };
         callback(&response, context);
         LOG_ERR("Peer request failed: " << err);
