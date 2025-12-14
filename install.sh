@@ -191,7 +191,7 @@ ExecStart=$INSTALL_PATH/server $INSTALL_PATH/config.ini
 " > "$INSTALL_PATH/fediy.service"
 if [ "$INSTALL_SYSTEMD_UNIT" -eq 1 ]; then
     mv "$INSTALL_PATH/fediy.service" "$INSTALL_PATH/fediy.service.sample"
-    sudo cp "$INSTALL_PATH/fediy.service.sample" /etc/systemd/system/fediy.service
+    cp "$INSTALL_PATH/fediy.service.sample" /etc/systemd/system/fediy.service
     echo
     echo "To enable and start the fediy systemd daemon run"
     echo "sudo systemctl daemon-reload"
@@ -204,10 +204,10 @@ fi
 
 ## Generate and install server keys
 echo "Generating server key pair..."
-openssl genrsa -out "$INSTALL_PATH/auth/privkey.pem" 2048
-openssl rsa -in "$INSTALL_PATH/auth/privkey.pem" -pubout -out "$INSTALL_PATH/auth/pubkey.crt"
+openssl genrsa -out "$INSTALL_PATH/auth/_privkey.pem" 2048
+openssl rsa -in "$INSTALL_PATH/auth/_privkey.pem" -pubout -out "$INSTALL_PATH/auth/pubkey.crt"
 # Convert to pkcs8 format ... probably not necessary
-openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in "$INSTALL_PATH/auth/privkey.pem" -out "$INSTALL_PATH/auth/privkey.pem"
+openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in "$INSTALL_PATH/auth/_privkey.pem" -out "$INSTALL_PATH/auth/privkey.pem"
 echo "Generated server key pair."
 
 # FIXME
