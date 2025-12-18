@@ -216,7 +216,7 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
         return;
     }
 
-    // Everything here requires a login
+// Everything past here requires a login
     if (req.user == nullptr) {
         static const fiy::Response no_auth_resp{
             303,
@@ -304,11 +304,14 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
 
     // Download all contacts
     if (path == "/all") {
-        if (req.domain != nullptr)
+        // User authenticated as we can see earlier
+        if (req.domain != nullptr) {
+            req.respond(cb, 401);
             return;
+        }
         req.respond(cb, 200,
             "Content-Type: text/vcard",
-            fiy::Body(DB::get_user_rolodex(req.user))
+            DB::get_user_rolodex(req.user)
         );
         return;
     }
@@ -320,7 +323,7 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
         card.parse(std::string(request->body, request->body_len));
         switch (DB::save_contact(card)) {
             case DB::Success:
-                req.respond(cb, 200, "Content-Type: text/vcard", fiy::Body(card.to_vcard()));
+                req.respond(cb, 200, "Content-Type: text/vcard", card.to_vcard());
                 return;
             case DB::Error:
                 req.respond(cb, 500, "Server Error");
@@ -344,7 +347,7 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
         card.owner = req.user;
 
         if (DB::get_contact(card))
-            req.respond(cb, 200, "Content-Type: text/vcard", fiy::Body(card.to_vcard()));
+            req.respond(cb, 200, "Content-Type: text/vcard", card.to_vcard());
         else
             req.respond(cb, 404, "", fiy::Body("No card with given id"));
         return;
@@ -380,7 +383,7 @@ static void delete_user(const char* username) {
 extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
     static fiy::ModInfo mod_info = {
         .on_request = handle_request,
-        .delete_user = nullptr,
+        .delete_user = delete_user,
         .id="fiy.contacts",
         .version = "0.0"
     };

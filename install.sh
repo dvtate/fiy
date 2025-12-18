@@ -98,7 +98,7 @@ SALT="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 36)"
 
 declare CONCURRENCY
 if [ "$DEVEL_INSTALL" -eq 1 ]; then
-    CONCURRENCY="$(nproc --ignore=4)"
+    CONCURRENCY="1"
 else
     CONCURRENCY="$(nproc)"
 fi

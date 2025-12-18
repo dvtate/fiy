@@ -106,6 +106,11 @@ namespace fiy {
         }
     };
 
+    /**
+     * Type for response bodies
+     * @note for string/buffer bodies, this operates like a string_view
+     *      the passed in data shouldn't get free'd until after callback/respond called
+     */
     struct Body : public fiy_body_t {
         using Type = fiy_body_type;
         Body(): fiy_body_t({
@@ -122,6 +127,12 @@ namespace fiy {
                 .file = { .fd = file_descriptor, .offset = offset }
             })
         {}
+
+        Body(const fiy_buffered_reader_fn fn, void* context): fiy_body_t({
+            .type = FIY_BODY_READER,
+            .reader = { .read = fn, .context = context }})
+        {}
+
         explicit Body(const std::string_view body): fiy_body_t({
             .type = body.empty() ? FIY_BODY_NONE : FIY_BODY_BUFFER,
             .buffer = { body.data(), body.length() }
@@ -134,10 +145,8 @@ namespace fiy {
             .type = FIY_BODY_BUFFER,
             .buffer = { .data = buffer, .length = length }
         }) {}
-        Body(fiy_buffered_reader_fn fn, void* context): fiy_body_t({
-            .type = FIY_BODY_READER,
-            .reader = { .read = fn, .context = context }})
-        {}
+        Body(std::string&& body) = delete;
+            // this structure works like a string_view.
 
         [[nodiscard]] static std::string to_string(const fiy_body_t& body) {
             switch (body.type) {
@@ -318,22 +327,9 @@ namespace fiy {
          * Respond to request
          * @param cb provided callback function
          * @param status HTTP status code
+         * @param headers headers string
          * @param body HTTP body
-         * @param headers null-terminated headers string
          */
-        // void respond(
-        //     const fiy_callback_t cb,
-        //     const int status = 200,
-        //     const std::string_view body = "",
-        //     const std::string& headers = ""
-        // ) const {
-        //     const fiy_response_t res = {
-        //         .status=status,
-        //         .headers=headers.empty() ? nullptr : headers.c_str(),
-        //         .body = body.empty() ? Body() : Body(body),
-        //     };
-        //     cb(this, &res);
-        // }
         void respond(
             const fiy_callback_t cb,
             const int status = 200,
@@ -344,6 +340,19 @@ namespace fiy {
                 .status = status,
                 .headers = headers.empty() ? nullptr : headers.c_str(),
                 .body = body,
+            };
+            cb(this, &res);
+        }
+        void respond(
+            const fiy_callback_t cb,
+            const int status,
+            const std::string& headers,
+            const std::string& body
+        ) const {
+            const fiy_response_t res = {
+                .status = status,
+                .headers = headers.empty() ? nullptr : headers.c_str(),
+                .body = Body(body),
             };
             cb(this, &res);
         }

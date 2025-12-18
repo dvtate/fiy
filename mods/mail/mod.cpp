@@ -85,9 +85,9 @@ void send_mail(fiy::Request& req, const fiy::Callback cb) {
         // Get unique remote destinations
         std::set<std::string> doms;
         for (const auto& user : to) {
-            auto at_pos = user.find('@');
+            const auto at_pos = user.find('@');
             if (at_pos != std::string::npos) {
-                doms.emplace(user.substr(i + 1));
+                doms.emplace(user.substr(at_pos + 1));
             }
         }
         doms.erase(g_host_info.domain);
@@ -146,18 +146,18 @@ static void handle_request(fiy_request_t* request, fiy::Callback cb) {
         return;
     } else if (strcmp(req.path, "/") == 0) {
         static const std::string root = g_host_info.base_uri;
-        static const fiy::Body body{"<ul>"
+        static const std::string body_str = "<ul>"
             "<li><a href='" + root + "/inbox'>Inbox</a></li>"
             "<li><a href='" + root + "/outbox'>Outbox</a></li>"
             "<li><a href='" + root + "/compose'>Compose</a></li>"
-            "</ul>"};
-        req.respond(cb, 200, "Content-Type: text/html", body);
+            "</ul>";
+        req.respond(cb, 200, "Content-Type: text/html", fiy::Body(body_str));
         return;
     } else if (strcmp(req.path, "/inbox") == 0) {
         // Authenticated local user
         if (req.domain == nullptr && req.user != nullptr) {
-            const auto inbox = fiy::Body(g_mailbox.get_inbox_str(user_str(&req)));
-            req.respond(cb, 200, "Content-Type: text/html", inbox);
+            const auto inbox = g_mailbox.get_inbox_str(user_str(&req));
+            req.respond(cb, 200, "Content-Type: text/html", fiy::Body(inbox));
             return;
         }
 
@@ -166,8 +166,8 @@ static void handle_request(fiy_request_t* request, fiy::Callback cb) {
         return;
     } else if (strcmp(req.path, "/outbox") == 0) {
         if (req.domain == nullptr && req.user != nullptr) {
-            const auto outbox = fiy::Body(g_mailbox.get_outbox_str(user_str(&req)));
-            req.respond(cb, 200, "Content-Type: text/html", outbox);
+            const auto outbox = g_mailbox.get_outbox_str(user_str(&req));
+            req.respond(cb, 200, "Content-Type: text/html", fiy::Body(outbox));
             return;
         }
 
@@ -186,7 +186,8 @@ static void handle_request(fiy_request_t* request, fiy::Callback cb) {
             req.respond(cb, 404, "Not found");
             return;
         }
-        req.respond(cb, 200, "Content-Type: text/html", fiy::Body(m->long_view()));
+        const auto body_str = m->long_view();
+        req.respond(cb, 200, "Content-Type: text/html", fiy::Body(body_str));
         return;
     }
 

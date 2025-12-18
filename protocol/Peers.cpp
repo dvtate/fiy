@@ -4,6 +4,8 @@
 
 #include "Peers.hpp"
 
+namespace http = boost::beast::http;
+
 Peers::Peers() {
     m_cron = std::thread([this]() {
         while (true) {
@@ -83,16 +85,15 @@ void Peers::prune() {
     });
 }
 
-// TODO maybe prevent this from getting called multiple times for same peer
 void Peers::new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb) {
     DEBUG_LOG("Sending message to new peer " << domain);
 
     auto with_key_cb =
-        [this, domain, cb = std::move(cb)]
-        (boost::beast::http::response<boost::beast::http::string_body> res)
+        [this, domain, cb]
+        (http::response<http::string_body> res)
     {
         // Get key from response
-        if (res.result() != boost::beast::http::status::ok || res.body().empty()) {
+        if (res.result() != http::status::ok || res.body().empty()) {
             cb(nullptr);
             return;
         }
@@ -122,8 +123,8 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         // instead: symmetrically encrypt body payload, pk encrypt symkey in header
 
         // Make handshake request
-        boost::beast::http::request<boost::beast::http::string_body> req;
-        req.method(boost::beast::http::verb::post);
+        http::request<http::string_body> req;
+        req.method(http::verb::post);
         req.target("/peer/handshake");
         // req.body() = encrypted_pyload;
         req.body() = payload;
@@ -133,17 +134,17 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         auto handshake_cb = [
             this,
             key = std::move(key),
-            cb2 = std::move(cb),
+            cb,
             domain,
             secret = std::move(symkey_part1),
             token = std::move(bearer_token)
         ] (
-            boost::beast::http::response<boost::beast::http::string_body> res
+            http::response<http::string_body> res
         ) mutable {
             // Check status
             if (res.result_int() != 200) {
                 LOG_ERR("Handshake failed: " << res.result_int() << " -- " << res.body());
-                cb2(nullptr);
+                cb(nullptr);
                 return;
             }
 
@@ -155,7 +156,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
             auto eol = body.find('\n');
             if (eol == std::string::npos) {
                 LOG_ERR("Invalid handshake response: no bearer token");
-                cb2(nullptr);
+                cb(nullptr);
                 return;
             }
             std::string bearer_token_we_use = body.substr(0, eol);
@@ -163,13 +164,13 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
             eol = body.find('\n', start);
             if (eol == std::string::npos) {
                 LOG_ERR("Invalid handshake response: no secret");
-                cb2(nullptr);
+                cb(nullptr);
                 return;
             }
             const auto secret_part2 = body.substr(start, eol - start);
             std::string sig = body.substr(eol + 1);
             if (!Crypto::SSL::verify(key, bearer_token_we_use + '\n' + secret_part2, sig)) {
-                cb2(nullptr);
+                cb(nullptr);
                 DEBUG_LOG("Handshake response has invalid signature");
                 return;
             }
@@ -193,18 +194,18 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
                 DEBUG_LOG("Duplicate peer?? - " <<domain);
                 m_peers_in.erase(p->m_auth.m_bearer_token_we_accept);
                 m_mtx.write_unlock();
-                cb2(nullptr);
+                cb(nullptr);
                 return;
             }
             m_mtx.write_unlock();
 
             // Success
-            cb2(p);
+            cb(p);
             DEBUG_LOG("New peer: " <<domain);
         };
 
-        auto handshake_err_cb = [domain, cb2 = std::move(cb)] (std::string err) {
-            cb2(nullptr);
+        auto handshake_err_cb = [domain, cb] (std::string err) {
+            cb(nullptr);
             LOG_ERR("Peer handshake failed " <<domain <<": " <<err);
             // Safe to leave the peer stub in the cache
         };
@@ -231,9 +232,9 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
         cb(nullptr);
     };
 
-    boost::beast::http::request<boost::beast::http::empty_body> key_req;
+    http::request<http::empty_body> key_req;
     key_req.target("/peer/key");
-    key_req.method(boost::beast::http::verb::get);
+    key_req.method(http::verb::get);
     key_req.keep_alive(false);
 
     if (domain.find(':') == std::string::npos)
@@ -295,33 +296,43 @@ void Peers::request_peer(
     void* context,
     void (*callback)(const fiy_response_t*, void*)
 ) {
+    // Local request
     if (domain.empty() || domain == g_fiy->m_config.m_hostname) {
-        DEBUG_LOG("request_peer(localhost)");
-        g_fiy->m_mods.get_mod(appid)->m_ipc->handle_request(req, context, callback);
+        Mod* m = g_fiy->m_mods.get_mod(appid);
+        if (m != nullptr) {
+            m->m_ipc->handle_request(req, context, callback);
+        } else {
+            DEBUG_LOG("Missing local mod: " <<appid);
+            if (callback != nullptr)
+                callback(nullptr, context);
+        }
+        return;
     }
 
+    // Check peers cache
     auto p = get_peer_for_domain(domain);
-    if (p == nullptr) {
-        DEBUG_LOG("Peer " <<domain <<" not in cache");
-        new_peer(
-            domain,
-            [appid, request = ScopedRequest(req), callback, context]
-            (const std::shared_ptr<Peer>& p) {
-                if (p != nullptr) {
-                    DEBUG_LOG("sending request to peer " <<p->m_domain );
-                    auto r = request.temp_copy(); // copied earlier to prevent invalidation
-                    request_peer(p, appid, &r, context, callback);
-                } else {
-                    DEBUG_LOG("couldn't link with peer");
-                    if (callback != nullptr)
-                        callback(nullptr, context);
-                }
-            }
-        );
-        return;
-    } else {
+    if (p != nullptr) {
         request_peer(p, appid, req, context, callback);
+        return;
     }
+
+    // New Peer
+    DEBUG_LOG("Peer " <<domain <<" not in cache");
+    new_peer(
+        domain,
+        [appid, request = ScopedRequest(req), callback, context]
+        (const std::shared_ptr<Peer>& new_peer) {
+            if (new_peer != nullptr) {
+                DEBUG_LOG("sending request to peer " <<new_peer->m_domain );
+                auto r = request.temp_copy(); // copied earlier to prevent invalidation
+                request_peer(new_peer, appid, &r, context, callback);
+            } else {
+                DEBUG_LOG("couldn't link with peer");
+                if (callback != nullptr)
+                    callback(nullptr, context);
+            }
+        }
+    );
 }
 
 void Peers::request_peer(
@@ -338,11 +349,11 @@ void Peers::request_peer(
         return;
     }
 
-    std::string user = req->user != nullptr ? req->user : "";
-    std::string path = req->path != nullptr ? req->path : "";
+    const std::string user = req->user != nullptr ? req->user : "";
+    const std::string path = req->path != nullptr ? req->path : "";
 
-    boost::beast::http::request<boost::beast::http::string_body> request;
-    request.method((boost::beast::http::verb)req->method);
+    http::request<http::string_body> request;
+    request.method(static_cast<http::verb>(req->method));
     request.target("/mods/" + appid);
     request.body() = std::string(req->body, req->body_len); // note this should work even if body contains null chars
     request.set("Fiy-Peer", peer->m_auth.m_bearer_token_we_send);
@@ -351,11 +362,11 @@ void Peers::request_peer(
     std::string now_str = std::to_string(g_fiy->now());
     request.set("Fiy-Now", now_str);
     request.set("Authorization", "FIY1 " + peer->sig(appid, path, user, req->body_len, now_str));
-    request.set(boost::beast::http::field::host, req->domain);
+    request.set(http::field::host, req->domain);
     response_set_headers(request, req->headers);
     request.prepare_payload();
 
-    auto cb = [context, callback] (boost::beast::http::response<boost::beast::http::string_body> res) {
+    auto cb = [context, callback] (http::response<http::string_body> res) {
 //        std::cout <<"p2p response: " <<res <<std::endl;
         if (callback == nullptr)
             return;
