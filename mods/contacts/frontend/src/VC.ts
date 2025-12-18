@@ -7,6 +7,9 @@ export default class VC {
     public static readonly BEGIN_TOKEN = "BEGIN:VCARD";
     public static readonly END_TOKEN = "END:VCARD";
 
+    // Set to true when
+    isUnsaved: boolean = false;
+
     properties: VCProperty[] = [];
 
     addProperty(property: VCProperty) {
@@ -27,9 +30,13 @@ export default class VC {
         if (p)
             return this.displayNameCache = p.nameToString();
 
+        // User is creating a new contact
+        if (this.isUnsaved)
+            return "New Unsaved Contact";
+
         // Either N or FN is required by the vCard spec
         // So this card is invalid
-        return "invalid";
+        return "Invalid: No Name";
     }
 
     getId() {
@@ -356,5 +363,10 @@ export default class VC {
                     console.log('no visibility selector', p.name, i);
             }
         }));
+    }
+
+    sortCompare(other: VC) {
+        // TODO vCard has rules for sorting we probably should follow
+        return this.displayName().localeCompare(other.displayName());
     }
 }

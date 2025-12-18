@@ -17,13 +17,11 @@ namespace http = boost::beast::http;
 /**
  * @return [ mod , subpath ]
  */
-static inline std::pair<std::string, std::string> parse_mod_request_get(const std::shared_ptr<Session>& conn) {
+static std::pair<std::string, std::string> parse_mod_request_get(const std::shared_ptr<Session>& conn) {
     auto path = conn->req().target();
-    if (path.starts_with("/mods")) {
-        path.remove_prefix(5);
-        if (path[0] == '/')
-            path.remove_prefix(1);
-        return { path, conn->req().at("Fiy-Path") };
+    if (path.starts_with("/mods/")) {
+        path.remove_prefix(6);
+        return { path, conn->req()["Fiy-Path"] };
     }
 
     const auto hostname = conn->req()["Host"];
@@ -56,14 +54,41 @@ static inline std::pair<std::string, std::string> parse_mod_request_get(const st
         }
     }
 
-    // Not a subdomain mod  example.com/mod/uri/path
+    // Not a subdomain mod
     const auto slash_idx = path.find('/', 1);
-    if (slash_idx == std::string_view::npos)
-        return { path.empty() ? "" : path.substr(1), "/" };
-    else
-        return { path.substr(1, slash_idx - 1), path.substr(slash_idx) };
+    if (slash_idx == std::string_view::npos) {
+        // case: /mod
+        // case: /
+        const auto qs_idx = path.find('?', 1);
+        if (qs_idx == std::string_view::npos)
+            return { path.empty() ? "" : path.substr(1), "/" };
+
+        // case: /mod?param
+        // case: /?param
+        std::string sub_path = "/";
+        sub_path += path.substr(qs_idx);
+        return {
+            path.empty() ? "" : path.substr(1, qs_idx - 1),
+            sub_path
+        };
+    }
+
+    // case: /mod/
+    // case: /mod/uri/path
+    // case: /mod/uri/path/
+    // case: /mod/?param
+    // case: /mod/uri/path?param
+    // case: /mod/uri/path/?param
+    return {
+        path.substr(1, slash_idx - 1),
+        path.substr(slash_idx)
+    };
 }
 
+/**
+ * Invoke app
+ * @param conn connection
+ */
 static inline void mod_send_msg(std::shared_ptr<Session> conn) {
     // Get app
     auto [ mod, uri ] = parse_mod_request_get(conn);

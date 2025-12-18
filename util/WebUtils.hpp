@@ -17,6 +17,7 @@
 #include <vector>
 #include <cctype>
 #include <iostream>
+#include <map>
 
 namespace WebUtils {
 
@@ -146,6 +147,39 @@ namespace WebUtils {
     std::string serialize_cookie(const std::string& name, std::string value);
     std::string serialize_cookie(const std::string& name, std::string value, CookieOptions options);
 
-};
+    /**
+     * Get query string values
+     * @param path uri path
+     * @return map of qs params -> raw values
+     */
+    inline std::map<std::string, std::string> parse_query_string(const std::string& path) {
+        // Maybe we should use vector<pair<>> instead?
+        size_t start = path.find('?');
+        std::map<std::string, std::string> ret;
+        while (start != std::string::npos) {
+            const size_t eq = path.find('=', start);
+            const size_t end = path.find('&', start);
+            if (eq == std::string::npos) {
+                if (end == std::string::npos) {
+                    ret.emplace(path.substr(start), "");
+                    return ret;
+                }
+                ret.emplace(path.substr(start, end - start), "");
+            } else {
+                if (end == std::string::npos) {
+                    ret.emplace(
+                        path.substr(start, eq-start),
+                        path.substr(eq+1));
+                    return ret;
+                }
+                ret.emplace(
+                    path.substr(start, eq-start),
+                    path.substr(eq+1, end-eq-1));
+            }
+            start = end;
+        }
+        return ret;
+    }
+}
 
 #endif //COOKIE_COOKIES_HPP

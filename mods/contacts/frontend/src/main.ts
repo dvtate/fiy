@@ -13,7 +13,9 @@ let username: string;
 let profileIndex: number;
 
 API.getUserContacts().then(vcf => {
+    // Parse contacts
     contacts = VC.parseCards(vcf);
+    contacts.sort((a,b) => a.sortCompare(b));
 
     // Get profile
     for (let i = 0; i < contacts.length; i++) {
@@ -24,16 +26,10 @@ API.getUserContacts().then(vcf => {
         }
     }
 
-    // Sort by display name
-    // vCard has a sort
-    contacts.sort((a,b) => a.displayName().localeCompare(b.displayName()));
-
     // Initial render
     const queryParams = new URL(document.location.toString()).searchParams;
     renderContactsList(queryParams.get('q') || "");
 
-    if (window.innerWidth <= 768)
-        return;
     if (queryParams.get('id')) {
         // Show contact by id
         const index = contacts.findIndex(c => c.getId() == queryParams.get('id'));
@@ -42,6 +38,10 @@ API.getUserContacts().then(vcf => {
         const index = contacts.findIndex(c => c.getFiyUser() == queryParams.get('user'));
         showContactDetails(index);
     } else {
+        // On mobile, user may want to see list of contacts
+        if (window.innerWidth <= 768 && typeof queryParams.get('profile') !== 'string')
+            return;
+
         // Show user profile editable
         if (profileIndex >= 0)
             showContactDetails(profileIndex);
@@ -63,7 +63,8 @@ function renderContactsList(filter?: string) {
 
     contactList.innerHTML = '';
     contacts
-        .filter(c => c.displayName().toLowerCase().includes(filter.toLowerCase()))
+        .filter(c => !filter
+            || c.displayName().toLowerCase().includes(filter.toLowerCase()))
         .forEach((contact, index) => {
             // New contact entry
             const li = document.createElement("li");
@@ -182,6 +183,7 @@ function editContact(index: number) {
 function newContact() {
     const index = contacts.length;
     contacts.push(new VC());
+    contacts[index].isUnsaved = true;
     contacts[index].properties.push(new VCProperty('VERSION', {}, '4.0'));
     contacts[index].properties.push(new VCProperty('FN')); // All contacts must have a name
     editContact(index);

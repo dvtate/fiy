@@ -338,7 +338,7 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
         try {
             card.id = std::stoll(std::string(path));
         } catch (...) {
-            req.respond(cb, 400, "Invalid contact ID");
+            req.respond(cb, 400, "", fiy::Body("Invalid contact ID"));
             return;
         }
         card.owner = req.user;
@@ -346,7 +346,7 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
         if (DB::get_contact(card))
             req.respond(cb, 200, "Content-Type: text/vcard", fiy::Body(card.to_vcard()));
         else
-            req.respond(cb, 404, "No card with given id");
+            req.respond(cb, 404, "", fiy::Body("No card with given id"));
         return;
     }
 
@@ -356,12 +356,12 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
         path.remove_prefix(7);
 
         // TODO
-        req.respond(cb, 500, "TODO");
+        req.respond(cb, 500, "", fiy::Body("TODO"));
         return;
     }
 
     // Invalid path
-    req.respond(cb, 404, "Not found");
+    req.respond(cb, 404, "", fiy::Body("Not found"));
 }
 
 static void delete_user(const char* username) {
