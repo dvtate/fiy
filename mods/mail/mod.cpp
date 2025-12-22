@@ -12,7 +12,7 @@
 #include <vector>
 #include <set>
 
-fiy::HostInfo g_host_info;
+fiy::Host g_host_info;
 
 MailBox g_mailbox;
 

@@ -31,6 +31,9 @@ With this roadmap, and the pages below, it would probably take about a man-year 
 - Drag and drop files for commit
 - Git+SSH
 
+## Database
+For now, it's a single database for simplicity, but in the future it might make sense to split things out.
+For example, the organizations tables don't need to be connected to the repos tables. 
 
 ## Pages
 - **GET** `/` (auth): activity overview page

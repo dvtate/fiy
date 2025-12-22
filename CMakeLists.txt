@@ -156,6 +156,10 @@ add_library(git_mod SHARED
     mods/git/src/Repos.hpp
     mods/git/src/git.cpp
     mods/git/src/git.hpp
+    mods/git/src/DB.cpp
+    mods/git/src/DB.hpp
+    util/WebUtils.cpp
+    util/WebUtils.hpp
 )
 target_link_libraries(git_mod
     PRIVATE fediymod

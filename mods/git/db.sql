@@ -14,7 +14,10 @@ CREATE TABLE Organizations (
 CREATE TABLE OrgMembers (
     orgName TEXT REFERENCES Organizations,
     userName TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'member', -- priveleges
+    role TEXT NOT NULL DEFAULT 'member', -- privileges
+        -- member --
+        -- admin --
+        -- owner --
     UNIQUE(orgName, userName)
 );
 
@@ -22,12 +25,13 @@ CREATE TABLE OrgMembers (
 -----------------------------
 -- Repos
 -----------------------------
+-- TODO need to better accommodate renaming repos
 
 -- Instance Local Repos
 -- Note: remote repos are not stored in our database!
 CREATE TABLE Repos (
     id INTEGER PRIMARY KEY,
-    userName TEXT NOT NULL,
+    userName TEXT NOT NULL, -- local user owner
     repoName TEXT NOT NULL,
     description TEXT DEFAULT NULL,
 
@@ -37,6 +41,8 @@ CREATE TABLE Repos (
     -- 2 = users on other instances
     -- 3 = public
     visibility INTEGER DEFAULT 0,
+
+    createTs INTEGER NOT NULL,
 
     UNIQUE(userName, repoName)
 );
@@ -52,11 +58,18 @@ CREATE TABLE RepoForks (
 CREATE TABLE RepoAccess (
     repoPath TEXT NOT NULL,     -- could be on another instance
     userName TEXT NOT NULL,     -- Users.name (can be on another domain)
-    permission TEXT NOT NULL DEFAULT 'write',
-    level INTEGER DEFAULT 0,    -- 0 for read-only, 1 if they can also push
+    level INTEGER DEFAULT 1,
+        -- 0 access revoked (ie - blocked)
+        -- 1 for read-only
+        -- 2 read+write
 
     PRIMARY KEY(repoPath, userName)
 );
+
+-----------------------------
+-- Tickets
+-- This system encapsulates GH issues + PRs
+-----------------------------
 
 --
 CREATE TABLE RepoTickets (

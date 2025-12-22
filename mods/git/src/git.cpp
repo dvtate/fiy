@@ -10,11 +10,10 @@
 
 #include <string>
 
-extern fiy::HostInfo g_host_info;
 
 namespace git {
     int create_empty_repo(const std::string& user, const std::string& repo_name) {
-        std::string repo_path = g_host_info.data_dir;
+        std::string repo_path = fiy::Host::info.data_dir;
         repo_path += "/repos/" + user + "/" + repo_name;
 
         // Set options for a bare repository

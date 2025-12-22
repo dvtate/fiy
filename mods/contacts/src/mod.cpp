@@ -15,7 +15,7 @@
 #include "Contact.hpp"
 #include "timezones.hpp"
 
-fiy::HostInfo g_host_info;
+fiy::Host g_host_info;
 
 /**
  * User profile endpoint

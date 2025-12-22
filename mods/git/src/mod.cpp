@@ -7,29 +7,104 @@
 
 #include "../../../modlib/fediymod.hpp"
 
+#include "../../../util/WebUtils.hpp"
+
 #include "git_http_backend.hpp"
 #include "Pages.hpp"
+#include "Repo.hpp"
 
-fiy::HostInfo g_host_info;
-
-
-void repo_create_page(const fiy::Request& req, const fiy::Callback cb) {
-    std::string p = "<form method='POST'>"
-                    ""
-                    "</form>";
-}
-
-void repo_create_action(const fiy::Request& req, const fiy::Callback cb) {
-
-}
-
+/// User is unauthenticated, send them to login page
 void unauthenticated(const fiy::Request& req, const fiy::Callback cb) {
-    // TODO either make a pretty page or redirect them to the portal/login page
-    req.respond(cb, 401, "Unauthorized");
+    static const fiy::Response no_auth_resp{
+        303,
+        "Location: " + fiy::Host::info.host_base_uri() + "/portal/login",
+        fiy::Body()
+    };
+
+    req.respond(cb, no_auth_resp);
+}
+
+void not_found_404(const fiy::Request& req, const fiy::Callback cb) {
+    // TODO
+    req.respond(cb, 404, "", "Not Found");
+}
+
+void repo_create_get(const fiy::Request& req, const fiy::Callback cb) {
+    if (req.user == nullptr) {
+        unauthenticated(req, cb);
+        return;
+    }
+    if (req.domain != nullptr) {
+        req.respond(cb, 401);
+        return;
+    }
+
+    std::string page = Pages::repo_create_page(req.user, {});
+    req.respond(cb, 200,
+        "Content-Type: text/html; charset=utf-8",
+        fiy::Body(page)
+    );
+}
+
+void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
+    if (req.user == nullptr) {
+        unauthenticated(req, cb);
+        return;
+    }
+    if (req.domain != nullptr) {
+        req.respond(cb, 401);
+        return;
+    }
+
+    std::deque<std::pair<std::string, std::string>> form;
+    const bool ok = WebUtils::parse_form_url_encoded(
+        std::string_view(req.body, req.body_len),
+        form);
+    if (!ok) {
+        req.respond(cb, 400, "", "Invalid Form Body");
+        fiy::Host::info.log_info("Repo create: " + req.user_str() + " submitted invalid form body");
+        return;
+    }
+
+    RepoInfo repo;
+    for (const auto& [k, v]: form) {
+        if (k == "repo-owner") {
+            repo.owner = v;
+        } else if (k == "repo-name") {
+            repo.name = v;
+        } else if (k == "repo-description") {
+            repo.description = v;
+        } else if (k == "repo-visibility") {
+            repo.visibility = (fiy::Locality) atoi(v.c_str()); // zero is failsafe
+        } else {
+            fiy::Host::info.log_info("Repo create: " + req.user_str() + " gave invalid field: " + k);
+        }
+    }
+
+    if (repo.owner != req.user) {
+        // TODO allow users to create org repos
+        req.respond(cb, 401);
+        return;
+    }
+
+    const char* err = repo.create();
+    if (err != nullptr) {
+        std::string msg = "<h1>That didn't work!</h1><br/>";
+        msg += err;
+        req.respond(cb, err[0] == '4' ? 400 : 500, "", fiy::Body(msg));
+        return;
+    }
+
+    std::string body;
+    body += "<meta http-equiv=\"refresh\" content=\"0; url=";
+    body += fiy::Host::info.base_uri;
+    body += '/' + repo.path();
+    body += "\" />";
+    req.respond(cb, 200, "Content-Type: text/html; charset=utf-8", body);
 }
 
 void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
-    auto& req = *static_cast<fiy::Request*>(request);
+    auto& req = *(fiy::Request*)request;
 
     std::string_view path = req.path;
 
@@ -43,28 +118,50 @@ void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
     }
 
     if (path.starts_with("/repo")) {
-        if (req.locality(g_host_info.domain) > fiy::Locality::INSTANCE) {
+        if (req.locality(fiy::Host::info.domain) > fiy::Locality::INSTANCE) {
             unauthenticated(req, cb);
             return;
         }
         path.remove_prefix(5);
-        if (path.starts_with("/create")) {
-            if (req.method == fiy::Request::Method::GET)
-                repo_create_page(req, cb);
-            else if (req.method == fiy::Request::Method::POST)
-                repo_create_action(req, cb);
+        std::cout <<"Req.user: " << req.user_str("xxx") <<std::endl;
+        if (path.starts_with("/new")) {
+            if (req.method == fiy::Request::Method::GET) {
+                repo_create_get(req, cb);
+                return;
+            }
+            if (req.method == fiy::Request::Method::POST) {
+                repo_create_post(req, cb);
+                return;
+            }
         }
-        req.respond(cb, 404, "Not Found");
+        not_found_404(req, cb);
         return;
     }
 
     if (path.starts_with("/api")) {
         // TODO
-        req.respond(cb, 404, "Not Found");
+        not_found_404(req, cb);
         return;
     }
 
     // else it's a repo
+
+    BasicRepo repo;
+    if (!repo.from_path(req.path)) {
+        not_found_404(req, cb);
+        return;
+    }
+
+    auto access = RepoInfo::Access::Read;
+    if (std::string_view(req.path).find("git-receive-pack") != std::string_view::npos)
+        access = RepoInfo::Access::Write;
+    if (!repo.can_access(access, req.user, req.domain)) {
+        std::cerr <<"NO access!\n";
+        std::cout <<req.headers <<std::endl;
+        req.respond(cb, 401);
+        // not_found_404(req, cb);
+        return;
+    }
 
     git_repo_cgi(req, cb);
 }
@@ -80,7 +177,7 @@ extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
         const git_error *e = giterr_last();
         std::string message = "Failed to initialize libgit2: ";
         message += e->message;
-        host_info->log(0, message.c_str());
+        // host_info->log(0, message.c_str());
         std::cerr << message << std::endl;
         return nullptr;
     }
@@ -89,10 +186,10 @@ extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
     static fiy::ModInfo mod_info = {
         .on_request = handle_request,
         .delete_user = delete_user,
-        .id="fiy.git",
+        .id="git",
         .version = "0.0"
     };
-    g_host_info = *host_info;
+    fiy::Host::set(*host_info);
     return &mod_info;
 }
 

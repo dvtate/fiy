@@ -9,7 +9,7 @@
 
 #include "Contact.hpp"
 
-extern fiy::HostInfo g_host_info;
+extern fiy::Host g_host_info;
 
 inline std::string get_timestamp_str(const std::time_t t) {
     char buf[sizeof "yyyymmddThhmmssZ"];

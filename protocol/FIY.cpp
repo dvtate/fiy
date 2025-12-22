@@ -26,7 +26,7 @@ bool FIY::start() {
     m_mods.find_modules();
     if (!m_mods.start_all()) {
         LOG_ERR("Failed to start apps.");
-        return false;
+        // return false;
     }
 
     m_pages = std::make_unique<Pages>();

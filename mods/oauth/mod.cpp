@@ -3,7 +3,7 @@
 
 #include "../../modlib/fediymod.hpp"
 
-fiy::HostInfo g_host_info;
+fiy::Host g_host_info;
 
 void handle_request(struct fiy_request_t* request, fiy::Callback cb) {
     auto& req = *(fiy::Request*) request;

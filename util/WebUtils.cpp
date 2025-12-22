@@ -94,7 +94,7 @@ namespace WebUtils {
      */
     std::string uri_decode(const char* begin, const char* end) {
         std::string result;
-        size_t len = end - begin;
+        const size_t len = end - begin;
         result.reserve(len * 2);
         int hex = 0;
         for (size_t i = 0; i < len; ++i) {
@@ -106,7 +106,7 @@ namespace WebUtils {
                     if ((i + 2) < len
                         && std::isxdigit(begin[i + 1])
                         && std::isxdigit(begin[i + 2])
-                            ) {
+                    ) {
                         unsigned int x1 = begin[i + 1];
                         if (x1 >= '0' && x1 <= '9')
                             x1 -= '0';
@@ -123,7 +123,7 @@ namespace WebUtils {
                             x2 = x2 - 'A' + 10;
                         hex = x1 * 16 + x2;
 
-                        result += char(hex);
+                        result += static_cast<char>(hex);
                         i += 2;
                     } else {
                         result += '%';

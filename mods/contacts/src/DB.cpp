@@ -10,7 +10,7 @@
 
 #include "DB.hpp"
 
-extern fiy::HostInfo g_host_info;
+extern fiy::Host g_host_info;
 
 namespace DB {
     SQLite::Database& connection() {

@@ -10,70 +10,59 @@
 
 #include "../../../modlib/fediymod.hpp"
 
-extern fiy::HostInfo g_host_info;
-
-struct Repo {
-    /// Username of the repo owner
-    std::string owner;
-
-    /// Repo name
-    std::string name;
-
-    /// Short description for the repo
-    std::string description;
-
-    /// Default read access (ie - view, clone, etc.)
-    fiy::Locality visibility;
-
-    std::string fork_of{};
-
-    [[nodiscard]] std::string get_path() const {
-        return this->owner + '/' + this->name;
-    }
-
-    static void get_repo_data(
-        std::string_view repo_path,
-        void (*cb)(Repo*)
-    );
-
-    // These are for storing in stl containers... ugly solution
-    struct Hash {
-        std::size_t operator()(const Repo& token) const {
-            return std::hash<std::string>{}(token.get_path());
-        }
-        std::size_t operator()(const Repo* token) const {
-            return std::hash<std::string>{}(token->get_path());
-        }
-    };
-    struct TokenEquals {
-        bool operator()(const Repo& a, const Repo& b) const {
-            return a.get_path() == b.get_path();
-        }
-        bool operator()(const Repo* a, const Repo* b) const {
-            return a->get_path() == b->get_path();
-        }
-    };
-    struct Compare {
-        bool operator()(const Repo& a, const Repo& b) const {
-            return a.get_path() < b.get_path();
-        }
-        bool operator()(const Repo* a, const Repo* b) const {
-            return a->get_path() < b->get_path();
-        }
-    };
-};
-
-struct LocalRepo : Repo {
-    size_t m_id;
-};
-
-struct RemoteRepo: Repo {
-
-};
-
-struct RepoAccess {
-
-};
+#include "Repo.hpp"
 
 struct Repos {
+    enum class Access {
+        Blocked = 0,
+        Read = 1,
+        Write = 2,
+        Admin = 3,
+        Owner = 4,
+        Error
+    };
+
+    /**
+     * Convert repo path to cannonical form
+     * @param url repo string of form
+     *      [/]user[@instance.xyz]/repo[.git][/subpath/...][?query=sting]
+     * @return canonical representation of form
+     *          user[@remote.instance]/repo
+     */
+    static std::string canonical_url(std::string url) {
+        // shortest url: a/b
+        if (url.size() < 3)
+            return {};
+
+        // Remove leading ////'s
+        if (url[0] == '/')
+            url = url.substr(url.find_first_not_of('/'));
+        if (url.size() < 3)
+            return {};
+
+        // Invalid
+        const auto slash = url.find('/');
+        if (slash == std::string::npos)
+            return {};
+
+        // Remove local domain
+        const auto at = url.find('@');
+        if (at != std::string::npos) {
+            // Invalid
+            if (at > slash)
+                return {};
+
+            const auto instance = url.substr(at, slash - at);
+            if (instance == fiy::Host::info.domain) {
+                // user@local/repo[.git] --> user/repo[.git]
+                url = url.substr(0, at) + url.substr(slash);
+            }
+        }
+
+        // Remove .git
+        if (url.ends_with(".git"))
+            url = url.substr(0, url.size() - 4);
+
+        return url;
+    }
 };

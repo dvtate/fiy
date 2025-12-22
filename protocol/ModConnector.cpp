@@ -268,14 +268,22 @@ bool ModDLLConnector::start() {
         DEBUG_LOG("Handle replaced!");
     }
     m_dl_handle = dlopen(m_uri.c_str(), RTLD_LAZY | RTLD_LOCAL);
-    if (m_dl_handle == nullptr)
+    if (m_dl_handle == nullptr) {
+        DEBUG_LOG(this->m_mod->m_name <<": dlopen failed: " <<dlerror());
         return false;
+    }
 
     // Start mod
     const auto start_fn = (fiy::StartFunction) dlsym(m_dl_handle, "start");
-    m_mod_info = start_fn(m_host_info);
-    if (m_mod_info == nullptr)
+    if (start_fn == nullptr) {
+        DEBUG_LOG(this->m_mod->m_name <<": could not find start function -- " <<dlerror());
         return false;
+    }
+    m_mod_info = start_fn(m_host_info);
+    if (m_mod_info == nullptr) {
+        DEBUG_LOG(this->m_mod->m_name <<": start() returned null");
+        return false;
+    }
 
     // Update fields
     if (m_mod_info->version != nullptr /* && !m_mod->m_version.initialized() */)

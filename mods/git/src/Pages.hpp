@@ -7,21 +7,20 @@
 
 #include <utility>
 
+#include "Repo.hpp"
 #include "../../../modlib/fediymod.hpp"
 #include "../../../util/FileCache.hpp"
 
-extern fiy::HostInfo g_host_info;
-
 inline std::string get_frontend_dir() {
-    return g_host_info.data_dir + std::string("/static");
+    return fiy::Host::info.data_dir + std::string("/static");
 }
 
 struct Pages : FileCache<get_frontend_dir> {
 
     static ReplacementMap get_host_data() {
         return {
-            { "{{fiy_domain}}", g_host_info.domain },
-            { "{{fiy_baseuri}}", g_host_info.base_uri },
+            { "{{fiy_domain}}", fiy::Host::info.domain },
+            { "{{fiy_baseuri}}", fiy::Host::info.base_uri },
         };
     }
 
@@ -33,6 +32,44 @@ struct Pages : FileCache<get_frontend_dir> {
     template<const char* FileSubPath>
     static fiy::Body file_body() {
         return fiy::Body(file_contents<FileSubPath>());
+    }
+
+    static std::string repo_create_page(
+        const std::string& user,
+        const std::vector<std::string>& orgs
+    ) {
+        std::string orgs_option_list;
+        if (!orgs.empty()) {
+            orgs_option_list += "<optgroup label=\"Organizations\">";
+            for (const auto& org : orgs) {
+                orgs_option_list += "<option value=\"";
+                orgs_option_list += org;
+                orgs_option_list += "\">";
+                orgs_option_list += org;
+                orgs_option_list += "</option>";
+            }
+        }
+
+        static constexpr char  repo_create[] = "/repo_create.html";
+        return FileCache::mustache(
+            Pages::file_contents<repo_create>(),
+            ReplacementMap({
+            { "fiy_user", user },
+            { "orgs_option_list", orgs_option_list }
+            })
+        );
+    }
+
+    static std::string repo_page(const RepoInfo& repo) {
+        static constexpr char repo_page[] = "/repo.html";
+        return FileCache::mustache(
+            Pages::file_contents<repo_page>(),
+            ReplacementMap({
+                { "repo_clone_url", fiy::Host::info.base_uri + std::string("/") + repo.path() },
+                { "repo_breadcrumbs",  repo.path() },
+                { "repo_description", repo.description },
+            })
+        );
     }
 };
 

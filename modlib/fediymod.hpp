@@ -21,12 +21,18 @@ namespace fiy {
     using BodyType = fiy_body_type;
     using StartFunction = fiy_mod_start_function_t;
 
-    struct HostInfo : public fiy_host_info_t {
-        // TODO
-        // static HostInfo* singleton;
+    struct Host : public fiy_host_info_t {
+        Host() = default;
+        Host(const fiy_host_info_t& hi): fiy_host_info_t(hi) {}
 
-        HostInfo() = default;
-        HostInfo(fiy_host_info_t hi): fiy_host_info_t(hi) {}
+        // Mod-local singleton
+        static Host info;
+        static void set(const Host& host_info) {
+            info = host_info;
+        }
+        static Host& get() {
+            return info;
+        }
 
         [[nodiscard]] std::string host_base_uri() const {
             static const std::string protocol =
@@ -302,7 +308,7 @@ namespace fiy {
 
         Request(const fiy_request_t& req): fiy_request_t(req) {}
 
-        [[nodiscard]] std::string user_str(const std::string& anon_name = "anon") const {
+        [[nodiscard]] std::string user_str(const std::string& anon_name = "") const {
             if (user == nullptr)
                 return anon_name;
             if (domain == nullptr)

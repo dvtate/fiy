@@ -15,7 +15,7 @@
 
 // TODO replace this with FileCache?
 
-extern fiy::HostInfo g_host_info;
+extern fiy::Host g_host_info;
 
 namespace Pages {
     static std::string full_path(const std::string& subpath) {

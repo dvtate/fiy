@@ -1,0 +1,59 @@
+
+<html>
+<head>
+    <title>Create Repository | Git-IY</title>
+    <style>
+        label {
+            font-weight: bold;
+        }
+        div.input-group {
+            border: 1px solid black;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+
+</head>
+<body>
+    <h1>Create a New Repository</h1>
+    <form method="post">
+        <div class="input-group">
+            <label for="repo-url">URL</label>
+            <div id="repo-url">
+<!--                <select title="Git-IY Instance" id="repo-instance">-->
+<!--                    <option value="fediy.org">fediy.org</option>-->
+<!--                </select>-->
+<!--                /git/-->
+                <select title="Owner" id="repo-owner" name="repo-owner">
+                    <option value="{{fiy_user}}" selected>{{fiy_user}}</option>
+                    {{user_orgs_option_list}}
+                </select>
+                <input type="text" id="repo-name" name="repo-name" placeholder="team-website" />
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="repo-description">Description</label>
+            <input type="text" id="repo-description" name="repo-description" />
+        </div>
+
+        <div class="input-group">
+            <label for="repo-visibility">
+                Visibility
+                <p>By default, who can view this repository? You can add collaborators later.</p>
+            </label>
+            <select id="repo-visibility" name="repo-visibility">
+                <option value="0">Private - Only you</option>
+                <option value="1">Local - Only users on my instance</option>
+                <option value="2">Federated - Only other Git-IY users</option>
+                <option value="3">Global - Anyone on the internet</option>
+            </select>
+        </div>
+        <button type="submit">Create Repository</button>
+    </form>
+    <script>
+
+    </script>
+</body>
+</html>

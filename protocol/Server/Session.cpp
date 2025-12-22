@@ -148,6 +148,7 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
     const auto it = req().find("Authorization");
     if (it == req().end())
         return nullptr;
+    DEBUG_LOG("Using http basic auth");
 
     // Get the encoded part
     auto v = it->value();

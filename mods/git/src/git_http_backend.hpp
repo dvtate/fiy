@@ -19,29 +19,27 @@
 #include "../../../util/CGI.hpp"
 #include "../../../modlib/fediymod.hpp"
 
-extern fiy::HostInfo g_host_info;
-
 // inline std::string find_git_http_backend() {
 //     // Look check all possible paths
 //     for (const std::string& p : {
 //         "/usr/lib/git-core/git-http-backend"
 //     })
 //         if (std::filesystem::exists(p)) {
-//             g_host_info.log(4, "Found CGI plugin: " + p);
+//             fiy::Host::info.log(4, "Found CGI plugin: " + p);
 //             return p;
 //         }
 //
 //     // Not found
-//     g_host_info.log(0, "Could not find git-http-backend, are you sure git is installed?");
+//     fiy::Host::info.log(0, "Could not find git-http-backend, are you sure git is installed?");
 //     throw std::runtime_error("Could not find git-http-backend, are you sure git is installed?");
 // }
 
 inline std::string get_repo_path(const std::string_view path) {
-    std::string ret = g_host_info.data_dir;
+    std::string ret = fiy::Host::info.data_dir;
     ret += "/repos";
     const auto i = path.find(".git");
     if (i == std::string::npos) {
-        g_host_info.log(1, "invalid repo path? " + std::string(path));
+        fiy::Host::info.log(1, "invalid repo path? " + std::string(path));
         ret += path;
         return ret;
     }
@@ -58,11 +56,11 @@ void get_uri_components(
     std::string& QUERY_STRING
 ) {
     // Protocol
-    bool https = g_host_info.base_uri[4] == 's';
+    bool https = fiy::Host::info.base_uri[4] == 's';
     SERVER_PROTOCOL = https ? "https" : "http";
 
     // Domain + Port
-    std::string hostname = g_host_info.domain;
+    std::string hostname = fiy::Host::info.domain;
     const auto port_sep = hostname.find(':');
     SERVER_NAME = hostname.substr(0, port_sep);
     if (port_sep != std::string::npos) {
@@ -80,7 +78,7 @@ void get_uri_components(
         QUERY_STRING = path.substr(qs + 1);
 
     // PATH_INFO
-    std::string_view subpath = g_host_info.base_uri + 8;
+    std::string_view subpath = fiy::Host::info.base_uri + 8;
     subpath.remove_prefix(subpath.find('/'));
     if (subpath.empty() || subpath == "/") {
         PATH_INFO = path.substr(0, qs);
@@ -90,7 +88,7 @@ void get_uri_components(
     }
 
     // Server stuff
-    SERVER_NAME = g_host_info.domain;
+    SERVER_NAME = fiy::Host::info.domain;
 }
 
 inline fiy::Response parse_cgi_output(const std::string& s) {
@@ -141,7 +139,7 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
         const size_t body_len2 = s.size() - start;
         ret.body = fiy::Body(s.c_str() + start, body_len2);
         if (body_len != 0 && body_len != body_len2) {
-            g_host_info.log(2, "Incorrect Content-Length header");
+            fiy::Host::info.log(2, "Incorrect Content-Length header");
         }
     }
 
@@ -171,12 +169,12 @@ void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
         cgi.PATH_INFO,
         cgi.QUERY_STRING);
 
-    cgi.PATH_TRANSLATED = g_host_info.data_dir;
+    cgi.PATH_TRANSLATED = fiy::Host::info.data_dir;
     cgi.PATH_TRANSLATED += "/repos";
     cgi.PATH_TRANSLATED += path.substr(0, path.find('?'));
 
     // TODO instead manually set name + email combo?
-    cgi.REMOTE_ADDR = req.domain ? req.domain : g_host_info.domain;
+    cgi.REMOTE_ADDR = req.domain ? req.domain : fiy::Host::info.domain;
     cgi.REMOTE_HOST = "NULL";
     cgi.REMOTE_USER = req.user_str();
 
@@ -210,7 +208,7 @@ void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
     if (f == nullptr) {
         auto r = cgi.run();
         if (r.status != 0) {
-            g_host_info.log(1, "git http-backend cgi failed");
+            fiy::Host::info.log(1, "git http-backend cgi failed");
             req.respond(cb, 500, "Git CGI failed");
             // std::cerr <<"\nstatus: " << r.status << std::endl;
             // std::cerr <<"\nstdout: " << r.stdout << std::endl;
@@ -240,20 +238,6 @@ void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
     //  parse the header, send the header
     //  then forward stdout over network
     // this prevents socket idle
-}
-
-void git_repo_auth(const fiy::Request& req, const fiy::Callback cb) {
-    auto repo = get_repo_path(req.path);
-    if (req.user && req.domain == nullptr) {
-        // git http password auth handled by protocol server
-        req.respond(cb, 401, "Unauthenticated");
-        return;
-    }
-
-    // TODO verify they have access to the repo
-    //      check path to see if it's a push or pull
-
-    git_repo_cgi(req, cb);
 }
 
 /*

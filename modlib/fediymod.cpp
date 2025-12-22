@@ -3,6 +3,7 @@
 //
 
 #include "fediymod.h"
+#include "fediymod.hpp"
 
 namespace fiy {
 
@@ -43,4 +44,5 @@ namespace fiy {
         "UNLINK"
     };
 
+    Host Host::info{};
 }

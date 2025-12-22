@@ -10,7 +10,7 @@
 // Exports
 ////////////////////////
 
-static fiy::HostInfo g_host_info;
+static fiy::Host g_host_info;
 
 static void handle_request(fiy::fiy_request_t* _request, fiy::fiy_callback_t callback) {
     const auto* req = (fiy::Request*) _request;
@@ -58,5 +58,5 @@ extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
 
 /// Export that gets called for the mod to do any cleanup before exit/dlclose
 void stop() {
-    g_host_info.log(fiy::HostInfo::Log::INFO, "Mod stopped");
+    g_host_info.log(fiy::Host::Log::INFO, "Mod stopped");
 }
