@@ -15,6 +15,8 @@
 
 #include "fediymod.h"
 
+// TODO improve logging (make debugging easier)
+
 namespace fiy {
     using Callback = fiy_callback_t;
     using ModInfo = fiy_mod_info_t;
@@ -50,6 +52,21 @@ namespace fiy {
          *  - 4 : debug
          * @param msg log message text
          */
+        // void log(
+        //     const int type,
+        //     const std::string& msg,
+        //     const std::string& file = __builtin_FILE(),
+        //     const std::string& line = __builtin_LINE()
+        // ) {
+        //     std::string msg2 = this->appid;
+        //     msg2 += ": "
+        //     msg2 += file;
+        //     msg2 += ":";
+        //     msg2 += line;
+        //     msg2 += " - ";
+        //     msg2 += msg;
+        //     fiy_host_info_t::log(type, msg2.c_str());
+        // }
         void log(const int type, const std::string& msg) const {
             fiy_host_info_t::log(type, msg.c_str());
         }

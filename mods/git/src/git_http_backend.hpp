@@ -146,6 +146,10 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
     return ret;
 }
 
+inline fiy::Response parse_cgi_output(const int fd) {
+    // TODO
+}
+
 /**
  * Wrapper around the git-http-backend CGI plugin included with git
  */
@@ -204,8 +208,8 @@ void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
         // std::cerr << "Set header env: '" <<ev <<"' = '" << v << "'\n";
     }
 
-    FILE* f = tmpfile();
-    if (f == nullptr) {
+    // FILE* f = tmpfile();
+    // if (f == nullptr) {
         auto r = cgi.run();
         if (r.status != 0) {
             fiy::Host::info.log(1, "git http-backend cgi failed");
@@ -230,14 +234,12 @@ void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
         // std::cout << "--------------------------------------------\n";
         req.respond(cb, parse_cgi_output(r.stdout));
         return;
+    // }
+    // auto r = cgi.run(fileno(f));
+    // Parse header
+    // Convert into response object
+    // With file body
 
-    }
-    auto r = cgi.run();
-
-    // FIXME integrate closer with cgi class
-    //  parse the header, send the header
-    //  then forward stdout over network
-    // this prevents socket idle
 }
 
 /*

@@ -39,7 +39,7 @@ void repo_create_get(const fiy::Request& req, const fiy::Callback cb) {
         return;
     }
 
-    std::string page = Pages::repo_create_page(req.user, {});
+    const std::string page = Pages::repo_create_page(req.user, {});
     req.respond(cb, 200,
         "Content-Type: text/html; charset=utf-8",
         fiy::Body(page)
@@ -163,22 +163,32 @@ void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
         return;
     }
 
-    git_repo_cgi(req, cb);
+    // if (req.find_header("user-agent").starts_with("git/"))
+        git_repo_cgi(req, cb);
 }
 
 void delete_user(const char* username) {
     // TODO delete their repos, interactions, etc.
+    if (strchr(username, '@') != nullptr) {
+        // TODO delete RepoAccess entries
+        // TODO delete OrgMembers entries
+        return;
+    }
+
+    // Delete user from database
+    // Delete user's repos folder
 }
 
 /// Export: Start module
-extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
+extern "C" fiy::ModInfo* start(const fiy_host_info_t* host_info) {
     // Initialize libgit2
     if (git_libgit2_init() < 0) {
         const git_error *e = giterr_last();
         std::string message = "Failed to initialize libgit2: ";
         message += e->message;
-        // host_info->log(0, message.c_str());
-        std::cerr << message << std::endl;
+        host_info->log(
+            (int)fiy::Host::Log::FATAL,
+            message.c_str());
         return nullptr;
     }
 
@@ -196,5 +206,10 @@ extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
 /// Export: Stop module
 extern "C" void stop() {
     // Shutdown libgit2
-    git_libgit2_shutdown();
+    if (git_libgit2_shutdown() < 0) {
+        const git_error *e = giterr_last();
+        std::string msg = "Failed to shutdown libgit2: ";
+        msg += e->message;
+        fiy::Host::info.log_error(msg);
+    }
 }

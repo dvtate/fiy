@@ -41,6 +41,12 @@ struct BasicRepo {
         return ret;
     }
 
+    /**
+     * Parse repo from request path
+     * @param url repo string of form
+     *      [/][@]user[@instance.xyz]/repo[.git][/][?][... things we don't care about]
+     * @return false if parse failed
+     */
     bool from_path(std::string url) {
         // shortest url: a/b
         if (url.size() < 3)
@@ -75,7 +81,7 @@ struct BasicRepo {
 
             this->owner = url.substr(0, at);
 
-            this->instance = url.substr(at, slash - at);
+            this->instance = url.substr(at + 1, slash - at - 1);
             if (instance == fiy::Host::info.domain)
                 this->instance = "";
         }
@@ -87,18 +93,17 @@ struct BasicRepo {
 
         // Ignore subpath or query strings
         auto end = url.find_first_of("/?", slash);
-        if (end == std::string::npos) {
-            end = url.size() - 1;
-        }
+        if (end == std::string::npos)
+            end = url.size();
 
         // Ignore .git
-        if (url.compare(end - 5, 4, ".git"))
+        if (url.compare(end - 4, 4, ".git") == 0)
             end -= 4;
 
         // Get repo name
         this->name = url.substr(slash, end - slash);
 
-        std::cout <<"BasicRepo::from_path: " <<this->owner << " @ " << this->instance << " / " <<this->name << "\n";
+        //std::cout <<"BasicRepo::from_path: " <<this->owner << " @ " << this->instance << " / " <<this->name << "\n";
         return !this->name.empty();
     }
 

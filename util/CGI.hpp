@@ -255,6 +255,9 @@ struct CGI {
         return WIFEXITED(ret)
             ? WEXITSTATUS(ret)
             : -1;
+
+        // FIXME, this has same problems since we have to wait for child to terminate
+        //  maybe return pid_t instead?
     }
 
 };
