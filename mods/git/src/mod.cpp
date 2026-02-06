@@ -144,7 +144,7 @@ void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
         return;
     }
 
-    // else it's a repo
+    // else: it's a repo
 
     BasicRepo repo;
     if (!repo.from_path(req.path)) {
@@ -168,6 +168,7 @@ void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
 }
 
 void delete_user(const char* username) {
+    fiy::Host::info.log_warning("Git module currently does not handle user deletion");
     // TODO delete their repos, interactions, etc.
     if (strchr(username, '@') != nullptr) {
         // TODO delete RepoAccess entries

@@ -1,9 +1,11 @@
 <html>
 <head>
-
+    <title>{{repo_name}}</title>
 </head>
 <body>
-    <h2>{{repo_breadcrumbs}}</h2>
+    <h2><a href="{{fiy_baseuri}}/{{repo_owner}}">{{repo_owner}}</a>
+        / <a href="{{fiy_baseuri}}/{{repo_owner}}/{{repo_name}}">{{repo_name}}</a>
+    </h2>
     <p>{{repo_description}}</p>
     <pre>
         git clone {{repo_clone_url}}

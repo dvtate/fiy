@@ -5,8 +5,6 @@
 #ifndef FEDIY_PAGES_HPP
 #define FEDIY_PAGES_HPP
 
-#include <utility>
-
 #include "Repo.hpp"
 #include "../../../modlib/fediymod.hpp"
 #include "../../../util/FileCache.hpp"
@@ -50,7 +48,7 @@ struct Pages : FileCache<get_frontend_dir> {
             }
         }
 
-        static constexpr char  repo_create[] = "/repo_create.html";
+        static constexpr char repo_create[] = "/repo_create.html";
         return FileCache::mustache(
             Pages::file_contents<repo_create>(),
             ReplacementMap({
@@ -66,7 +64,8 @@ struct Pages : FileCache<get_frontend_dir> {
             Pages::file_contents<repo_page>(),
             ReplacementMap({
                 { "repo_clone_url", fiy::Host::info.base_uri + std::string("/") + repo.path() },
-                { "repo_breadcrumbs",  repo.path() },
+                { "repo_owner", repo.owner_user() },
+                { "repo_name", repo.name },
                 { "repo_description", repo.description },
             })
         );

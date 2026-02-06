@@ -32,11 +32,17 @@ struct BasicRepo {
     /// Repo name
     std::string name;
 
-    /// Get canonical path
-    [[nodiscard]] std::string path() const {
+    /// Owner username
+    [[nodiscard]] std::string owner_user() const {
         std::string ret = this->owner;
         if (!this->instance.empty())
             ret += '@' + this->instance;
+        return ret;
+    }
+
+    /// Get canonical path
+    [[nodiscard]] std::string path() const {
+        std::string ret = owner_user();
         ret += '/' + this->name;
         return ret;
     }
