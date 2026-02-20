@@ -256,13 +256,15 @@ void Mod::load_error(const std::string& message) {
 }
 
 nlohmann::json Mod::parse_file() {
-    std::filesystem::path mp = dir();
+    const std::filesystem::path mp = dir();
     if (!std::filesystem::exists(mp / "module.json")) {
         load_error("missing module.json");
         return{};
     }
-    std::ifstream ifs{ mp / "module.json"};
-    auto ret = nlohmann::json::parse( ifs );
+
+    // Load config
+    m_config = Pages::load_file_as_string(mp / "module.json");
+    auto ret = nlohmann::json::parse( m_config.begin(), m_config.end() );
     if (!ret.is_object()) {
         load_error("module.json: should be an object");
         return{};

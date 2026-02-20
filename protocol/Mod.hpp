@@ -74,6 +74,7 @@ public:
     };
 
     // Metadata
+    std::string m_config;
     std::string m_data_dir;
     std::string m_id;
     std::string m_path;

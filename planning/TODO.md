@@ -1,5 +1,8 @@
 # TODO
 
+## Easy Changes
+- replace std::unordered_map with boost::unordered_flat_map where possible
+
 ## Portal+Protocol Server Features
 - Use local copies of CSS+JS Libraries
 - Specify paths for apps

@@ -156,6 +156,7 @@ struct ModDLLHostInfo : fiy::fiy_host_info_t {
         this->user_info = ModDLLHostInfo::user_info_impl;
         m_data_dir = g_fiy->m_config.m_data_dir + "/mods/" + mod->m_path;
         this->data_dir = m_data_dir.c_str();
+        this->mod_config = mod->m_config.c_str();
     }
 
     /**

@@ -278,7 +278,9 @@ struct fiy_host_info_t {
      */
     time_t (*now)();
 
-    // TODO also send module.json contents
+    /**
+     * Contents of module.json file
+     */
     const char* mod_config;
 };
 
