@@ -73,6 +73,8 @@ public:
         }
     };
 
+    using AccessChecker = std::function<bool(const char* user, const char* domain)>;
+
     // Metadata
     std::string m_config;
     std::string m_data_dir;
@@ -82,7 +84,8 @@ public:
     std::string m_description;
     std::string m_icon;
     std::filesystem::file_time_type m_install_ts;
-    Version m_version;
+    Version m_version{0, 0};
+    AccessChecker m_can_access{[](const char*, const char*){ return true; }};
 
     // Communicate with mod
     std::unique_ptr<ModConnector> m_ipc{nullptr};
@@ -117,11 +120,9 @@ public:
         return Status::FAILED;
     }
 
-
     std::string json();
     std::string user_json();
     nlohmann::json parse_file();
-
     void save();
     void load();
 
@@ -136,4 +137,5 @@ public:
 
 protected:
     void load_error(const std::string& message);
+    AccessChecker parse_access_checker(const std::string& value);
 };

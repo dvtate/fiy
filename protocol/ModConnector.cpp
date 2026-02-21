@@ -2,6 +2,8 @@
 // Created by tate on 7/5/24.
 //
 
+#include "ModConnector.hpp"
+
 #include <ranges>
 #include <functional>
 
@@ -9,7 +11,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include "ModConnector.hpp"
 
 #include "Server/Session.hpp"
 #include "LocalUser.hpp"
@@ -23,10 +24,17 @@
 struct ModDllConnectorRequest : public fiy::fiy_request_t {
     std::shared_ptr<Session> m_conn;
 
-    explicit ModDllConnectorRequest(std::shared_ptr<Session> conn):
+    explicit ModDllConnectorRequest(std::shared_ptr<Session> conn) {
+        const auto user = conn->find_user();
+        ModDllConnectorRequest(std::move(conn), user);
+    }
+
+    explicit ModDllConnectorRequest(
+        std::shared_ptr<Session> conn,
+        const Session::User& user
+    ):
         m_conn(std::move(conn))
     {
-        auto user = m_conn->find_user();
         auto& r = m_conn->req();
 
         // Initialize fiy_request_t
@@ -49,12 +57,11 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
     }
 
     void remove_from_task_queue() {
-        // TODO might be nice to have a list of active tasks and remove
+        // might be nice to have a list of active tasks
         delete this;
     }
 
     void callback(const fiy::fiy_response_t* r) {
-        std::string str;
         switch (r->body.type) {
             case fiy::BodyType::FIY_BODY_NONE: {
                 Session::EmptyResponse res;
@@ -66,17 +73,27 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
 
             case fiy::BodyType::FIY_BODY_FILE: {
                 // Convert to boost file type
-                Session::FileBody::file_type f;
-                f.native_handle(r->body.file.fd);
+                boost::beast::file_posix fp;
+                fp.native_handle(r->body.file.fd);
                 boost::beast::error_code ec;
-                f.seek(r->body.file.offset, ec);
-                if (ec) {
-                    LOG_ERR("Seek failed: " << ec.message());
+                if (r->body.file.offset != 0) {
+                    fp.seek(r->body.file.offset, ec);
+                    if (ec) {
+                        LOG_ERR("Seek failed: " << ec.message());
+                    }
                 }
 
                 // Construct response
                 Session::FileResponse res;
-                res.body().file() = std::move(f);
+                res.body().reset(std::move(fp), ec); // note: have to use reset or else it will set size = 0
+                if (ec) {
+                    LOG_ERR("Failed to set file: " << ec.message());
+                    Session::StringResponse resp;
+                    resp.body() = "Server Error: Failed to set body";
+                    resp.result(500);
+                    m_conn->respond(m_conn->prep(std::move(resp)));
+                    break;
+                }
                 res.result(r->status);
                 response_set_headers(res, r->headers);
                 m_conn->respond(m_conn->prep(std::move(res)));
@@ -95,6 +112,7 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
         }
         this->remove_from_task_queue();
     }
+
     static char* new_cstr_from_string(const std::string_view s) {
         const auto l = s.size();
         char* ret = new char[l + 1];
@@ -102,6 +120,7 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
         ret[l] = '\0';
         return ret;
     }
+
     void set_this_headers(const boost::beast::http::fields& f) {
         if (f.cbegin() == f.cend()) {
             this->headers = nullptr;
@@ -129,7 +148,7 @@ struct ModDLLHostInfo : fiy::fiy_host_info_t {
     std::string m_base_uri;
     std::string m_data_dir;
 
-    explicit ModDLLHostInfo(Mod* mod) {
+    explicit ModDLLHostInfo(const Mod* mod) {
         this->log = [](const int n, const char* s){
             static const char* types[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG" };
             const char* type_str;
@@ -175,7 +194,6 @@ struct ModDLLHostInfo : fiy::fiy_host_info_t {
      *    - this prevents false impersonation
      */
     static void request_impl(
-//    const struct fiy::fiy_host_info_t* host,
         const char* app_id,
         const fiy::fiy_request_t* request,
         void* context,
@@ -300,18 +318,34 @@ void ModDLLConnector::delete_user(const char* user) {
     m_mod_info->delete_user(user);
 }
 
-void ModDLLConnector::handle_request(std::shared_ptr<Session> conn) {
+void ModDLLConnector::handle_request(const std::shared_ptr<Session> conn) {
+    // Check access restrictions
+    const auto user = conn->find_user();
+    const char* username = user.user.empty() ? nullptr : user.user.c_str();
+    if (m_mod->m_can_access == nullptr
+        || !m_mod->m_can_access(username, user.domain)
+    ) {
+        Session::StringResponse res;
+        res.result(401);
+        static const auto body_str = "<h1>401 - Unauthorized</h1><hr/><a href='" +
+            g_fiy->base_uri() + "'>Go to portal</a>";
+        res.body() = body_str;
+        conn->respond(conn->prep(res));
+        return;
+    }
+
     // Safety check
     if (m_mod_info == nullptr || m_mod_info->on_request == nullptr) {
         boost::beast::http::response<boost::beast::http::string_body> res;
-        res.result( 500 );
+        res.result(500);
         res.body() = "Module not initialized";
         conn->respond(conn->prep(std::move(res)));
         DEBUG_LOG("Mod " <<m_mod->m_id <<": called before start()");
         return;
     }
 
-    fiy::fiy_request_t* r = new ModDllConnectorRequest(conn);
+    // Send it to the mod
+    fiy::fiy_request_t* r = new ModDllConnectorRequest(conn, user);
     m_mod_info->on_request(
         r,
         [](

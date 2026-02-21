@@ -59,6 +59,7 @@ public:
     }
 
     Req& req() { return m_req_parser->get(); };
+    bool keep_alive() const { return m_req_parser->keep_alive(); };
 
     void clear_cookie_cache() { m_cookies.clear(); }
     std::map<std::string, std::string>& get_cookies();

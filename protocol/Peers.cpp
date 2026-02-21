@@ -298,7 +298,7 @@ void Peers::request_peer(
 ) {
     // Local request
     if (domain.empty() || domain == g_fiy->m_config.m_hostname) {
-        Mod* m = g_fiy->m_mods.get_mod(appid);
+        Mod* m = g_fiy->m_mods.get_mod_by_id(appid);
         if (m != nullptr) {
             m->m_ipc->handle_request(req, context, callback);
         } else {

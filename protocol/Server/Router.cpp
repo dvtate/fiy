@@ -17,22 +17,25 @@ namespace http = boost::beast::http;
 /**
  * @return [ mod , subpath ]
  */
-static std::pair<std::string, std::string> parse_mod_request_get(const std::shared_ptr<Session>& conn) {
+static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<Session>& conn) {
+    // Mod-by-ID API
     auto path = conn->req().target();
     if (path.starts_with("/mods/")) {
         path.remove_prefix(6);
-        return { path, conn->req()["Fiy-Path"] };
+        Mod* mod = g_fiy->m_mods.get_mod(path);
+        return { mod, conn->req()["Fiy-Path"] };
     }
 
+    // Subdomains
     const auto hostname = conn->req()["Host"];
     if (!hostname.empty()) {
         const std::string_view hhn = g_fiy->m_config.m_hostname;
         // Subdomain mod  mod.example.com/uri/path
-        if (hostname.ends_with(hhn) && hhn.size() != hostname.size())
-            return {
-                hostname.substr(0, hostname.size() - hhn.size() - 1),
-                path
-            };
+        if (hostname.ends_with(hhn) && hhn.size() != hostname.size()) {
+            const auto mod_name = hostname.substr(0, hostname.size() - hhn.size() - 1);
+            Mod* mod = g_fiy->m_mods.get_mod(mod_name);
+            return { mod, path };
+        }
 
         // Invalid request to different host?
         if (hostname != hhn) {
@@ -45,14 +48,22 @@ static std::pair<std::string, std::string> parse_mod_request_get(const std::shar
 //                    << hostname
 //                    << '\n';
 //            conn->respond(res);
-            LOG_ERR(  "Received request for invalid hostname: expected "
-                      << hhn.data()
-                      << " but host was "
-                      << hostname
-                      << '\n');
-            return { " ", "/" }; // give invalid mod
+            LOG_ERR("Received request for invalid hostname: expected "
+                << hhn.data()
+                << " but host was "
+                << hostname
+                << '\n');
+            return { nullptr, "/" }; // give invalid mod
         }
     }
+
+    // TODO
+    // We want to support root mods (ie - mod w/ path '')
+    // this means that any time the mod path doesn't match
+    // we need to assume it's a request for the root mod
+    // so for example a request to /index.html would first check
+    // for mod 'index.html' and if that doesn't exist it would try
+    // mod '' with path '/index.html'
 
     // Not a subdomain mod
     const auto slash_idx = path.find('/', 1);
@@ -60,17 +71,21 @@ static std::pair<std::string, std::string> parse_mod_request_get(const std::shar
         // case: /mod
         // case: /
         const auto qs_idx = path.find('?', 1);
-        if (qs_idx == std::string_view::npos)
-            return { path.empty() ? "" : path.substr(1), "/" };
+        if (qs_idx == std::string_view::npos) {
+            Mod* mod = path.empty()
+                ? g_fiy->m_mods.get_mod("")
+                : g_fiy->m_mods.get_mod(path.substr(1));
+            return { mod, "/" };
+        }
 
         // case: /mod?param
         // case: /?param
         std::string sub_path = "/";
         sub_path += path.substr(qs_idx);
-        return {
-            path.empty() ? "" : path.substr(1, qs_idx - 1),
-            sub_path
-        };
+        Mod* mod = path.empty()
+            ? g_fiy->m_mods.get_mod("")
+            : g_fiy->m_mods.get_mod(path.substr(1, qs_idx - 1));
+        return { mod, sub_path };
     }
 
     // case: /mod/
@@ -80,7 +95,7 @@ static std::pair<std::string, std::string> parse_mod_request_get(const std::shar
     // case: /mod/uri/path?param
     // case: /mod/uri/path/?param
     return {
-        path.substr(1, slash_idx - 1),
+        g_fiy->m_mods.get_mod(path.substr(1, slash_idx - 1)),
         path.substr(slash_idx)
     };
 }
@@ -89,26 +104,24 @@ static std::pair<std::string, std::string> parse_mod_request_get(const std::shar
  * Invoke app
  * @param conn connection
  */
-static inline void mod_send_msg(std::shared_ptr<Session> conn) {
+static void mod_send_msg(std::shared_ptr<Session> conn) {
     // Get app
-    auto [ mod, uri ] = parse_mod_request_get(conn);
+    auto [ m, uri ] = parse_mod_request_get(conn);
 
     // Forward to mods
-    Mod* m = g_fiy->m_mods.get_mod(mod);
     if (m == nullptr) {
         Session::DynamicResponse res;
         res.result(404);
         boost::beast::ostream(res.body())
-            << "<h1>404 - No mod for path '" <<mod
-            << "'</h1>\n<hr/>\n<p>For a list of apps: check the <a href=\""
-            << g_fiy->base_uri()
-            << "/portal\">portal</a></p>\n";
+            << "<h1>404 - Could not find a mod to handle your request</h1>"
+                "\n<hr/>\n<p>For a list of apps: check the <a href=\""
+            << g_fiy->base_uri() << "/portal\">portal</a></p>\n";
         res.set(http::field::content_type, "text/html");
         conn->respond(conn->prep(std::move(res)));
-        DEBUG_LOG("Invalid mod: " <<mod <<" : " <<uri);
+        DEBUG_LOG("Invalid mod: " <<conn->req().target() <<" : " <<uri);
         return;
     }
-    DEBUG_LOG("Calling App " <<mod <<" : " << uri);
+    DEBUG_LOG("Calling App " <<m->m_id <<" : " << uri);
 
     conn->req().target(uri);
     m->m_ipc->handle_request(std::move(conn));
