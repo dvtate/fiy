@@ -1,0 +1,27 @@
+<!-- from chatgpt -->
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <defs>
+        <linearGradient id="bgGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#4F8EF7"/>
+            <stop offset="100%" stop-color="#2D5BE3"/>
+        </linearGradient>
+    </defs>
+
+    <rect x="32" y="32" width="448" height="448" rx="96" fill="url(#bgGradient)"/>
+
+    <!-- User Head -->
+    <circle cx="256" cy="200" r="72" fill="#FFFFFF"/>
+
+    <!-- User Body -->
+    <path d="M256 300
+           C180 300 140 350 140 400
+           L372 400
+           C372 350 332 300 256 300Z"
+          fill="#FFFFFF"/>
+
+    <!-- Decorative Side Tabs (like a contact book) -->
+    <rect x="64" y="120" width="24" height="64" rx="12" fill="#FFFFFF" opacity="0.9"/>
+    <rect x="64" y="220" width="24" height="64" rx="12" fill="#FFFFFF" opacity="0.7"/>
+    <rect x="64" y="320" width="24" height="64" rx="12" fill="#FFFFFF" opacity="0.5"/>
+</svg>
