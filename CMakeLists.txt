@@ -141,6 +141,9 @@ target_link_libraries(contacts_mod
     PUBLIC pthread
     PUBLIC dl
 )
+target_include_directories(contacts_mod PUBLIC
+    third_party/SQLiteCpp/include
+)
 
 # Git builtin mod
 add_library(git_mod SHARED
@@ -170,9 +173,14 @@ target_link_libraries(git_mod
     PUBLIC dl
 )
 
-target_include_directories(contacts_mod PUBLIC
-    third_party/SQLiteCpp/include
+add_library(static_mod SHARED
+    modlib/fediymod.h
+    modlib/fediymod.hpp
+    util/mime.hpp
+    util/mime.cpp
+    mods/static/mod.cpp
 )
+target_link_libraries(static_mod PRIVATE fediymod)
 
 add_library(oauth_mod SHARED
     modlib/fediymod.h

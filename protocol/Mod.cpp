@@ -1,10 +1,13 @@
+#include "Mod.hpp"
+
+
 #include <dlfcn.h>
 #include <fstream>
 #include <filesystem>
 
-#include "nlohmann/json.hpp"
+#include <boost/unordered/unordered_flat_set.hpp>
 
-#include "Mod.hpp"
+#include "nlohmann/json.hpp"
 
 #include "FIY.hpp"
 
@@ -104,6 +107,92 @@ void Mod::save() {
     out.close();
 }
 
+/**
+ * Extract usernamaes from csv list of usernames
+ * @param str
+ * @return
+ */
+static boost::unordered_flat_set<std::string> parse_access_whitelist(const char* str) {
+    boost::unordered_flat_set<std::string> ret;
+
+    // Skip leading whitespaces and empty values
+    const char* start = str;
+    while (*start == ' ' || *start == ',')
+        start++;
+
+    while (*start) {
+        // Find end of value
+        const char* end = start;
+        while (*end && *end != ' ' && *end != ',')
+            end++;
+
+        // Store value
+        ret.emplace(start, end);
+
+        // Next iteration, skip whitespace and commas
+        while (*end == ' ' || *end == ',')
+            end++;
+        start = end;
+    }
+    return ret;
+}
+
+/**
+ *
+ * @param value user-provided json value
+ *  One of the following values
+ *  - `"public"` (default): Grants access to anyone, even anonymous users
+ *  - `"federated"` : Grants access to any authenticated user, even those on other instances
+ *  - `"local"` : Grants access to users of this instance
+ *  - `"user1,user2,user3"`: grants access to a specific list of users
+ * @return
+ */
+Mod::AccessChecker Mod::parse_access_checker(const std::string& value) {
+    // Global access
+    if (value.empty() || value == "public")
+        return [](const char*, const char*) {
+            return true;
+        };
+
+    // Federated users
+    if (value == "federated")
+        return [](const char* user, const char* domain) {
+            return user != nullptr;
+        };
+
+    // Only Instance-local Users
+    if (value == "local")
+        return [](const char* user, const char* domain) {
+            return user != nullptr && domain == nullptr;
+        };
+
+    // value contains comma-separated whitelisted usernames
+    // Split by commas, ignoring leading/trailing whitespace and empty values
+    boost::unordered_flat_set<std::string> whitelist;
+    const char* start = value.c_str();
+    while (*start == ' ' || *start == ',')
+        start++;
+    while (*start) {
+        // Find end of value
+        const char* end = start;
+        while (*end && *end != ' ' && *end != ',')
+            end++;
+
+        // Store value
+        whitelist.emplace(start, end);
+
+        // Next iteration, skip whitespace and commas
+        while (*end == ' ' || *end == ',')
+            end++;
+        start = end;
+    }
+
+    // Checker that checks whitelist for local users
+    return [wl = std::move(whitelist)](const char* user, const char* domain) {
+        return domain == nullptr && wl.contains(user);
+    };
+}
+
 void Mod::load() {
     if (m_id.empty())
         m_id = m_data_dir;
@@ -124,7 +213,7 @@ void Mod::load() {
         } else {
             auto new_id = conf_id.get<std::string>();
             if (m_id != new_id)
-                load_error("module.json: \"id\" field does not match directory name, the mod may not work");
+                LOG_ERR("module.json: \"id\" field does not match directory name, the mod may not work");
             m_id = new_id;
         }
     }
@@ -229,11 +318,27 @@ void Mod::load() {
 
     if (conf.contains("icon")) {
         auto icon = conf.at("icon");
-        if (!icon.is_string()) {
+        if (icon.is_string()) {
+            auto icon_path = icon.get<std::string>();
+            if (icon_path[0] == '/')
+                m_icon = icon_path;
+            else
+                m_icon = dir() / icon_path;
+        } else if (!icon.is_null()) {
             load_error("module.json: \"icon\" should be a string containing the icon file name");
-        } else {
-            m_icon = dir() / icon.get<std::string>();
         }
+    }
+
+    if (conf.contains("access")) {
+        auto a = conf.at("access");
+        if (a.is_string()) [[likely]] {
+            m_can_access = parse_access_checker(a.get<std::string>());
+        } else {
+            load_error("module.json: \"access\" should be either \"public\", \"federated\", \"local\","
+                " or a comma-separated list of local users allowed to use the mod");
+        }
+    } else {
+        m_can_access = parse_access_checker("");
     }
 
     // Get install ts
@@ -243,9 +348,8 @@ void Mod::load() {
         LOG_ERR("Mod::load: failed to get fs::last_write_time" <<e.what());
     }
 
-    if (!m_error.empty())
-
-    m_loaded = true;
+    if (m_error.empty())
+        m_loaded = true;
 }
 
 void Mod::load_error(const std::string& message) {
@@ -272,7 +376,7 @@ nlohmann::json Mod::parse_file() {
     return ret;
 }
 
-void Mod::set_enabled(bool enabled) {
+void Mod::set_enabled(const bool enabled) {
     std::lock_guard lock(m_mtx);
     if (m_enabled == enabled)
         return;

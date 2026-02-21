@@ -1,8 +1,10 @@
 #pragma once
 
-#include <map>
-
 #include "Mod.hpp"
+
+#include <boost/unordered/unordered_flat_map.hpp>
+
+#include <unordered_map>
 
 // TODO refactor so that it handles ids and path lookups better
 
@@ -19,11 +21,8 @@ protected:
     RWMutex m_mtx; // TODO compare performance of just using std::mutex
 
     std::vector<Mod*> m_mods;
-    std::unordered_map<std::string, Mod*> m_mods_lookup;
-    // TODO maybe should add back the by_id to prevent collisions
-    //      if static/reverse-proxy apps added
-    // std::unordered_map<std::string, Mod*> m_mods_by_id; // id -> mod
-    // std::unordered_map<std::string, Mod*> m_mod_for_path; // path -> mod
+    boost::unordered_flat_map<std::string, Mod*> m_mods_lookup; // path -> mod
+    boost::unordered_flat_map<std::string, Mod*> m_mods_by_id; // id -> mod
 
     // TODO instead just look up by id (must include in requests)
     //  and then dynamic cast into modnetconnector
@@ -37,8 +36,8 @@ public:
     }
 
     void find_modules();
-    bool start_all();
-    bool stop_all();
+    bool start_all() const;
+    bool stop_all() const;
 
     void clear() {
         RWMutex::LockForWrite lock{m_mtx};
@@ -58,13 +57,22 @@ public:
             return nullptr;
     }
 
-    inline std::vector<Mod*> get_mods() {
+    Mod* get_mod_by_id(const std::string& id) {
+        RWMutex::LockForRead lock{m_mtx};
+        auto ret = m_mods_by_id.find(id);
+        if (ret != m_mods_by_id.end())
+            return ret->second;
+        else
+            return nullptr;
+    }
+
+    std::vector<Mod*> get_mods() {
         RWMutex::LockForRead lock{m_mtx};
         return m_mods; // copy
     }
 
-    /// Get json list of installed apps for the user portal
-    [[nodiscard]] inline std::string get_mods_json() {
+    /// Get JSON list of installed apps for the user portal
+    [[nodiscard]] std::string get_mods_json() {
         std::string ret = "[";
         RWMutex::LockForRead lock{m_mtx};
         for (auto& m : m_mods) {
@@ -77,25 +85,23 @@ public:
     }
 
     bool remove_mod(const std::string& id) {
-        RWMutex::LockForWrite lock{m_mtx};
-        auto m = get_mod(id);
-        if (m == nullptr)
+        // Find mod
+        m_mtx.read_lock();
+        const auto ret = m_mods_by_id.find(id);
+        if (ret == m_mods_by_id.end()) {
+            m_mtx.read_unlock();
             return false;
-        const auto it = std::ranges::find(m_mods, m);
-        m_mods.erase(it);
-        m_mods_lookup.erase(m->m_path);
-        m_mods_lookup.erase(m->m_id);
-        return m->stop();
-    }
+        }
+        Mod* m = ret->second;
 
-    bool update_path(const std::string& old_path, const std::string& new_path) {
-        RWMutex::LockForWrite lock{m_mtx};
-        if (m_mods_lookup.contains(new_path))
-            return false;
-        auto m = (m_mods_lookup[new_path] = m_mods_lookup[old_path]);
-        m->set_path(new_path);
-        m_mods_lookup.erase(old_path);
-        return true;
+        // Remove mod
+        m_mtx.read_to_write();
+        m_mods.erase(std::ranges::find(m_mods, m));
+        m_mods_lookup.erase(m->m_path);
+        m_mods_by_id.erase(m->m_id);
+        m_mtx.write_unlock();
+        // TODO probably should delete the mod to prevent memory leak
+        return m->stop();
     }
 
     bool add_net_connector(const std::string& token, ModNetConnector* connector) {

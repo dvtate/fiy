@@ -23,17 +23,18 @@ void Mods::find_modules() {
 
     // m_mtx should be locked for write
     const size_t mod_count = m_mods.size();
-    m_mods_lookup.reserve(mod_count * 2);
+    m_mods_lookup.reserve(mod_count);
+    m_mods_by_id.reserve(mod_count);
 
     // Add lookup by id
     for (size_t i = 0; i < mod_count; i++)
-        m_mods_lookup[m_mods[i]->m_id] = m_mods[i];
+        m_mods_by_id[m_mods[i]->m_id] = m_mods[i];
 
     // Add lookup by path (prevent overlap)
     for (size_t i = 0; i < mod_count; i++) {
         if (m_mods_lookup.contains(m_mods[i]->m_path)) {
             LOG("Duplicate module path " << m_mods[i]->m_path <<" for module " <<m_mods[i]->m_id << " ignored");
-            auto m = m_mods_lookup[m_mods[i]->m_path];
+            const Mod* m = m_mods_lookup[m_mods[i]->m_path];
             LOG("Module path " << m_mods[i]->m_path <<" already used by module " <<m->m_id);
         } else {
             m_mods_lookup[m_mods[i]->m_path] = m_mods[i];
@@ -43,10 +44,10 @@ void Mods::find_modules() {
     LOG("Found " + std::to_string(m_mods.size()) + " mods");
 }
 
-bool Mods::start_all() {
+bool Mods::start_all() const {
     bool ret = true;
 
-    for (auto* mod: m_mods) {
+    for (Mod* mod: m_mods) {
         if (!mod->m_loaded)
             continue;
         DEBUG_LOG("Starting module: " + mod->m_id + "...");
@@ -61,7 +62,7 @@ bool Mods::start_all() {
 }
 
 
-bool Mods::stop_all() {
+bool Mods::stop_all() const {
     bool ret = true;
     for (auto* mod : m_mods)
         if (mod->status() == Mod::Status::RUNNING)
