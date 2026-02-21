@@ -1,4 +1,4 @@
-# Mod Net Wraper
+# Mod Net Wrapper (MNW)
 Normally mods are loaded as shared modules directly by the protocol server.
 This program allows shared library modules to be instead used as network modules.
 It loads the module and then proxies network requests from the protocol server.

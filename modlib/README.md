@@ -15,7 +15,8 @@ For example: this would work for the demo mod
     "enabled": false,
     "connector": "shared_object",
     "connector_uri": "/opt/fediy/mods/demo/module.so",
-    "path": "demo"
+    "path": "demo",
+    "access": "global"
 }
 ```
 
@@ -61,6 +62,15 @@ Default path for this mod. For example, "chat" would make the mod accessible via
 - chat.example.com and example.com/chat
 
 - user can override this
+
+### `access`
+Restrict access to this mod.
+#### Options
+- `"public"` (default): Grants access to anyone, even anonymous users
+- `"federated"` : Grants access to any authenticated user, even those on other instances
+- `"local"` : Grants access to users of this instance
+- `"user1,user2,user3"`: grants access to a specific list of users
+  - note: if username is public/federated/local, add a trailing comma `"public,"`
 
 ## TODO
 - struct fiy_user_t ?
