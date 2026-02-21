@@ -243,7 +243,6 @@ struct fiy_host_info_t {
      *    - this prevents false impersonation
      */
     void (*request)(
-//    const struct fiy_host_info_t* host,
             const char* app_id,
             const struct fiy_request_t* request,
             void* context,
@@ -282,6 +281,10 @@ struct fiy_host_info_t {
      * Contents of module.json file
      */
     const char* mod_config;
+
+    // TODO this could be used to provide context to other functions
+    // struct Mod;
+    // Mod* mod;
 };
 
 typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host_info_t*);

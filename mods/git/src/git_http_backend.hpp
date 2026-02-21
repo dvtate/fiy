@@ -47,7 +47,7 @@ inline std::string get_repo_path(const std::string_view path) {
     return ret;
 }
 
-void get_uri_components(
+inline void get_uri_components(
     const std::string_view path,
     std::string& SERVER_PROTOCOL,
     std::string& SERVER_NAME,
@@ -153,7 +153,7 @@ inline fiy::Response parse_cgi_output(const int fd) {
 /**
  * Wrapper around the git-http-backend CGI plugin included with git
  */
-void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
+inline void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
     std::string_view path{req.path};
 
     CGI cgi{{"git", "http-backend" }};

@@ -15,7 +15,7 @@ bool FIY::start() {
     }
 
     // Track current time
-    std::thread now_tracker{[this](){
+    std::thread now_tracker{[this]() {
         while (true) {
             m_now = std::time(nullptr);
             std::this_thread::sleep_for(std::chrono::seconds(1));
