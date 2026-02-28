@@ -61,8 +61,6 @@ Where does the fediy protocol server communicate with this mod?
 Default path for this mod. For example, "chat" would make the mod accessible via
 - chat.example.com and example.com/chat
 
-- user can override this
-
 ### `access`
 Restrict access to this mod.
 #### Options
@@ -71,6 +69,10 @@ Restrict access to this mod.
 - `"local"` : Grants access to users of this instance
 - `"user1,user2,user3"`: grants access to a specific list of users
   - note: if username is public/federated/local, add a trailing comma `"public,"`
+
+### `data_dir`
+Place for the mod to store relevant data.
+
 
 ## TODO
 - struct fiy_user_t ?

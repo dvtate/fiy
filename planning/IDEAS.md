@@ -1,9 +1,11 @@
 # Ideas
 These might be worth doing eventually
 
-## Features
-- Home/landing app:
-  -  they're taken to a specified app instead
+## Big Features/Selling points
+- Data ownership
+- Collaboration (ie - git)
+- Single Sign On (SSO)
+- Sever app management
 
 ## App Ideas
 ### Builtin
@@ -24,3 +26,7 @@ See [built-in apps in /apps](../mods).
 - Calendar-IY: Google Calendar killer
 - Cloud-IY: Nextcloud competitor
 - Kanban-IY: jira/trello/etc. killer
+
+## Features
+- Home/landing app:
+  -  they're taken to a specified app instead
