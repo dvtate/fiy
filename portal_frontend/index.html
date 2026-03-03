@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #ddd;
+        }
+        dt {
+            font-weight: bold;
+        }
+        dd {
+            margin-bottom: 8px;
+        }
+        .get-started-button {
+            display: inline-block;
+            padding: 10px;
+            margin: 10px;
+            background-color: rgb(250,77,96);
+            font-weight: bold;
+            color: white;
+        }
+        .get-started-button:hover {
+            background-color: rgb(255,100,120);
+            cursor: pointer;
+            padding: 8px;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <a href="/portal">Portal</a> | <a href="/portal/signup">Signup</a>
+    <section>
+        <h1>Welcome to FeDIY!</h1>
+        <p>
+            FeDIY is a federation protocol and app platform that lets you own your data
+            without losing the interconnectedness of the internet. You can use the same
+            account across multiple apps and instances.
+        </p>
+    </section>
+    <section id="features">
+        <h2>Key Features</h2>
+        <p>FeDIY offers many advantages to </p>
+        <dl>
+            <dt>Self-hostable</dt>
+            <dd>Find an instance to join or host your own for ultimate privacy.</dd>
+            <dd>FeDIY is designed to easy to self-host, even on consumer hardware.</dd>
+
+            <dt>App platform</dt>
+            <dd>Use your account across a wide variety installable apps, and even with 3rd party apps with oauth.</dd>
+
+            <dt>Data Sovereignty</dt>
+            <dd>Own your own data: control access, ensure it's deleted, easily make backups, etc.</dd>
+
+            <dt>Free and Open Source</dt>
+            <dd>The <a href="https://fediy.org/git/fediy" target="_blank">platform and protocol are open source</a> allowing 3rd party audits and bug reports.</dd>
+        </dl>
+
+    </section>
+
+    <section id="apps">
+        <h2>Built-in Apps</h2>
+        <p>In addition to installable apps, </p>
+        <dl>
+            <dt>Git-IY</dt>
+            <dd>Federated GitHub alternative free from Microsoft's shenanegans.</dd>
+            <dd>Contribute to multiple open source
+                <span title="Many open source projects currently use non-federated git hosting providers, contributors want a single profile they can use as a portfolio">
+            projects with a single account.</span></dd>
+
+            <dt>Contacts-IY</dt>
+            <dd>Import, export, manage, share, etc. contacts knowing that they aren't being handled by an advertising firm.</dd>
+            <dd>Make a profile, choose what other users can see, use the same profile across all FeDIY apps.</dd>
+
+            <dt>Chat-IY</dt>
+            <dd>Store your messages in a database that you control (or don't store anything).</dd>
+            <dd>Encrypt your messages.</dd>
+
+            <dt>Notifications</dt>
+            <dd>Manage notifications across all your apps.</dd>
+
+            <dt>HTTP Server Utilities</dt>
+            <dd>FeDIY includes basic HTTP server functionality, similar to apache/nginx.
+                This allows you to host static websites, blogs, wikis, etc. or even dynamic apps
+                via reverse-proxy or CGI scripts. Or just redirect users to another website.</dd>
+        </dl>
+
+        <h2>App Development Platform</h2>
+        <p>
+            It's easy to develop or even convert apps to work with FeDIY.
+            It's like making any other webapp, except authentication is handled by the protocol server and there's
+            an easy-to-use API for interacting with the host and making requests to other apps.
+            There's also a native development toolkit that lets your app link directly with the protocol server,
+            enabling maximum performance without the pains of doing network programming.
+        </p>
+    </section>
+
+    <section>
+        <a href="/portal/signup">
+            <div class="get-started-button" id="signup-btn">
+                Make an account
+            </div>
+        </a>
+
+        <a href="https://fediy.org" target="_blank">
+            <div class="get-started-button">
+                Host your own instance
+            </div>
+        </a>
+    </section>
+
+    <script>
+        document.getElementById('signup-btn').innerHTML += "on " + window.location.host;
+    </script>
+</body>
+</html>

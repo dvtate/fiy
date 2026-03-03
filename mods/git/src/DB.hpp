@@ -50,5 +50,4 @@ namespace DB {
         q.exec();
         q.reset();
     }
-
 }

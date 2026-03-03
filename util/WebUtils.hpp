@@ -10,6 +10,7 @@
 
 #ifndef COOKIE_COOKIES_HPP
 #define COOKIE_COOKIES_HPP
+
 #include <string>
 #include <string_view>
 #include <cinttypes>
@@ -46,7 +47,7 @@ namespace WebUtils {
 
     /**
      * Parse from cookie header
-     * @param value cookie header value
+     * @param header cookie header value
      */
     std::map<std::string, std::string> parse_cookies(std::string_view header);
 

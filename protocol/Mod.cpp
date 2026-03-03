@@ -15,8 +15,9 @@
     return g_fiy->m_config.m_data_dir + "/mods/" + m_data_dir;
 }
 
-Mod::Mod(std::string id) {
-    m_data_dir = std::move(id);
+Mod::Mod(std::string data_dir) {
+    m_data_dir = std::move(data_dir);
+    m_user_data_dir = data_dir;
     load();
 }
 
@@ -298,7 +299,7 @@ void Mod::load() {
             m_ipc = std::make_unique<ModDLLConnector>(this, connector_uri);
         } else if (ts == "socket") {
             if (connector_uri.empty())
-                connector_uri = dir() / "ipc.socket";
+                connector_uri = dir() / "ipc.sock";
 //            m_ipc = std::make_unique<ModSockIPC>(connector_uri);
         }
     }
@@ -339,6 +340,17 @@ void Mod::load() {
         }
     } else {
         m_can_access = parse_access_checker("");
+    }
+
+    if (conf.contains("data_dir")) {
+        auto d = conf.at("data_dir");
+        if (d.is_string()) [[likely]] {
+            m_user_data_dir = d.get<std::string>();
+        } else {
+            load_error("module.json: \"data_dir\" should be a string");
+        }
+    } else {
+        m_user_data_dir = dir();
     }
 
     // Get install ts

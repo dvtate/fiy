@@ -22,8 +22,13 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
     auto path = conn->req().target();
     if (path.starts_with("/mods/")) {
         path.remove_prefix(6);
-        Mod* mod = g_fiy->m_mods.get_mod(path);
-        return { mod, conn->req()["Fiy-Path"] };
+        auto mod_end = path.find_first_of("/?#");
+        Mod* mod = g_fiy->m_mods.get_mod_by_id(
+            path.substr(0, mod_end));
+        std::string subpath = conn->req()["Fiy-Path"];
+        if (subpath.empty() && mod_end != std::string_view::npos) {}
+            subpath = path.substr(mod_end);
+        return { mod, subpath };
     }
 
     // Subdomains

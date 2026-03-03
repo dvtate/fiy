@@ -1,10 +1,15 @@
 
+-- Design:
+-- Multiple contacts (Cards) can share the same vcard field data (Properties)
+-- Cards use field data via [Profile]CardProperties.
+
 -- two types of contacts
 --  1. user profiles created for themselves
---      these have some fields public and others private
+--      fields have visibility levels for sharing
 --  2. contacts created for other users
 --      all fields visible for themselves
 
+-- User contacts
 CREATE TABLE Cards (
     -- unique id for the contact
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,7 +23,7 @@ CREATE TABLE Cards (
     updateTs INTEGER
 );
 
--- card properties
+-- vCard field data
 CREATE TABLE Properties (
     -- Relevant contact
 --     cardId INTEGER REFERENCES Cards,
@@ -33,12 +38,14 @@ CREATE TABLE Properties (
     value TEXT
 );
 
+-- Public card fields
 CREATE TABLE CardProperties (
     cardId INTEGER REFERENCES Cards,
     propertyId INTEGER REFERENCES Properties,
     UNIQUE(cardId, propertyId)
 );
 
+-- Fields with restricted visibility (for use in profile cards)
 CREATE TABLE ProfileCardProperties (
     cardId INTEGER REFERENCES Cards,
     propertyId INTEGER REFERENCES Properties,
@@ -57,6 +64,3 @@ CREATE TABLE SharedCards (
     sendingUser TEXT, -- could be remote user
     acceptUser TEXT
 );
-
--- erase db for debugging
--- delete from Cards; delete from Properties; delete from CardProperties; delete from ProfileCardProperties;

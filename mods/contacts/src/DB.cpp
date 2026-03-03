@@ -10,12 +10,10 @@
 
 #include "DB.hpp"
 
-extern fiy::Host g_host_info;
-
 namespace DB {
     SQLite::Database& connection() {
         thread_local SQLite::Database db{
-            std::string(g_host_info.data_dir) + "/db.db3",
+            std::string(fiy::Host::info.data_dir) + "/db.db3",
             SQLite::OPEN_READWRITE
         };
         return db;
@@ -57,7 +55,7 @@ namespace DB {
     Result create_new_contact(VC& card) {
         // Start transaction
         transaction_begin();
-        g_host_info.log(3, "Creating new contact");
+        fiy::log_info("Creating new contact");
 
         try {
             thread_local auto q_create_card = statement(
@@ -85,10 +83,10 @@ namespace DB {
                 q_create_card.bind(2);
             else
                 q_create_card.bindNoCopy(2, card.user);
-            q_create_card.bind(3, g_host_info.now());
+            q_create_card.bind(3, fiy::Host::info.now());
             int rows_modified = q_create_card.exec();
             if (rows_modified == 0)
-                g_host_info.log(1, "Didn't create card???");
+                fiy::log_error("Failed to create new contact card properties");
             q_create_card.reset();
 
             // Execute create card query
@@ -98,7 +96,7 @@ namespace DB {
             }
             if (card.id == -1) {
                 transaction_rollback();
-                g_host_info.log(1, "Couldn't get created card id");
+                fiy::log_error("Couldn't get created card id");
                 q_get_card.reset();
                 return Error;
             }
@@ -115,7 +113,7 @@ namespace DB {
                     if (q_insert_prop.exec() == 0) {
                         q_insert_prop.reset();
                         transaction_rollback();
-                        g_host_info.log(1, "Couldn't create profile property");
+                        fiy::log_error("Couldn't create card property");
                         return Error;
                     }
                     q_insert_prop.reset();
@@ -126,7 +124,7 @@ namespace DB {
                     if (q_insert_profile_prop.exec() == 0) {
                         q_insert_profile_prop.reset();
                         transaction_rollback();
-                        g_host_info.log(1, "Couldn't create profile card property");
+                        fiy::log_error("Couldn't create profile card property");
                         return Error;
                     }
                     q_insert_profile_prop.reset();
@@ -146,7 +144,7 @@ namespace DB {
                     if (q_insert_prop.exec() == 0) {
                         q_insert_prop.reset();
                         transaction_rollback();
-                        g_host_info.log(1, "Couldn't create contact card property");
+                        fiy::log_error("Couldn't create contact card property");
                         return Error;
                     }
                     q_insert_prop.reset();
@@ -156,7 +154,7 @@ namespace DB {
                     if (q_insert_card_prop.exec() == 0) {
                         q_insert_card_prop.reset();
                         transaction_rollback();
-                        g_host_info.log(1, "Couldn't create card property");
+                        fiy::log_error("Couldn't create card property");
                         return Error;
                     }
                     q_insert_card_prop.reset();
@@ -175,8 +173,9 @@ namespace DB {
             transaction_rollback();
             std::string msg = "contacts: new_contact: database error: ";
             msg += e.what();
-            g_host_info.log(1, msg.c_str());
-            g_host_info.log(1, e.getErrorStr());
+            msg += '\n';
+            msg += e.getErrorStr();
+            fiy::log_error(msg);
             return Error;
         }
     }
@@ -193,7 +192,7 @@ namespace DB {
     Result update_contact(VC& card) {
         // Update a card
         transaction_begin();
-        g_host_info.log(3, "Updating contact");
+        fiy::log_info("Updating contact");
 
         try {
             // Update user
@@ -202,7 +201,7 @@ namespace DB {
                 q_update_card.bind(1);
             else
                 q_update_card.bindNoCopy(1, card.user);
-            q_update_card.bind(2, card.update_ts = g_host_info.now());
+            q_update_card.bind(2, card.update_ts = fiy::Host::info.now());
             q_update_card.bind(3, card.id);
             q_update_card.bind(4, card.owner);
             const int updated = q_update_card.exec();
@@ -253,7 +252,7 @@ namespace DB {
                     q_insert_prop.reset();
                     if (!updated) {
                         transaction_rollback();
-                        g_host_info.log(1, "Couldn't insert contact property");
+                        fiy::log_error("Couldn't insert contact property");
                         return Error;
                     }
                     q_insert_prop.reset();
@@ -264,7 +263,7 @@ namespace DB {
                     q_insert_profile_prop.reset();
                     if (!updated) {
                         transaction_rollback();
-                        g_host_info.log(1, "Couldn't insert profile card property");
+                        fiy::log_error("Couldn't insert profile card property");
                         return Error;
                     }
                     q_insert_profile_prop.reset();
@@ -283,7 +282,7 @@ namespace DB {
                     q_insert_prop.reset();
                     if (!updated) {
                         transaction_rollback();
-                        g_host_info.log(1, "Couldn't insert contact card property");
+                        fiy::log_error("Couldn't insert contact card property");
                         return Error;
                     }
                     q_insert_prop.reset();
@@ -293,7 +292,7 @@ namespace DB {
                     if (!updated) {
                         q_insert_card_prop.reset();
                         transaction_rollback();
-                        g_host_info.log(1, "Couldn't insert card property");
+                        fiy::log_error("Couldn't insert card property");
                         return Error;
                     }
                     q_insert_card_prop.reset();
@@ -308,9 +307,9 @@ namespace DB {
             return Success;
         } catch (const SQLite::Exception& e) {
             transaction_rollback();
-            std::string msg = "contacts: update_contact: database error: ";
+            std::string msg = "update_contact: database error: ";
             msg += e.what();
-            g_host_info.log(1, msg.c_str());
+            fiy::log_error(msg);
             return Error;
         }
     }
@@ -348,8 +347,8 @@ namespace DB {
         if (ret.id == -1) {
             // Ignore non-existent local users
             if (user.find('@') == std::string_view::npos
-                && g_host_info.user_info(user.c_str(), nullptr) != 0) {
-                g_host_info.log(2, "Non-existent user" + user);
+                && fiy::Host::info.user_info(user.c_str(), nullptr) != 0) {
+                fiy::log_warning("Non-existent user: " + user);
                 return ret;
             }
 
@@ -403,7 +402,7 @@ namespace DB {
         // Start with just the card
         VC ret = get_profile_base(user);
         if (ret.invalid()) {
-            g_host_info.log(2, "Could not get profile base for user " + user);
+            fiy::log_warning("Could not get profile base for user " + user);
             return "";
         }
 
@@ -572,7 +571,8 @@ namespace DB {
     }
 
 
-    bool get_contact(VC& card) {
+    Result get_contact(VC& card) {
+        // Get card by id
         if (card.id != -1) {
             thread_local auto q_card_trusted = "SELECT user, updateTs FROM Cards WHERE id=?"_sql;
             thread_local auto q_card_check_owner = "SELECT user, updateTs FROM Cards WHERE id=? AND owner=?"_sql;
@@ -589,7 +589,7 @@ namespace DB {
 
             if (!q->executeStep()) {
                 q->reset();
-                return false;
+                return Result::NotFound; // Could also mean unauthorized
             }
 
             card.user = q->getColumn(0).getString();
@@ -616,16 +616,18 @@ namespace DB {
                 });
             q_props.reset();
 
-            return true;
+            return Result::Success;
         }
 
+        // Get card by name + owner
+        // TODO
         if (!card.owner.empty() && !card.user.empty()) {
-            // TODO Get card by name+owner
-            return false;
+            return Result::Error;
         }
 
         // Get user by id or by name+owner
-        return false;
+        fiy::log_error("DB::get_contact, invalid argument");
+        return Result::Error;
     }
 
 
@@ -654,5 +656,42 @@ namespace DB {
         delete_shares.bindNoCopy(2, local_user);
         delete_shares.exec();
         delete_shares.reset();
+    }
+
+    /**
+     *
+     * @param owner local user that owns the contact
+     * @param id cardId of the contact to delete
+     * @return true if the contact was deleted, false if there user doesn't have permission
+     */
+    Result delete_contact(const char* owner, const int64_t id) {
+        // Make sure the contact exists and the user owns it
+        thread_local auto check_contact = "SELECT 1 FROM Cards WHERE cardId=? AND owner=?"_sql;
+        check_contact.bind(1, id);
+        check_contact.bindNoCopy(2, owner);
+        if (!check_contact.executeStep()) {
+            check_contact.reset();
+            return Result::NotFound; // Could also mean unauthorized
+        }
+        check_contact.reset();
+
+        thread_local auto del_shared = "DELETE FROM SharedCards WHERE cardId=?"_sql;
+        thread_local auto del_card_props = "DELETE FROM CardProperties WHERE cardId=?"_sql;
+        thread_local auto del_profile_props = "DELETE FROM ProfileCardProperties WHERE cardId=?"_sql;
+        thread_local auto del_cards = "DELETE FROM Cards WHERE cardId=?"_sql;
+        for (auto* q : {
+            &del_shared,
+            &del_card_props,
+            &del_profile_props,
+            &del_cards
+        }) {
+            q->bind(1, id);
+            q->exec();
+            q->reset();
+        }
+
+        // Remove unused properties
+        prune_properties();
+        return Result::Success;
     }
 } // namespace DB

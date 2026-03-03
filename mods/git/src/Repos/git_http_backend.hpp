@@ -13,11 +13,20 @@
 #include <filesystem>
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
+#include <cstring>
 
 #include <boost/beast/core/detail/base64.hpp>
 
-#include "../../../util/CGI.hpp"
-#include "../../../modlib/fediymod.hpp"
+#include "../../../../util/CGI.hpp"
+#include "../../../../modlib/fediymod.hpp"
+
+/*
+ * This file implements a wrapper around the git-http-backend CGI
+ * This is a quick and dirty solution that has lots of room for
+ * optimizations. Eventually this could be replaced a more
+ * performant custom solution.
+ */
 
 // inline std::string find_git_http_backend() {
 //     // Look check all possible paths
@@ -47,6 +56,15 @@ inline std::string get_repo_path(const std::string_view path) {
     return ret;
 }
 
+/**
+ * Get the CGI params from the request URI path
+ * @param path (in) request URI path
+ * @param SERVER_PROTOCOL (out)
+ * @param SERVER_NAME (out)
+ * @param SERVER_PORT (out)
+ * @param PATH_INFO (out)
+ * @param QUERY_STRING (out)
+ */
 inline void get_uri_components(
     const std::string_view path,
     std::string& SERVER_PROTOCOL,
@@ -56,7 +74,7 @@ inline void get_uri_components(
     std::string& QUERY_STRING
 ) {
     // Protocol
-    bool https = fiy::Host::info.base_uri[4] == 's';
+    const bool https = fiy::Host::info.base_uri[4] == 's';
     SERVER_PROTOCOL = https ? "https" : "http";
 
     // Domain + Port
@@ -78,8 +96,9 @@ inline void get_uri_components(
         QUERY_STRING = path.substr(qs + 1);
 
     // PATH_INFO
-    std::string_view subpath = fiy::Host::info.base_uri + 8;
-    subpath.remove_prefix(subpath.find('/'));
+    // not sure about logic here tbh
+    std::string_view subpath = fiy::Host::info.base_uri + (https ? 8 : 7); // skip protocol
+    subpath.remove_prefix(subpath.find('/')); // skip domain: [example.com]/git/user/repo/...
     if (subpath.empty() || subpath == "/") {
         PATH_INFO = path.substr(0, qs);
     } else {
@@ -89,6 +108,42 @@ inline void get_uri_components(
 
     // Server stuff
     SERVER_NAME = fiy::Host::info.domain;
+}
+
+inline size_t parse_cgi_headers(const std::string_view s, fiy::Response& ret) {
+    // Parse headers
+    size_t start = 0;
+    size_t end;
+    do {
+        end = s.find("\r\n", start);
+        auto line = s.substr(start, end - start);
+        if (line.empty()) { // empty header
+            start = end + 2;
+            break;
+        }
+        const auto i = line.find(':');
+        if (i == std::string::npos) {
+            std::cerr <<"WTF? invalid header? --" <<line << std::endl;
+        }
+
+        // Read the fields
+        if (line.size() > 6 && strncasecmp(line.data(), "Status", 6) == 0) {
+            // This isn't a valid http header so we gotta handle it differently
+            // Status         = "Status:" status-code SP reason-phrase NL
+            const char* value = line.data() + i + 1;
+            char* end_str;
+            ret.status = strtol(value, &end_str, 10);
+            if (ret.status == 0 && end_str == value)
+                ret.status = 500;
+            // std::cout <<" Status: " << ret.status << std::endl;
+        } else {
+            ret.add_header(line);
+            // std::cout <<"Header: " << line << std::endl;
+        }
+        start = end + 2; // \r\n
+    } while (end != std::string::npos && start < s.size() && s[start] != '\n');
+
+    return end == std::string::npos ? 0 : start;
 }
 
 inline fiy::Response parse_cgi_output(const std::string& s) {
@@ -114,16 +169,20 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
         auto header = line.substr(0, i);
         std::ranges::transform(header, header.begin(),
             [](const auto c){ return std::tolower(c); });
-        if (header == "Status") {
+        if (header == "status") {
             // This isn't a valid http header so we gotta handle it differently
             // Status         = "Status:" status-code SP reason-phrase NL
-            ret.status = atoi(line.substr(i + 1, line.find(' ')).c_str()); // TODO use strtol + string_view
-            if (ret.status == 0)
+            const char* value = line.data() + i + 1;
+            char* str_end;
+            ret.status = strtol(value, &str_end, 10);
+            if (ret.status == 0 && str_end == value)
                 ret.status = 500;
             // std::cout <<" Status: " << ret.status << std::endl;
-        } else if (header == "Content-Length") {
+        } else if (header == "content-length") {
             // Extra Validation later
-            body_len = atoi(line.substr(i + 1 ).c_str());  // TODO use strtol + string_view
+            const char* value = line.data() + i + 1;
+            char* str_end;
+            body_len = strtol(value, &str_end, 10);
             ret.add_header(line);
             // std::cout <<" Content-length" << ret.body_len << std::endl;
         } else {
@@ -148,13 +207,15 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
 
 inline fiy::Response parse_cgi_output(const int fd) {
     // TODO
+    // Read string until \r\n\r\n
+    return {};
 }
 
 /**
  * Wrapper around the git-http-backend CGI plugin included with git
  */
 inline void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
-    std::string_view path{req.path};
+    std::string path{req.path};
 
     CGI cgi{{"git", "http-backend" }};
 

@@ -29,6 +29,7 @@ namespace DB {
     enum Result {
         Success,
         Unauthorized,
+        NotFound, // Often could also mean unauthorized
         Error
     };
     Result save_contact(VC& card);
@@ -41,7 +42,7 @@ namespace DB {
         const char* req_domain
     );
 
-    bool get_contact(VC& card);
-
+    Result get_contact(VC& card);
     void delete_user(const char* local_user);
+    Result delete_contact(const char* owner, const int64_t id);
 } // namespace DB

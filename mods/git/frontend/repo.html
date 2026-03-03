@@ -1,14 +1,396 @@
 <html>
 <head>
-    <title>{{repo_name}}</title>
+    <title>{{repo_owner}}/{{repo_name}}: {{repo_description}}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" />
+    <style>
+
+        /* Dark mode */
+        :root {
+            --bg-color: #0d1117;
+            --container-bg: #161b22;
+            --highlight-bg: #242830;
+            --border-color: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-blue: #58a6ff;
+            --tag-bg: #238636;
+        }
+
+        /* Light mode */
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-color: #f3f6fb;
+                --container-bg: #ffffff;
+                --highlight-bg: #bacada;
+                --border-color: #d0d7de;
+                --text-main: #24292f;
+                --text-muted: #57606a;
+                --accent-blue: #0969da;
+            }
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1012px;
+            margin: 0 auto;
+        }
+
+        a {
+            text-decoration: none;
+        }
+        a:hover {
+            color: var(--accent-blue);
+            text-decoration: underline;
+        }
+
+        #repo-title-area a {
+            color: var(--text-main);
+            text-decoration: none;
+        }
+        #repo-title-area a:hover {
+            color: var(--accent-blue);
+        }
+
+
+        .repo-name {
+            font-weight: bold;
+        }
+
+        #repo-owner-pfp {
+            height: 1.75rem;
+            vertical-align: middle;
+            border-radius: 1rem;
+        }
+
+        #repo-visibility {
+            border: 1px solid var(--border-color);
+            padding: 2px 8px 0 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .repo-description {
+            color: var(--text-muted);
+        }
+
+        .button {
+            border: 1px solid var(--border-color);
+            padding: 2px 8px 0 8px;
+            border-radius: 20px;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+        .button:hover {
+            color: var(--accent-blue);
+        }
+        .repo-stats {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .repo-stats > * {
+            white-space: nowrap;
+            margin: 2px;
+        }
+
+        .desktop-labels {
+            display: none;
+        }
+        @media (min-width: 700px) {
+            .desktop-labels {
+                display: inline-block;
+            }
+        }
+
+        .combo-button {
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2px 8px 0 8px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .combo-button > * {
+            padding: 0px 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+        .combo-button > *:first-child {
+            /*background-color: var(--bg-color);*/
+            padding-left: 2px;
+            border-right: 1px solid var(--border-color);
+        }
+        .combo-button > *:hover {
+            color: var(--accent-blue);
+            background-color: var(--highlight-bg);
+        }
+
+
+
+
+        .repo-files {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--container-bg);
+            overflow-x: scroll;
+        }
+
+        #last-commit-banner {
+            background-color: var(--highlight-bg);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+        #last-commit-author-pfp {
+            height: 1.2rem;
+            border-radius: 1rem;
+            vertical-align: middle;
+        }
+        #last-commit-banner > * {
+            display: inline-block;
+        }
+        #last-commit-author {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .commit-meta {
+            color: var(--text-muted);
+        }
+        .commit-meta > a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+        .commit-meta > a:hover {
+            color: var(--accent-blue);
+            text-decoration: underline;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        tr { border-bottom: 1px solid var(--border-color); }
+        tr:last-child { border-bottom: none; }
+        tr:hover { background-color: var(--highlight-bg); }
+        td {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .file-name {
+            color: var(--text-main);
+            text-decoration: none;
+        }
+        table a {
+            text-decoration: none;
+            color: var(--text-muted);
+        }
+        td.file-name a {
+            color: var(--text-main);
+        }
+        .commit-msg {
+            text-overflow: ellipsis;
+        }
+
+        #clone-instructions {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin: 0 10%;
+            padding: 20px;
+            max-width: 75%;
+            position: absolute;
+            background-color: var(--container-bg);
+        }
+        pre#clone-url {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: scroll;
+            scrollbar-width: thin;
+        }
+        #clone-title {
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+
+    </style>
 </head>
 <body>
-    <h2><a href="{{fiy_baseuri}}/{{repo_owner}}">{{repo_owner}}</a>
-        / <a href="{{fiy_baseuri}}/{{repo_owner}}/{{repo_name}}">{{repo_name}}</a>
-    </h2>
-    <p>{{repo_description}}</p>
-    <pre>
-        git clone {{repo_clone_url}}
-    </pre>
+    <nav>
+        <a href="#">Portal</a>
+        | <a href="#">Git-IY</a>
+        | <a href="#">Profile</a>
+        <hr/>
+    </nav>
+
+    <div class="container">
+
+        <!-- [pfp] user / repo [visibility] -->
+        <header id="repo-title-area">
+            <a id="repo-owner" href="//{{mod_baseurl}}/{{repo_owner}}" >
+<!--                <img id="repo-owner-pfp" src="//{{fiy_instance}}/mods/contacts/pfp/{{repo_owner}}" alt="{{repo_owner}}" />-->
+                <img id="repo-owner-pfp" src="{{repo_owner_pfp}}" alt="{{repo_owner}}" />
+                {{repo_owner}}
+            </a>
+            /
+            <a href="//{{mod_baseurl}}/{{repo_owner}}/{{repo_name}}" id="repo-name">
+                {{repo_name}}
+            </a>
+            <span id="repo-visibility">{{repo_visibility}}</span>
+            <br/>
+<!--            <span id="repo-tags">{{repo_tags_html}}</span>-->
+            <p class="repo-description">{{repo_description}}</p>
+        </header>
+
+        <!-- Repo stats and links -->
+        <section class="repo-stats">
+
+            <a href="tickets" class="button" title="view tickets: issues and pull requests">
+                <i class="fa fa-exchange-alt"></i> {{repo_tickets_count}}
+                <span class="desktop-labels">Tickets</span>
+            </a>
+            <span class="combo-button">
+                <a href="like" title="Like this repo"><i class="fa fa-heart"></i> Like</a>
+                <a href="likes" title="View repo likes"> {{repo_likes_count}}</a>
+            </span>
+            <span class="combo-button">
+                <a href="fork" title="Fork this repo"><i class="fa fa-code-branch"></i> Fork</a>
+                <a href="forks" title="View forks"> {{repo_forks_count}}</a>
+            </span>
+            <!-- only show if the user owns this repo -->
+            <a href="settings" class="button" title="check the settings for this repo">
+                <i class="fa fa-cog"></i> Settings
+            </a>
+
+            <!-- idk if it's worth implementing this feature
+            <a href="insights" class="button"> <i class="fa fa-chart-line"></i></a>
+            -->
+        </section>
+
+        <section class="repo-stats">
+            <a href="refs" class="button">
+                {{repo_branch}} <i class="fa fa-caret-down"></i>
+            </a>
+            <a href="refs" class="button" title="view branches and tags">
+                <span title="branches"><i class="fa fa-code-branch" title="branches"></i>
+                    {{repo_branches_count}} <span class="desktop-labels">Branches</span>
+                </span>
+                <span title="tags"><i class="fa fa-tags" title="tags"></i>
+                    {{repo_tags_count}} <span class="desktop-labels">Tags</span>
+                </span>
+            </a>
+            <a href="commits" class="button" title="view commit history">
+                <i class="fa fa-history"></i> {{repo_commits_count}}
+                <span class="desktop-labels">Commits</span>
+            </a>
+            <span class="button" id="code-download-button">
+                <i class="fa fa-download"></i> Code
+            </span>
+        </section>
+        <section id="clone-instructions" hidden>
+            <span id="clone-title"><i class="fa fa-terminal"></i> Clone</span>
+            <pre id="clone-url">https://{{mod_baseurl}}/{{repo_owner}}/{{repo_name}}</pre>
+            <p>Clone the repo using the web url</p>
+            <button id="copy-clone-url"><i class="fa fa-copy"></i> Copy</button>
+            <button id="clone-instructions-close">Close</button>
+        </section>
+
+        <section class="repo-files">
+            <noscript>
+                JavaScript is required to view project overview
+            </noscript>
+            <div id="last-commit-banner">
+                <!-- FIXME this doesn't make sense for empty repos -->
+                <div id="last-commit-summary">
+                    <img id="last-commit-author-pfp" src="{{last_commit_author_pfp}}" />
+                    <span id="last-commit-author"><a href="#">{{last_commit_author}}</a></span>
+                    <a href="commits/{{last_commit_id}}" id="last-commit-msg">{{last_commit_msg}}</a>
+                </div>
+                <div class="commit-meta">
+                    <a href="commit/{{last_commit_id}}">{{last_commit_id}}</a>
+                    ·
+                    <span id="last-commit-time" title="{{last_commit_time}}">{{last_commit_time_diff}}</span>
+                </div>
+            </div>
+            <table>
+                <tbody>
+                <tr>
+                    <td class="file-name"><span class="file-icon">📁</span>
+                        <a href="#">src</a>
+                    </td>
+                    <td class="file-commit-msg">
+                        <a href="commit/{{id}}">Refactor core physics engine</a>
+                    </td>
+                    <td class="file-time" title="2026-3-3 10:57 AM UTC">3 days ago</td>
+                </tr>
+                <tr>
+                    <td class="file-name"><span class="file-icon">📁</span>
+                        <a href="#">tests</a></td>
+                    <td class="file-commit-msg"><a href="commit/{{id}}">Add unit tests for qubit gates</a></td>
+                    <td class="file-time" title="2026-3-3 10:57 AM UTC">1 week ago</td>
+                </tr>
+                <tr>
+                    <td class="file-name"><span class="file-icon">📁</span>
+                        <a href="#">docs</a></td>
+                    <td class="file-commit-msg"><a href="commit/{{id}}">Update API documentation</a></td>
+                    <td class="file-time" title="2026-3-3 10:57 AM UTC">2 hours ago</td>
+                </tr>
+                <tr>
+                    <td class="file-name"><span class="file-icon">📄</span>
+                        <a href="#">.gitignore</a></td>
+                    <td class="file-commit-msg"><a href="commit/{{id}}">Initial commit</a></td>
+                    <td class="file-time" title="2026-3-3 10:57 AM UTC">1 year ago</td>
+                </tr>
+                <tr>
+                    <td class="file-name"><span class="file-icon">📄</span>
+                        <a href="#">LICENSE</a></td>
+                    <td class="file-commit-msg"><a href="commit/{{id}}">Update license to MIT</a></td>
+                    <td class="file-time" title="2026-3-3 10:57 AM UTC">6 months ago</td>
+                </tr>
+                <tr>
+                    <td class="file-name"><span class="file-icon">📄</span>
+                        <a href="#">README.md</a></td>
+                    <td class="file-commit-msg"><a href="commit/{{id}}">Fix typo in installation steps</a></td>
+                    <td class="file-time" title="2026-3-3 10:57 AM UTC">5 hours ago</td>
+                </tr>
+                <tr>
+                    <td class="file-name"><span class="file-icon">📄</span>
+                        <a href="#">package.json</a></td>
+                    <td class="file-commit-msg"><a href="commit/{{id}}">Bump version to 2.1.0</a></td>
+                    <td class="file-time" title="2026-3-3 10:57 AM UTC">2 days ago</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="repo-readme">
+<!--            {{repo_readme_html}}-->
+        </section>
+
+    </div>
+
+    <script>
+        const cloneInstrs = document.getElementById('clone-instructions');
+        document.getElementById('code-download-button').onclick =
+        document.getElementById('clone-instructions-close').onclick = () => cloneInstrs.hidden = !cloneInstrs.hidden;
+        document.getElementById('copy-clone-url').onclick = () =>
+            navigator.clipboard.writeText(
+                document.getElementById('clone-url').innerHTML
+            ).catch(e => console.error('Failed to copy text', e));
+    </script>
 </body>
 </html>

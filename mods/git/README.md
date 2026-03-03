@@ -79,6 +79,3 @@ For example, the organizations tables don't need to be connected to the repos ta
   - Overview
   - Repos
   - Settings
-
-## Reference material
-- https://git-scm.com/docs/http-protocol

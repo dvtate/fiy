@@ -9,8 +9,6 @@
 
 #include "Contact.hpp"
 
-extern fiy::Host g_host_info;
-
 inline std::string get_timestamp_str(const std::time_t t) {
     char buf[sizeof "yyyymmddThhmmssZ"];
     strftime(buf, sizeof buf, "%Y%m%dT%H%M%SZ", gmtime(&t));
@@ -38,7 +36,7 @@ std::string VC::to_vcard() const {
     if (this->id >= 0) {
         // Add SOURCE field
         ret += "SOURCE:";
-        ret += g_host_info.base_uri;
+        ret += fiy::Host::info.base_uri;
         ret += "/id/";
         ret += std::to_string(this->id);
         ret += "\r\n";
@@ -57,7 +55,7 @@ std::string VC::to_vcard() const {
         ret += "X-SOCIALPROFILE;TYPE=fediy:";
         ret += this->user;
         ret += "@";
-        ret += g_host_info.domain;
+        ret += fiy::Host::info.domain;
         ret += "\r\n";
     }
     if (this->update_ts) {
@@ -172,14 +170,14 @@ bool VC::parse(std::string vc) {
                 this->id = std::stoll(value);
             } catch (...) {
                 std::string msg = "VC::parse(): Invalid UID: " + value;
-                g_host_info.log(2, msg.c_str());
+                fiy::log_warning(msg);
             }
             continue;
         }
         if (name == "X-FEDIY-PROFILE") {
             this->user = value;
             if (this->owner != value) {
-                g_host_info.log(1, "VC::parse(): User not owner of profile card? "
+                fiy::log_error("VC::parse(): User not owner of profile card? "
                     + this->user + " != " + this->owner);
             }
             continue;
@@ -212,7 +210,7 @@ bool VC::parse(std::string vc) {
                         property_id = -1;
                 } else {
                     if (p.starts_with("TYPE=fediy") && name == "X-SOCIALPROFILE") {
-                        const auto [u, domain] = g_host_info.split_user_str(value);
+                        const auto [u, domain] = fiy::Host::info.split_user_str(value);
                         if (domain.empty())
                             this->user = u;
                         else
@@ -246,6 +244,6 @@ bool VC::parse(std::string vc) {
 VC VC::basic_profile(const std::string& user) {
     VC ret;
     ret.user = user;
-    ret.update_ts = g_host_info.now();
+    ret.update_ts = fiy::Host::info.now();
     return ret;
 }

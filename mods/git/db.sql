@@ -21,6 +21,13 @@ CREATE TABLE OrgMembers (
     UNIQUE(orgName, userName)
 );
 
+-- User settings (can also apply to orgs)
+-- CREATE TABLE UserSettings (
+--     userName TEXT NOT NULL,      -- relevant user's setting
+--     setting TEXT NOT NULL,       -- example: default branch name
+--     value TEXT NOT NULL,         -- example: master
+--     UNIQUE(userName, setting)
+-- );
 
 -----------------------------
 -- Repos
@@ -62,6 +69,7 @@ CREATE TABLE RepoAccess (
         -- 0 access revoked (ie - blocked)
         -- 1 for read-only
         -- 2 read+write
+        -- 3 admin
 
     PRIMARY KEY(repoPath, userName)
 );

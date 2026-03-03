@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repo Viewer | Project-X</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --container-bg: #161b22;
+            --border-color: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-blue: #58a6ff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1012px;
+            margin: 0 auto;
+        }
+
+        /* Header Styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .repo-title-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .owner { color: var(--accent-blue); text-decoration: none; font-size: 1.25rem; }
+        .repo-name { font-weight: 600; font-size: 1.25rem; }
+        .badge {
+            border: 1px solid var(--border-color);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .description {
+            color: var(--text-muted);
+            margin: 8px 0;
+            font-size: 0.95rem;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .stat-item strong { color: var(--text-main); }
+
+        /* Main Content */
+        .file-browser {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--container-bg);
+            overflow: hidden;
+        }
+
+        /* Latest Commit Header */
+        .latest-commit-banner {
+            background-color: #1c2128;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .commit-author { font-weight: 600; color: var(--text-main); }
+        .commit-msg {
+            color: var(--text-main);
+            margin-left: 8px; }
+        .commit-meta {
+            color: var(--text-muted); }
+
+        /* File List Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: scroll;
+        }
+
+        tr { border-bottom: 1px solid var(--border-color); }
+        tr:last-child { border-bottom: none; }
+        tr:hover { background-color: #1c2128; }
+
+        td {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .file-icon {
+            color: var(--text-muted);
+            margin-right: 10px;
+        }
+        .file-name {
+            color: var(--text-main);
+            text-decoration: none;
+            width: 30%;
+        }
+        .file-name:hover {
+            color: var(--accent-blue);
+            text-decoration: underline;
+        }
+        .file-commit-msg {
+            color: var(--text-muted);
+            width: 50%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-time {
+            color: var(--text-muted);
+            text-align: right;
+            width: 20%;
+        }
+
+        .branch-selector {
+            background: #21262d;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <div class="repo-title-area">
+                <a href="#" class="owner">octocat</a>
+                <span class="text-muted">/</span>
+                <span class="repo-name">quantum-engine</span>
+                <span class="badge">Public</span>
+            </div>
+            <p class="description">A high-performance simulation engine for quantum computing algorithms and state visualization.</p>
+        </div>
+        <button class="branch-selector">
+            <i>Branch:</i> <strong>main</strong>
+        </button>
+    </header>
+
+    <div class="stats-bar">
+        <div class="stat-item"><strong>1,240</strong> commits</div>
+        <div class="stat-item"><strong>12</strong> branches</div>
+        <div class="stat-item"><strong>8</strong> tags</div>
+        <div class="stat-item"><strong>452</strong> likes</div>
+        <div class="stat-item"><strong>24</strong> tickets</div>
+    </div>
+
+    <div class="file-browser">
+        <div class="latest-commit-banner">
+            <div>
+                <span class="commit-author">alex_dev</span>
+                <span class="commit-msg">Merge pull request #102 from feature/render-fix</span>
+            </div>
+            <div class="commit-meta">
+                latest commit <span>2 hours ago</span>
+            </div>
+        </div>
+
+        <table>
+            <tbody>
+            {{repo_entries_html}}
+
+            <tr>
+                <td class="file-name"><span class="file-icon">📁</span> docs</td>
+                <td class="file-commit-msg">Update API documentation</td>
+                <td class="file-time">2 hours ago</td>
+            </tr>
+            <tr>
+                <td class="file-name"><span class="file-icon">📄</span> .gitignore</td>
+                <td class="file-commit-msg">Initial commit</td>
+                <td class="file-time">1 year ago</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

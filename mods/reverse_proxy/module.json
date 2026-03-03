@@ -1,0 +1,13 @@
+{
+  "name":"Reverse Proxied App",
+  "description": "Demo for reverse proxying an app",
+  "enabled": true,
+  "icon": "icon.png",
+  "connector": "shared_object",
+  "path": "blog",
+  "id": "reverseproxy.app",
+  "access": "public",
+  "mod_settings": {
+    "target": "http://localhost:8080"
+  }
+}

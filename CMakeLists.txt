@@ -150,19 +150,32 @@ add_library(git_mod SHARED
     modlib/fediymod.h
     modlib/fediymod.hpp
     mods/git/src/mod.cpp
-    mods/git/src/Pages.hpp
-    mods/git/src/git_http_backend.cpp
-    mods/git/src/git_http_backend.hpp
-    mods/git/src/Repo.cpp
-    mods/git/src/Repo.hpp
-    mods/git/src/Repos.cpp
-    mods/git/src/Repos.hpp
-    mods/git/src/git.cpp
-    mods/git/src/git.hpp
+    mods/git/src/Routes/Pages.hpp
+    mods/git/src/Repos/git_http_backend.cpp
+    mods/git/src/Repos/git_http_backend.hpp
+    mods/git/src/Repos/LocalRepo.cpp
+    mods/git/src/Repos/LocalRepo.hpp
+    mods/git/src/Repos/Repos.cpp
+    mods/git/src/Repos/Repos.hpp
     mods/git/src/DB.cpp
     mods/git/src/DB.hpp
     util/WebUtils.cpp
     util/WebUtils.hpp
+    mods/git/src/Repos/GitRepo.cpp
+    mods/git/src/Repos/GitRepo.hpp
+    mods/git/src/Repos/BasicRepo.cpp
+    mods/git/src/Repos/BasicRepo.hpp
+    mods/git/src/Routes/RepoPageData.cpp
+    mods/git/src/Routes/RepoPageData.hpp
+    mods/git/src/Routes/RepoRouter.cpp
+    mods/git/src/Routes/RepoRouter.hpp
+    mods/git/src/Routes/Router.hpp
+    mods/git/src/Repos/RemoteRepo.cpp
+    mods/git/src/Repos/RemoteRepo.hpp
+    mods/git/src/Routes/ApiRouter.cpp
+    mods/git/src/Routes/ApiRouter.hpp
+    mods/git/src/Routes/AssetRouter.cpp
+    mods/git/src/Routes/AssetRouter.hpp
 )
 target_link_libraries(git_mod
     PRIVATE fediymod
@@ -181,6 +194,13 @@ add_library(static_mod SHARED
     mods/static/mod.cpp
 )
 target_link_libraries(static_mod PRIVATE fediymod)
+
+add_library(reverse_proxy_mod SHARED
+    modlib/fediymod.h
+    modlib/fediymod.hpp
+    mods/reverse_proxy/mod.cpp
+)
+target_link_libraries(reverse_proxy_mod PRIVATE fediymod)
 
 add_library(oauth_mod SHARED
     modlib/fediymod.h

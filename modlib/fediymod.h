@@ -28,6 +28,9 @@ extern const char* fiy_http_verb_strings[];
  * IPC request from a user
  */
 struct fiy_request_t {
+    // TODO maybe should indicate the value in the Host header so that the mod
+    //      knows if they're using it via subdomain or not
+
     /**
      * Relevant fediy instance
      */
@@ -154,14 +157,22 @@ typedef void (*fiy_callback_t)(const struct fiy_request_t* request, const struct
 /// This is used to provide callbacks to the host
 struct fiy_mod_info_t {
     /// Handle http requests to the module
-    void (*on_request)(struct fiy_request_t* request, fiy_callback_t callback);
+    void (*on_request)(struct fiy_request_t* request, fiy_callback_t callback)
+#ifdef __cplusplus
+        {nullptr}
+#endif
+    ;
 
     /// Called by host to delete all data associated with a deleted user
     /// @note username of form user@domain
-    void (*delete_user)(const char* username);
+    void (*delete_user)(const char* username)
+#ifdef __cplusplus
+        {nullptr}
+#endif
+    ;
 
     ////
-    // These can be overriden by user's module.json
+    // These can be overridden by user's module.json
     ////
 
     /**
@@ -204,7 +215,7 @@ struct fiy_host_info_t {
 
     /**
      * Base uri for this app
-     * - format: <protocol>://<host>/<appid>
+     * - format: <protocol>://<host>/<path>
      * - ie - https://bodge.dev/git
      */
     const char* base_uri;

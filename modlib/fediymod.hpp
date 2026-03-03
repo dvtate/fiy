@@ -15,8 +15,6 @@
 
 #include "fediymod.h"
 
-// TODO improve logging (make debugging easier)
-
 namespace fiy {
     using Callback = fiy_callback_t;
     using ModInfo = fiy_mod_info_t;
@@ -483,6 +481,38 @@ next_field:
         }
     };
 
+    // TODO maybe these should be PPC macros instead?
+    //      this way we can easily add file+line numbers later
+    /**
+     * Write a log
+     * @param type log type/severity
+     * @param msg log message text
+     */
+    inline void log(const Host::Log type, const std::string& msg) {
+        static const std::string prefix = std::string(Host::info.app_id) + ": ";
+        // assert(
+        //     Host::info.fiy_host_info_t::log != nullptr,
+        //     "you should call fiy::Host::set(host_info) in start(host_info)"
+        // );
+        Host::info.fiy_host_info_t::log(
+            static_cast<int>(type),
+            (prefix + msg).c_str());
+    }
+    inline void log_fatal(const std::string& msg) {
+        log(Host::Log::FATAL, msg);
+    }
+    inline void log_error(const std::string& msg) {
+        log(Host::Log::ERROR, msg);
+    }
+    inline void log_warning(const std::string& msg) {
+        log(Host::Log::WARNING, msg);
+    }
+    inline void log_info(const std::string& msg) {
+        log(Host::Log::INFO, msg);
+    }
+    inline void log_debug(const std::string& msg) {
+        log(Host::Log::DEBUG, msg);
+    }
 } // namespace fiy
 
 using fiy::fiy_request_t;

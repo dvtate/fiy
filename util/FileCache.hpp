@@ -10,6 +10,14 @@
 #include <iostream>
 #include <vector>
 
+
+#if __has_include("../protocol/defs.hpp")
+#include "../protocol/defs.hpp"
+#else
+#include <stdexcept>
+#endif
+
+
 template <auto(*GetBaseDirFunctor)(void)>
 struct FileCache {
 
@@ -18,29 +26,30 @@ struct FileCache {
     /// Load entire file contents into a string
     /// returns "" if file could not be opened
     static std::string load_file_as_string(const std::string& file_path) {
-        // Open the file
-        std::ifstream f{file_path};
-        if (!f.is_open()) {
-            std::string log_msg = "Error: Could not open file ";
-            log_msg += file_path;
-#ifdef DEBUG_LOG
-            DEBUG_LOG(log_msg);
+        // Open file
+        std::ifstream in(file_path, std::ios::in | std::ios::binary);
+        if (!in) [[unlikely]] {
+            std::string msg = "Error: Could not open file ";
+            msg += file_path;
+#ifdef LOG_ERR
+            LOG_ERR(msg);
 #else
-            std::cerr <<log_msg <<std::endl;
+            throw new std::runtime_error(msg);
 #endif
+
             return ""; // Return an empty string on failure
         }
 
-        // Create a string big enough for the file
-        std::string ret;
-        f.seekg(0, std::ios::end);
-        ret.reserve(1 + (ssize_t) f.tellg());
-        f.seekg(0, std::ios::beg);
+        // Prepare buffer to store file contents
+        std::string contents;
+        in.seekg(0, std::ios::end);
+        contents.resize(in.tellg());
 
-        // Read entire file content into return string
-        ret.assign(std::istreambuf_iterator<char>(f),
-                   std::istreambuf_iterator<char>());
-        return ret;
+        // Read file
+        in.seekg(0, std::ios::beg);
+        in.read(&contents[0], contents.size());
+        in.close();
+        return contents;
     }
 
     /// Getter
@@ -111,6 +120,8 @@ struct FileCache {
         }
         return template_string;
     }
+
+    // TODO sanitize html (ie - to prevent XSS)
 };
 
 #endif //FEDIY_FILECACHE_HPP

@@ -137,49 +137,100 @@ namespace WebUtils {
         return result;
     }
 
+    // Helper function to trim whitespace from both ends of a string_view
+    std::string_view trim(std::string_view s) {
+        const auto start = s.find_first_not_of(" \t\r\n");
+        if (start == std::string_view::npos)
+            return ""; // String is all whitespace
+        const auto end = s.find_last_not_of(" \t\r\n");
+        return s.substr(start, end - start + 1);
+    }
+
+    // Helper function to remove surrounding double quotes if present
+    std::string_view unquote(const std::string_view s) {
+        if (s.size() >= 2 && s.front() == '"' && s.back() == '"')
+            return s.substr(1, s.size() - 2);
+        return s;
+    }
+
+    // Main parsing function
     std::map<std::string, std::string> parse_cookies(std::string_view header) {
-        std::map<std::string, std::string> ret;
+        std::map<std::string, std::string> cookies;
 
-        while (!header.empty()) {
-            // Get cookie
-            auto cookie_end = header.find(';');
+        size_t start = 0;
+        while (start < header.size()) {
+            // Cookies are separated by semicolons
+            const size_t end = header.find(';', start);
+            std::string_view pair = header.substr(start, end - start);
 
-            // Find equals sign
-            auto equals_pos = header.find('=');
-            if (equals_pos >= cookie_end)
-                return ret; // invalid
+            // Find the '=' separating the key and value
+            size_t eq_pos = pair.find('=');
+            if (eq_pos != std::string_view::npos) {
+                std::string_view key = trim(pair.substr(0, eq_pos));
+                std::string_view val = trim(pair.substr(eq_pos + 1));
 
-            // Get cookie name
-            std::string_view::size_type start = 0;
-            auto end = equals_pos;
-            while ((header[start] == 0x20 || header[start] == 0x09) && start < equals_pos)
-                ++start;
-            while ((header[end] == 0x20 || header[end] == 0x09) && end > start)
-                --end;
-            auto name = header.substr(start, end - start);
+                val = unquote(val);
 
-            // Get cookie value
-            start = equals_pos + 1;
-            if (start < header.size()) {
-                end = (cookie_end == std::string_view::npos) ? header.size() - 1 : cookie_end;
-                while ((header[start] == 0x20 || header[start] == 0x09) && start < cookie_end)
-                    ++start;
-                while ((header[end] == 0x20 || header[end] == 0x09) && end >= start)
-                    --end;
-
-                if (end > start) {
-                    auto value = header.substr(start, end - start + 1);
-                    ret[std::string(name)] = value;
+                // Only insert if the key isn't empty
+                if (!key.empty()) {
+                    cookies.emplace(std::string(key), std::string(val));
                 }
             }
 
-            // Next if any
-            if (cookie_end == std::string_view::npos)
-                break;
-            header.remove_prefix(cookie_end + 1);
+            if (end == std::string_view::npos) {
+                break; // No more semicolons found
+            }
+            start = end + 1;
         }
-        return ret;
+
+        return cookies;
     }
+    // std::map<std::string, std::string> parse_cookies(std::string_view header) {
+    //     std::map<std::string, std::string> ret;
+    //
+    //     while (!header.empty()) {
+    //         // Get cookie
+    //         auto cookie_end = header.find(';');
+    //
+    //         // Find equals sign
+    //         auto equals_pos = header.find('=');
+    //         if (equals_pos >= cookie_end)
+    //             return ret; // invalid
+    //
+    //         // Get cookie name
+    //         std::string_view::size_type start = 0;
+    //         auto end = equals_pos;
+    //         while ((header[start] == ' ' || header[start] == '\t') && start < equals_pos)
+    //             ++start;
+    //         while ((header[end] == ' ' || header[end] == '\t') && end > start)
+    //             --end;
+    //         auto name = header.substr(start, end - start);
+    //
+    //         // Get cookie value
+    //         start = equals_pos + 1;
+    //         if (start < header.size()) {
+    //             if (cookie_end == std::string_view::npos) {
+    //                 end = header.size() - 1;
+    //             }
+    //             end = (cookie_end == std::string_view::npos) ? header.size() - 1 : cookie_end;
+    //             while (start < cookie_end && (header[start] == ' ' || header[start] == '\t'))
+    //                 ++start;
+    //             while (end >= start && (header[end] == ' ' || header[end] == '\t'))
+    //                 --end;
+    //
+    //             if (end >= start) {
+    //                 auto value = header.substr(start, end - start + 1);
+    //                 ret[std::string(name)] = value;
+    //             }
+    //         }
+    //
+    //         // Next if any
+    //         if (cookie_end == std::string_view::npos)
+    //             break;
+    //         header.remove_prefix(cookie_end + 1);
+    //     }
+    //     return ret;
+    // }
 
     /**
      * Equivalent to encodeUriComponent in JS

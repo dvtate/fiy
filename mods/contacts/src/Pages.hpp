@@ -15,11 +15,9 @@
 
 // TODO replace this with FileCache?
 
-extern fiy::Host g_host_info;
-
 namespace Pages {
     static std::string full_path(const std::string& subpath) {
-        return std::string(g_host_info.data_dir) + "/assets/" + subpath;
+        return std::string(fiy::Host::info.data_dir) + "/assets/" + subpath;
     }
 
     //////
@@ -37,7 +35,7 @@ namespace Pages {
         if (!f.is_open()) {
             std::string log_msg = "Error: Could not open file ";
             log_msg += file_path;
-            g_host_info.log(1, log_msg.c_str());
+            fiy::log_error(log_msg);
             return ""; // Return an empty string on failure
         }
 
@@ -104,10 +102,10 @@ namespace Pages {
             load_file_as_string(full_path("main.bundle.js")),
             {
                 {   "{{fediy_contacts_base_uri}}",
-                    g_host_info.base_uri
+                    fiy::Host::info.base_uri
                 }, {
                     "{{fediy_contacts_domain}}",
-                    g_host_info.domain
+                    fiy::Host::info.domain
                 }
             }
         );
@@ -118,8 +116,8 @@ namespace Pages {
         static std::string contents = replace_all(
             load_file_as_string(full_path("index.html")),
             {
-                { "{{fediy_contacts_base_uri}}", g_host_info.base_uri },
-                { "{{fediy_contacts_domain}}", g_host_info.domain }
+                { "{{fediy_contacts_base_uri}}", fiy::Host::info.base_uri },
+                { "{{fediy_contacts_domain}}", fiy::Host::info.domain }
             }
         );
         return fiy::Body(contents);
@@ -129,4 +127,4 @@ namespace Pages {
         static const char path[] = "main.css";
         return fiy::Body(file_contents<path>());
     }
-};
+}

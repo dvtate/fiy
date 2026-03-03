@@ -5,8 +5,6 @@
 
 #include "nlohmann/json.hpp"
 
-#include "defs.hpp"
-
 #include "ModConnector.hpp"
 
 class Mods;
@@ -83,6 +81,7 @@ public:
     std::string m_name;
     std::string m_description;
     std::string m_icon;
+    std::string m_user_data_dir;
     std::filesystem::file_time_type m_install_ts;
     Version m_version{0, 0};
     AccessChecker m_can_access{[](const char*, const char*){ return true; }};
@@ -91,7 +90,7 @@ public:
     std::unique_ptr<ModConnector> m_ipc{nullptr};
 
     Mod() = default;
-    explicit Mod(std::string id);
+    explicit Mod(std::string data_dir);
     ~Mod();
 
     bool start();

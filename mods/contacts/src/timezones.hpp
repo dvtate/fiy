@@ -12,7 +12,7 @@
 
 /**
  * Get timezone database entries from the system
- *
+ * @remark the result should be cached
  * @return timezone database object
  *  {   version: string,
  *      zones: [offset number, abbreviation string][],

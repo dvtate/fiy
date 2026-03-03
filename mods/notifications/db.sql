@@ -1,25 +1,41 @@
 
-
+--
 CREATE TABLE Notifications (
+    -- unique id
     id INTEGER PRIMARY KEY,
-    modid TEXT,
-    title TEXT,
 
-    --
-    description TEXT,
+    -- Unix timestamp the notif was created at
+    ts INTEGER NOT NULL,
+
+    -- module that created the notification
+    modId TEXT DEFAULT NULL,
+
+    -- relevant instance
+    instance TEXT DEFAULT NULL,
+
+    -- User this notification is for
+    user TEXT NOT NULL,
+
+    -- short notification text
+    title TEXT NOT NULL,
+
+    -- optional expanded notification body
+    description TEXT DEFAULT NULL,
 
     -- Where to send the user if they click on it
     link TEXT,
 
-    -- Unix timestamp the notif was created at
-    ts INTEGER,
+    -- Link to relevant image for the notification
+    icon TEXT,
 
     -- Unix timestamp the notif was viewed at
-    viewTs INTEGER,
+    viewTs INTEGER DEFAULT 0,
+);
 
-    -- What notification state
-    -- 0 - not viewed
-    -- 1 - viewed
-    -- 2 - archived
-    status INTEGER DEFAULT 0
+CREATE TABLE NotificationActions (
+    actionId INTEGER PRIMARY KEY,
+    notificationId INTEGER REFERENCES Notifications,
+
+    label TEXT NOT NULL,
+    action TEXT NOT NULL
 );
