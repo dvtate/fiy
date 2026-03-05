@@ -53,7 +53,7 @@ struct BasicRepo {
 
     /// Where in the filesystem is this repo stored?
     [[nodiscard]] std::string fs_path() const {
-        std::string ret = fiy::Host::info.data_dir;
+        std::string ret = fiy::host().data_dir;
         ret += is_local() ? "/repos/" : "/mirrors/";
         ret += path();
         return ret;

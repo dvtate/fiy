@@ -614,7 +614,7 @@ export class VCProperty {
         if (this.params.TYPE)
             paramsHtml += `<h5>Type: ${this.params.TYPE}</h5>`;
 
-        return `<h4>${this.label()}</h4>${paramsHtml}${this.valueHtml()}</div>`
+        return `<h4 title="${this.name}">${this.label()}</h4>${paramsHtml}${this.valueHtml()}</div>`
     }
 
     inputHtml(e: HTMLElement) {

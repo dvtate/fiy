@@ -10,12 +10,12 @@
 #include "Pages.hpp"
 
 /// User is unauthenticated, send them to login page
-static inline void unauthenticated(const fiy::Request& req, const fiy::Callback cb) {
+static void unauthenticated(const fiy::Request& req, const fiy::Callback cb) {
     if (req.user == nullptr) {
         // Anon/unauthenticated local user
         static const fiy::Response no_auth_resp{
             303,
-            "Location: " + fiy::Host::info.host_base_uri() + "/portal/login",
+            "Location: " + fiy::host().host_base_uri() + "/portal/login",
             fiy::Body()
         };
         req.respond(cb, no_auth_resp);
@@ -99,7 +99,7 @@ void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
     // Send the user to the newly created repo
     std::string body;
     body += "<meta http-equiv=\"refresh\" content=\"0; url=";
-    body += fiy::Host::info.base_uri;
+    body += fiy::host().base_uri;
     body += '/' + repo.path();
     body += "\" />";
     req.respond(cb, 200, "Content-Type: text/html; charset=utf-8", body);
@@ -117,7 +117,7 @@ bool repo_request_router(
 
     // Repo create
     if (path.starts_with("/repo")) {
-        if (req.locality(fiy::Host::info.domain) > fiy::Locality::INSTANCE) {
+        if (req.locality(fiy::host().domain) > fiy::Locality::INSTANCE) {
             unauthenticated(req, cb);
             return true;
         }
@@ -177,6 +177,13 @@ bool repo_request_router(
     if (std::string_view(req.path).find("git-receive-pack") != std::string_view::npos)
         access = LocalRepo::Access::Write;
     if (!repo.can_access(access, req.user, req.domain)) {
+
+        // Need to send special header to git client
+        if (req.find_header("User-Agent").starts_with("git/")) {
+            req.respond(cb, 401,
+                "WWW-Authenticate: Basic charset=\"UTF-8\"");
+            return true;
+        }
         unauthenticated(req, cb);
         return true;
     }

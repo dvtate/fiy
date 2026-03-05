@@ -55,7 +55,7 @@ bool BasicRepo::from_path(std::string_view url) {
         this->owner = url.substr(0, at);
 
         this->instance = url.substr(at + 1, slash - at - 1);
-        if (instance == fiy::Host::info.domain)
+        if (instance == fiy::host().domain)
             this->instance = "";
     }
 
@@ -132,7 +132,7 @@ bool BasicRepo::can_access_local(
             case fiy::Locality::USER:
                 return false;
             default:
-                fiy::Host::info.log_warning(
+                fiy::host().log_warning(
                     "Invalid visibility column value" + std::to_string(visibility));
         }
         return false;
@@ -163,7 +163,7 @@ bool BasicRepo::user_can_access_local(
     // Need more granular check.
     thread_local auto q_access = "SELECT level FROM RepoAccess WHERE repoPath=? AND userName=?"_sql;
     q_access.bind(1, this->path());
-    std::string user_str = user;
+    std::string user_str = user ? user : "";
     if (domain != nullptr) {
         user_str += '@';
         user_str += domain;
@@ -210,7 +210,7 @@ std::string BasicRepo::canonical_url(std::string url) {
             return {};
 
         const auto instance = url.substr(at, slash - at);
-        if (instance == fiy::Host::info.domain) {
+        if (instance == fiy::host().domain) {
             // user@local/repo[.git] --> user/repo[.git]
             url = url.substr(0, at) + url.substr(slash);
         }

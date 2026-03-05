@@ -6,12 +6,6 @@
 
 #include "fediymod.hpp"
 
-//////////////////////////
-// Exports
-////////////////////////
-
-static fiy::Host g_host_info;
-
 static void handle_request(fiy::fiy_request_t* _request, fiy::fiy_callback_t callback) {
     const auto* req = (fiy::Request*) _request;
 
@@ -23,9 +17,9 @@ static void handle_request(fiy::fiy_request_t* _request, fiy::fiy_callback_t cal
     body_str += req->path;
     body_str += "\n<br/>\n";
     body_str += "<b>App: </b>";
-    body_str += g_host_info.app_id;
+    body_str += fiy::host().app_id;
     body_str += " @ ";
-    body_str += g_host_info.domain;
+    body_str += fiy::host().domain;
     body_str += "\n<br/>\n";
     body_str += "<b>User: </b>";
     body_str += req->user_str("not logged in");
@@ -43,12 +37,16 @@ static void handle_request(fiy::fiy_request_t* _request, fiy::fiy_callback_t cal
         fiy::Body(body_str));
 }
 
-extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
-    g_host_info = *host_info;
+//////////////////////////
+// Exports
+////////////////////////
+
+FIY_EXPORT fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
+    fiy::host() = *host_info;
     static fiy::ModInfo mod_info = {
         .on_request=handle_request,
         .delete_user = [](const char* username) {
-            std::cout <<"User deleted: " <<username <<std::endl;
+            fiy::log_info(std::string("User deleted: ") + username);
         },
         .id = "example.cpp",
         .version = "0.0"
@@ -57,6 +55,6 @@ extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
 }
 
 /// Export that gets called for the mod to do any cleanup before exit/dlclose
-void stop() {
-    g_host_info.log(fiy::Host::Log::INFO, "Mod stopped");
+FIY_EXPORT void stop() {
+    fiy::log_info("Mod stopped");
 }

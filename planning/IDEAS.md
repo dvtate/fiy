@@ -17,6 +17,7 @@ See [built-in apps in /apps](../mods).
 - Chat-IY: Matrix competitor
     - text, vc, teams, etc.
     - some features may require websockets/webrtc
+- Kanban-IY: jira/trello/etc. killer
 - BBS-IY: Lemmy/reddit competitor
 - Social-IY: Mastodon competitor
 - Contacts: Rolodex
@@ -25,7 +26,6 @@ See [built-in apps in /apps](../mods).
 - Vid-IY: peertube competitor (integrate with grayjay?)
 - Calendar-IY: Google Calendar killer
 - Cloud-IY: Nextcloud competitor
-- Kanban-IY: jira/trello/etc. killer
 
 ## Features
 - Home/landing app:

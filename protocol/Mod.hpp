@@ -136,5 +136,6 @@ public:
 
 protected:
     void load_error(const std::string& message);
-    AccessChecker parse_access_checker(const std::string& value);
+
+    static AccessChecker parse_access_checker(const std::string& value);
 };

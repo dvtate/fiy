@@ -13,10 +13,10 @@ void handle_request(fiy::Request& r, const fiy::Callback cb) {
 }
 
 /// Export: Start module
-extern "C" fiy::ModInfo* start(const fiy_host_info_t* host_info) {
+FIY_EXPORT fiy::ModInfo* start(const fiy_host_info_t* host_info) {
     // Read config
-    fiy::Host::set(*host_info);
-    auto config = nlohmann::json::parse(fiy::Host::info.mod_config);
+    fiy::host() = *host_info;
+    auto config = nlohmann::json::parse(fiy::host().mod_config);
     if (!(config.contains("mod_settings") && config.is_object()
         && (config = config["mod_settings"]).contains("target"))
     ) {

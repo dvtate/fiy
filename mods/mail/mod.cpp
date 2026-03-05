@@ -4,15 +4,13 @@
 
 #include "../../modlib/fediymod.hpp"
 
-#include "MailBox.hpp"
-
 #include <iostream>
 #include <cstring>
 #include <string>
 #include <vector>
 #include <set>
 
-fiy::Host g_host_info;
+#include "MailBox.hpp"
 
 MailBox g_mailbox;
 
@@ -38,7 +36,7 @@ std::vector<std::string> split_string(const std::string& str,
 std::string user_str(const fiy_request_t* request) {
     std::string ret = request->user;
     ret += '@';
-    ret += request->domain != nullptr ? request->domain : g_host_info.domain;
+    ret += request->domain != nullptr ? request->domain : fiy::host().domain;
     return ret;
 }
 
@@ -70,7 +68,7 @@ void send_mail(fiy::Request& req, const fiy::Callback cb) {
 
     // Get subject
     std::string subject = body.substr(old_i, i - old_i);
-    const std::string local_dom = std::string("@") + g_host_info.domain;
+    const std::string local_dom = std::string("@") + fiy::host().domain;
     for (auto& recip: to)
         if (recip.find('@') == std::string::npos)
             recip += local_dom;
@@ -90,13 +88,13 @@ void send_mail(fiy::Request& req, const fiy::Callback cb) {
                 doms.emplace(user.substr(at_pos + 1));
             }
         }
-        doms.erase(g_host_info.domain);
+        doms.erase(fiy::host().domain);
 
         // Send to destination servers
         for (const auto& dom : doms) {
             req.domain = dom.c_str();
             std::cout <<"Sending to: " <<dom <<std::endl;
-            g_host_info.request("mail", &req, nullptr, nullptr);
+            fiy::host().request("mail", &req, nullptr, nullptr);
         }
     }
     req.respond(cb);
@@ -134,7 +132,7 @@ static void handle_request(fiy_request_t* request, fiy::Callback cb) {
     if (req.user == nullptr) {
         static const fiy::Response no_auth_resp{
             303,
-            "Location: " + g_host_info.host_base_uri() + "/portal/login",
+            "Location: " + fiy::host().host_base_uri() + "/portal/login",
             fiy::Body()
         };
         req.respond(cb, no_auth_resp);
@@ -145,7 +143,7 @@ static void handle_request(fiy_request_t* request, fiy::Callback cb) {
         send_mail(req, cb);
         return;
     } else if (strcmp(req.path, "/") == 0) {
-        static const std::string root = g_host_info.base_uri;
+        static const std::string root = fiy::host().base_uri;
         static const std::string body_str = "<ul>"
             "<li><a href='" + root + "/inbox'>Inbox</a></li>"
             "<li><a href='" + root + "/outbox'>Outbox</a></li>"
@@ -206,7 +204,7 @@ static void handle_request(fiy_request_t* request, fiy::Callback cb) {
     req.respond(cb, 404, "Not found.");
 }
 
-extern "C" fiy::ModInfo* start(const fiy_host_info_t* host_info) {
+FIY_EXPORT fiy::ModInfo* start(const fiy_host_info_t* host_info) {
     static fiy::ModInfo mod_info = {
         .on_request = handle_request,
         .delete_user = [](const char* user) {
@@ -215,6 +213,6 @@ extern "C" fiy::ModInfo* start(const fiy_host_info_t* host_info) {
         .id = "mail",
         .version = "0.0",
     };
-    g_host_info = *host_info;
+    fiy::host() = *host_info;
     return &mod_info;
 }

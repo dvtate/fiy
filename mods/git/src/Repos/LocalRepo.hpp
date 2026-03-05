@@ -55,6 +55,11 @@ public:
         const char* domain = nullptr
     ) const;
 
+    // TODO need structs for these so that we can make pages
+    ssize_t forks_count() const;
+    ssize_t likes_count();
+    ssize_t tickets_count();
+
     bool get_repo_page_data(const std::string& branch, RepoPageData& data);
     bool get_repo_page_data(const std::string& branch, const std::string& path, RepoFileBrowserPageData& data);
 

@@ -34,21 +34,21 @@
 //         "/usr/lib/git-core/git-http-backend"
 //     })
 //         if (std::filesystem::exists(p)) {
-//             fiy::Host::info.log(4, "Found CGI plugin: " + p);
+//             fiy::host().log(4, "Found CGI plugin: " + p);
 //             return p;
 //         }
 //
 //     // Not found
-//     fiy::Host::info.log(0, "Could not find git-http-backend, are you sure git is installed?");
+//     fiy::host().log(0, "Could not find git-http-backend, are you sure git is installed?");
 //     throw std::runtime_error("Could not find git-http-backend, are you sure git is installed?");
 // }
 
 inline std::string get_repo_path(const std::string_view path) {
-    std::string ret = fiy::Host::info.data_dir;
+    std::string ret = fiy::host().data_dir;
     ret += "/repos";
     const auto i = path.find(".git");
     if (i == std::string::npos) {
-        fiy::Host::info.log(1, "invalid repo path? " + std::string(path));
+        fiy::log_error("invalid repo path? " + std::string(path));
         ret += path;
         return ret;
     }
@@ -74,11 +74,11 @@ inline void get_uri_components(
     std::string& QUERY_STRING
 ) {
     // Protocol
-    const bool https = fiy::Host::info.base_uri[4] == 's';
+    const bool https = fiy::host().base_uri[4] == 's';
     SERVER_PROTOCOL = https ? "https" : "http";
 
     // Domain + Port
-    std::string hostname = fiy::Host::info.domain;
+    std::string hostname = fiy::host().domain;
     const auto port_sep = hostname.find(':');
     SERVER_NAME = hostname.substr(0, port_sep);
     if (port_sep != std::string::npos) {
@@ -97,7 +97,7 @@ inline void get_uri_components(
 
     // PATH_INFO
     // not sure about logic here tbh
-    std::string_view subpath = fiy::Host::info.base_uri + (https ? 8 : 7); // skip protocol
+    std::string_view subpath = fiy::host().base_uri + (https ? 8 : 7); // skip protocol
     subpath.remove_prefix(subpath.find('/')); // skip domain: [example.com]/git/user/repo/...
     if (subpath.empty() || subpath == "/") {
         PATH_INFO = path.substr(0, qs);
@@ -107,7 +107,7 @@ inline void get_uri_components(
     }
 
     // Server stuff
-    SERVER_NAME = fiy::Host::info.domain;
+    SERVER_NAME = fiy::host().domain;
 }
 
 inline size_t parse_cgi_headers(const std::string_view s, fiy::Response& ret) {
@@ -198,7 +198,7 @@ inline fiy::Response parse_cgi_output(const std::string& s) {
         const size_t body_len2 = s.size() - start;
         ret.body = fiy::Body(s.c_str() + start, body_len2);
         if (body_len != 0 && body_len != body_len2) {
-            fiy::Host::info.log(2, "Incorrect Content-Length header");
+            fiy::log_warning("Incorrect Content-Length header");
         }
     }
 
@@ -234,12 +234,12 @@ inline void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
         cgi.PATH_INFO,
         cgi.QUERY_STRING);
 
-    cgi.PATH_TRANSLATED = fiy::Host::info.data_dir;
+    cgi.PATH_TRANSLATED = fiy::host().data_dir;
     cgi.PATH_TRANSLATED += "/repos";
     cgi.PATH_TRANSLATED += path.substr(0, path.find('?'));
 
     // TODO instead manually set name + email combo?
-    cgi.REMOTE_ADDR = req.domain ? req.domain : fiy::Host::info.domain;
+    cgi.REMOTE_ADDR = req.domain ? req.domain : fiy::host().domain;
     cgi.REMOTE_HOST = "NULL";
     cgi.REMOTE_USER = req.user_str();
 
@@ -273,7 +273,7 @@ inline void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
     // if (f == nullptr) {
         auto r = cgi.run();
         if (r.status != 0) {
-            fiy::Host::info.log(1, "git http-backend cgi failed");
+            fiy::log_error("git http-backend cgi failed");
             req.respond(cb, 500, "Git CGI failed");
             // std::cerr <<"\nstatus: " << r.status << std::endl;
             // std::cerr <<"\nstdout: " << r.stdout << std::endl;

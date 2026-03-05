@@ -61,8 +61,7 @@
             color: var(--accent-blue);
         }
 
-
-        .repo-name {
+        #repo-name {
             font-weight: bold;
         }
 
@@ -165,7 +164,12 @@
         }
         #last-commit-author {
             font-weight: 600;
+        }
+        #last-commit-author > a {
             color: var(--text-main);
+        }
+        #last-commit-msg {
+            color: var(--text-muted);
         }
         .commit-meta {
             color: var(--text-muted);
@@ -204,6 +208,9 @@
         }
         .commit-msg {
             text-overflow: ellipsis;
+        }
+        .file-time {
+            text-align: right;
         }
 
         #clone-instructions {
@@ -259,17 +266,17 @@
         <!-- Repo stats and links -->
         <section class="repo-stats">
 
-            <a href="tickets" class="button" title="view tickets: issues and pull requests">
+            <a href="{{repo_name}}/tickets" class="button" title="view tickets: issues and pull requests">
                 <i class="fa fa-exchange-alt"></i> {{repo_tickets_count}}
                 <span class="desktop-labels">Tickets</span>
             </a>
             <span class="combo-button">
-                <a href="like" title="Like this repo"><i class="fa fa-heart"></i> Like</a>
-                <a href="likes" title="View repo likes"> {{repo_likes_count}}</a>
+                <a href="{{repo_name}}/like" title="Like this repo"><i class="fa fa-heart"></i> Like</a>
+                <a href="{{repo_name}}/likes" title="View repo likes"> {{repo_likes_count}}</a>
             </span>
             <span class="combo-button">
-                <a href="fork" title="Fork this repo"><i class="fa fa-code-branch"></i> Fork</a>
-                <a href="forks" title="View forks"> {{repo_forks_count}}</a>
+                <a href="{{repo_name}}/fork" title="Fork this repo"><i class="fa fa-code-branch"></i> Fork</a>
+                <a href="{{repo_name}}/forks" title="View forks"> {{repo_forks_count}}</a>
             </span>
             <!-- only show if the user owns this repo -->
             <a href="settings" class="button" title="check the settings for this repo">
@@ -282,18 +289,18 @@
         </section>
 
         <section class="repo-stats">
-            <a href="refs" class="button">
+            <a href="{{repo_name}}/refs" class="button">
                 {{repo_branch}} <i class="fa fa-caret-down"></i>
             </a>
-            <a href="refs" class="button" title="view branches and tags">
+            <a href="{{repo_name}}/refs" class="button" title="view branches and tags">
                 <span title="branches"><i class="fa fa-code-branch" title="branches"></i>
                     {{repo_branches_count}} <span class="desktop-labels">Branches</span>
                 </span>
-                <span title="tags"><i class="fa fa-tags" title="tags"></i>
+                <span title="{{repo_name}}/tags"><i class="fa fa-tags" title="tags"></i>
                     {{repo_tags_count}} <span class="desktop-labels">Tags</span>
                 </span>
             </a>
-            <a href="commits" class="button" title="view commit history">
+            <a href="{{repo_name}}/commits" class="button" title="view commit history">
                 <i class="fa fa-history"></i> {{repo_commits_count}}
                 <span class="desktop-labels">Commits</span>
             </a>
@@ -303,7 +310,7 @@
         </section>
         <section id="clone-instructions" hidden>
             <span id="clone-title"><i class="fa fa-terminal"></i> Clone</span>
-            <pre id="clone-url">https://{{mod_baseurl}}/{{repo_owner}}/{{repo_name}}</pre>
+            <pre id="clone-url">{{mod_baseurl}}/{{repo_owner}}/{{repo_name}}</pre>
             <p>Clone the repo using the web url</p>
             <button id="copy-clone-url"><i class="fa fa-copy"></i> Copy</button>
             <button id="clone-instructions-close">Close</button>
@@ -318,32 +325,18 @@
                 <div id="last-commit-summary">
                     <img id="last-commit-author-pfp" src="{{last_commit_author_pfp}}" />
                     <span id="last-commit-author"><a href="#">{{last_commit_author}}</a></span>
-                    <a href="commits/{{last_commit_id}}" id="last-commit-msg">{{last_commit_msg}}</a>
+                    <a href="{{repo_name}}/commit/{{last_commit_id}}" id="last-commit-msg">{{last_commit_msg}}</a>
                 </div>
                 <div class="commit-meta">
-                    <a href="commit/{{last_commit_id}}">{{last_commit_id}}</a>
+                    <a href="{{repo_name}}/commit/{{last_commit_id}}">{{last_commit_id}}</a>
                     ·
                     <span id="last-commit-time" title="{{last_commit_time}}">{{last_commit_time_diff}}</span>
                 </div>
             </div>
             <table>
                 <tbody>
-                <tr>
-                    <td class="file-name"><span class="file-icon">📁</span>
-                        <a href="#">src</a>
-                    </td>
-                    <td class="file-commit-msg">
-                        <a href="commit/{{id}}">Refactor core physics engine</a>
-                    </td>
-                    <td class="file-time" title="2026-3-3 10:57 AM UTC">3 days ago</td>
-                </tr>
-                <tr>
-                    <td class="file-name"><span class="file-icon">📁</span>
-                        <a href="#">tests</a></td>
-                    <td class="file-commit-msg"><a href="commit/{{id}}">Add unit tests for qubit gates</a></td>
-                    <td class="file-time" title="2026-3-3 10:57 AM UTC">1 week ago</td>
-                </tr>
-                <tr>
+                {{repo_entries_html}}
+                <!--<tr>
                     <td class="file-name"><span class="file-icon">📁</span>
                         <a href="#">docs</a></td>
                     <td class="file-commit-msg"><a href="commit/{{id}}">Update API documentation</a></td>
@@ -354,25 +347,8 @@
                         <a href="#">.gitignore</a></td>
                     <td class="file-commit-msg"><a href="commit/{{id}}">Initial commit</a></td>
                     <td class="file-time" title="2026-3-3 10:57 AM UTC">1 year ago</td>
-                </tr>
-                <tr>
-                    <td class="file-name"><span class="file-icon">📄</span>
-                        <a href="#">LICENSE</a></td>
-                    <td class="file-commit-msg"><a href="commit/{{id}}">Update license to MIT</a></td>
-                    <td class="file-time" title="2026-3-3 10:57 AM UTC">6 months ago</td>
-                </tr>
-                <tr>
-                    <td class="file-name"><span class="file-icon">📄</span>
-                        <a href="#">README.md</a></td>
-                    <td class="file-commit-msg"><a href="commit/{{id}}">Fix typo in installation steps</a></td>
-                    <td class="file-time" title="2026-3-3 10:57 AM UTC">5 hours ago</td>
-                </tr>
-                <tr>
-                    <td class="file-name"><span class="file-icon">📄</span>
-                        <a href="#">package.json</a></td>
-                    <td class="file-commit-msg"><a href="commit/{{id}}">Bump version to 2.1.0</a></td>
-                    <td class="file-time" title="2026-3-3 10:57 AM UTC">2 days ago</td>
-                </tr>
+                </tr>-->
+
                 </tbody>
             </table>
         </section>

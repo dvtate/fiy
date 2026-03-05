@@ -50,13 +50,13 @@ std::optional<std::filesystem::path> resolve_static_file(std::string_view url_pa
         normalized.begin(), normalized.end()
     ).first;
     if (mismatch != g_static_root.end()) {
-        // fiy::Host::info.log_debug("Directory traversal attempted: " + std::string(normalized));
+        // fiy::host().log_debug("Directory traversal attempted: " + std::string(normalized));
         return std::nullopt; // attempted directory traversal
     }
 
     // File doesn't exist
     if (!fs::exists(normalized)) {
-        // fiy::Host::info.log_debug("File does not exist: " + std::string(normalized));
+        // fiy::host().log_debug("File does not exist: " + std::string(normalized));
         return std::nullopt;
     }
 
@@ -88,11 +88,11 @@ void handle_request(fiy::Request& req, const fiy::fiy_callback_t cb) {
     }
 
     // Respond with the file
-    // fiy::Host::info.log_info("Requested file: " + f->string());
+    // fiy::host().log_info("Requested file: " + f->string());
     fiy::Response res;
     const auto fd = open(f->c_str(), O_RDONLY);
     if (fd == -1) [[unlikely]] {
-        fiy::Host::info.log_error("Could not open file " + f->string() + " : " + strerror(errno));
+        fiy::host().log_error("Could not open file " + f->string() + " : " + strerror(errno));
         req.respond(cb, 500, "Content-Type: text/html",
             fiy::Body("<h1>Server Error</h1> <p>Could not open file!</p>"));
         return;
@@ -104,43 +104,43 @@ void handle_request(fiy::Request& req, const fiy::fiy_callback_t cb) {
         + std::string(get_ext_mime_type(f->extension().string().substr(1))));
     req.respond(cb, res);
     if (close(fd) != 0)
-        fiy::Host::info.log_error("failed to close() file: " + f->string());
+        fiy::host().log_error("failed to close() file: " + f->string());
 }
 
 /// Export: Start module
-extern "C" fiy::ModInfo* start(const fiy_host_info_t* host_info) {
+FIY_EXPORT fiy::ModInfo* start(const fiy_host_info_t* host_info) {
     // Read config
-    fiy::Host::set(*host_info);
-    auto config = nlohmann::json::parse(fiy::Host::info.mod_config);
+    fiy::host() = *host_info;
+    auto config = nlohmann::json::parse(fiy::host().mod_config);
     if (!config.contains("mod_settings") || !config["mod_settings"].is_object()) {
-        fiy::Host::info.log_fatal("module.json: expected a mod_settings field containing an object with target path");
+        fiy::host().log_fatal("module.json: expected a mod_settings field containing an object with target path");
         return nullptr;
     }
     config = config["mod_settings"];
     if (!config.contains("root") || !config["root"].is_string()) {
-        fiy::Host::info.log_fatal("module.json: expected a mod_settings 'root' field set to string path to static root");
+        fiy::host().log_fatal("module.json: expected a mod_settings 'root' field set to string path to static root");
         return nullptr;
     }
     g_static_root = config["root"].get<std::string>();
     try {
         g_static_root = std::filesystem::absolute(g_static_root);
         if (!std::filesystem::exists(g_static_root)) {
-            fiy::Host::info.log_fatal("module.json: target path does not exist: " + std::string(g_static_root));
+            fiy::host().log_fatal("module.json: target path does not exist: " + std::string(g_static_root));
             return nullptr;
         }
     } catch (const std::filesystem::filesystem_error& e) {
-        fiy::Host::info.log_fatal("module.json: Invalid target "
+        fiy::host().log_fatal("module.json: Invalid target "
             + std::string(g_static_root) + ": " + e.what());
         return nullptr;
     }
     if (config.contains("index")) {
         if (!config["index"].is_array()) {
-            fiy::Host::info.log_error("module.json: mod_settings 'index' field should be an array of index filename strings");
+            fiy::host().log_error("module.json: mod_settings 'index' field should be an array of index filename strings");
         } else {
             try {
                 g_index_files = config["index"].get<std::vector<std::string>>();
             } catch (...) {
-                fiy::Host::info.log_error("module.json: Invalid mod_settings.index field");
+                fiy::host().log_error("module.json: Invalid mod_settings.index field");
             }
         }
     }

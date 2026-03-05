@@ -21,7 +21,7 @@ namespace DB {
 
     inline SQLite::Database& connection() {
         thread_local SQLite::Database db{
-            std::string(fiy::Host::info.data_dir) + "/db.db3",
+            std::string(fiy::host().data_dir) + "/db.db3",
             SQLite::OPEN_READWRITE
         };
         return db;

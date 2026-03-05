@@ -31,12 +31,15 @@ inline time_t parse_timestamp_str(const std::string& str) {
 }
 
 std::string VC::to_vcard() const {
+    if (invalid())
+        return "";
+
     std::string ret = "BEGIN:VCARD\r\nVERSION:4.0\r\n";
 
     if (this->id >= 0) {
         // Add SOURCE field
         ret += "SOURCE:";
-        ret += fiy::Host::info.base_uri;
+        ret += fiy::host().base_uri;
         ret += "/id/";
         ret += std::to_string(this->id);
         ret += "\r\n";
@@ -55,7 +58,7 @@ std::string VC::to_vcard() const {
         ret += "X-SOCIALPROFILE;TYPE=fediy:";
         ret += this->user;
         ret += "@";
-        ret += fiy::Host::info.domain;
+        ret += fiy::host().domain;
         ret += "\r\n";
     }
     if (this->update_ts) {
@@ -210,11 +213,12 @@ bool VC::parse(std::string vc) {
                         property_id = -1;
                 } else {
                     if (p.starts_with("TYPE=fediy") && name == "X-SOCIALPROFILE") {
-                        const auto [u, domain] = fiy::Host::info.split_user_str(value);
+                        const auto [u, domain] = fiy::host().split_user_str(value);
                         if (domain.empty())
                             this->user = u;
                         else
                             this->user = value;
+                        continue; // alt for X-FEDIY-PROFILE
                     }
 
                     // TODO check if no = ?
@@ -244,6 +248,20 @@ bool VC::parse(std::string vc) {
 VC VC::basic_profile(const std::string& user) {
     VC ret;
     ret.user = user;
-    ret.update_ts = fiy::Host::info.now();
+    ret.update_ts = fiy::host().now();
     return ret;
+}
+
+std::string VC::to_internal_json() const {
+    /* Fields
+     * dn: display name
+     * fn: full name
+     * nick: nickname
+     * websites: array of websites
+     * socials: array of social media links
+     * email: contact email address
+     * bio: content of NOTE field
+     */
+    // TODO
+    return "";
 }

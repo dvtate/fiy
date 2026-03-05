@@ -17,7 +17,7 @@
 
 namespace Pages {
     static std::string full_path(const std::string& subpath) {
-        return std::string(fiy::Host::info.data_dir) + "/assets/" + subpath;
+        return std::string(fiy::host().data_dir) + "/assets/" + subpath;
     }
 
     //////
@@ -102,10 +102,10 @@ namespace Pages {
             load_file_as_string(full_path("main.bundle.js")),
             {
                 {   "{{fediy_contacts_base_uri}}",
-                    fiy::Host::info.base_uri
+                    fiy::host().base_uri
                 }, {
                     "{{fediy_contacts_domain}}",
-                    fiy::Host::info.domain
+                    fiy::host().domain
                 }
             }
         );
@@ -116,8 +116,8 @@ namespace Pages {
         static std::string contents = replace_all(
             load_file_as_string(full_path("index.html")),
             {
-                { "{{fediy_contacts_base_uri}}", fiy::Host::info.base_uri },
-                { "{{fediy_contacts_domain}}", fiy::Host::info.domain }
+                { "{{fediy_contacts_base_uri}}", fiy::host().base_uri },
+                { "{{fediy_contacts_domain}}", fiy::host().domain }
             }
         );
         return fiy::Body(contents);

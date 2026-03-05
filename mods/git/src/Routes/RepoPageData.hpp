@@ -47,6 +47,7 @@ struct RepoPageData : public RepoFileBrowserPageData {
     ssize_t branches_count{-1};
     ssize_t likes_count{-1};
     ssize_t tickets_count{-1};
+    ssize_t forks_count{-1};
 
     std::string description;
 

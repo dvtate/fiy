@@ -67,7 +67,7 @@ git_revwalk* GitRepo::walker() {
 
 bool GitRepo::open(const BasicRepo& repo) {
     std::lock_guard lock{m_mtx};
-    std::string repo_path = fiy::Host::info.data_dir;
+    std::string repo_path = fiy::host().data_dir;
     repo_path += repo.is_local() ? "/repos/" : "/mirrors/";
     repo_path += repo.path();
 
@@ -87,7 +87,7 @@ int GitRepo::create(const BasicRepo& repo, const char* description) {
     std::lock_guard lock{m_mtx};
 
     // Construct path
-    std::string repo_path = fiy::Host::info.data_dir;
+    std::string repo_path = fiy::host().data_dir;
     repo_path += repo.is_local() ? "/repos/" : "/mirrors/";
     repo_path += repo.path();
 
@@ -517,7 +517,7 @@ std::string GitRepo::User::profile_link() const {
     std::string ret;
     if (!fiy_user.empty()) {
         ret = "<a href=\"";
-        ret += fiy::Host::info.base_uri;
+        ret += fiy::host().base_uri;
         ret += '/';
         ret += fiy_user;
         ret += "\">";

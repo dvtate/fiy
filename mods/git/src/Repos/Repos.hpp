@@ -8,7 +8,6 @@
 #include <string>
 #include <string_view>
 
-#include "GitRepo.hpp"
 #include "../../../../modlib/fediymod.hpp"
 
 #include "LocalRepo.hpp"

@@ -127,8 +127,8 @@ export default class VC {
             }
             const validImgTypes = ['png', 'gif', 'jpeg', 'webp', 'bmp', 'x-icon'];
             const type = Object.keys(p.params).find(p =>
-                    validImgTypes.includes(p.toLowerCase()))
-                || p.params.TYPE || p.params.type || '';
+                    validImgTypes.includes(p.toLowerCase())
+                ) || p.params.TYPE || p.params.type || '';
             if (!type) {
                 console.warn(`${p.name}: couldn't determine type: ${p.toLine()}`);
             }

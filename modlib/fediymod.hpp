@@ -21,18 +21,10 @@ namespace fiy {
     using BodyType = fiy_body_type;
     using StartFunction = fiy_mod_start_function_t;
 
+    // TODO maybe make this a namespace instead?
     struct Host : public fiy_host_info_t {
-        Host() = default;
+        Host() = delete; // deleted to prevent typos w/ fiy::host()
         Host(const fiy_host_info_t& hi): fiy_host_info_t(hi) {}
-
-        // Mod-local singleton
-        static Host info;
-        static void set(const Host& host_info) {
-            info = host_info;
-        }
-        static Host& get() {
-            return info;
-        }
 
         [[nodiscard]] std::string host_base_uri() const {
             static const std::string protocol =
@@ -126,6 +118,24 @@ namespace fiy {
             );
         }
     };
+
+    // Mod-local singleton
+    __attribute__((visibility("hidden")))
+    inline Host& host() {
+        static Host static_host_info{fiy_host_info_t{
+            .domain = nullptr,
+            .app_id = nullptr,
+            .base_uri = nullptr,
+            .data_dir = nullptr,
+            .log = nullptr,
+            .request = nullptr,
+            .local_login = nullptr,
+            .user_info = nullptr,
+            .now = nullptr,
+            .mod_config = nullptr
+        }};
+        return static_host_info;
+    }
 
     /**
      * Type for response bodies
@@ -400,36 +410,45 @@ namespace fiy {
          * @param key HTTP header key to find
          * @return First value associated with given header
          */
-        // FIXME
         [[nodiscard]] std::string_view find_header(const std::string_view key) const {
             if (this->headers == nullptr)
                 return "";
 
             std::string_view fields = this->headers;
             std::size_t start = 0;
-            do {
+            while (start < fields.size()) {
                 // Find colon
                 std::size_t end = fields.find(':', start);
                 if (end == std::string_view::npos)
                     return "";
 
-                // Check if matching key
-                if (end == key.size()) {
+                // Check if key length matches
+                if ((end - start) == key.size()) {
+
+                    // Check if key value matches
                     for (size_t i = 0; i < end - start; i++)
                         if (tolower(fields[start + i]) != tolower(key[i]))
                             goto next_field;
 
+                    // Skip ": "
+                    end++;
+                    while (end < fields.size() && isspace(fields[end]))
+                        end++;
+
                     // Return corresponding value
-                    std::size_t endl = fields.find('\n', end);
+                    std::size_t endl = fields.find_first_of("\r\n", end);
                     if (endl == std::string_view::npos)
                         endl = fields.size();
-                    return fields.substr(end + 1, endl - end - 1);
+                    return fields.substr(end, endl - end);
                 }
 
                 // Check next field
 next_field:
                 start = fields.find('\n', end);
-            } while (start != std::string_view::npos);
+                if (start == std::string_view::npos)
+                    return "";
+                start++; // skip newline
+            }
 
             return "";
         }
@@ -481,20 +500,55 @@ next_field:
         }
     };
 
-    // TODO maybe these should be PPC macros instead?
-    //      this way we can easily add file+line numbers later
+    /**
+     * Wrapper for FIY users
+     * @tparam TU type of the username field
+     * @tparam TD type of the domain field
+     */
+    template <typename TU, typename TD = const char*>
+    struct User {
+        TU user;
+        TD domain;
+
+        User() = default;
+        explicit User(const TU& user, const TD& instance_domain = TD()):
+            user(user), domain(instance_domain)
+        {}
+
+        [[nodiscard]] std::string to_string(const bool local_domain = false) const {
+            std::string ret;
+            if (user)
+                ret += user;
+
+            // User specified domain
+            if (domain) {
+                ret += '@';
+                ret += domain;
+                return ret;
+            }
+
+            // Explicitly include instance domain
+            if (local_domain) {
+                ret += '@';
+                ret += fiy::host().domain;
+            }
+            return ret;
+        }
+    };
+
+    // Users may want to make PPC wrappers around these that include file/line numbers
     /**
      * Write a log
      * @param type log type/severity
      * @param msg log message text
      */
     inline void log(const Host::Log type, const std::string& msg) {
-        static const std::string prefix = std::string(Host::info.app_id) + ": ";
+        static const std::string prefix = std::string(host().app_id) + ": ";
         // assert(
-        //     Host::info.fiy_host_info_t::log != nullptr,
+        //     host().fiy_host_info_t::log != nullptr,
         //     "you should call fiy::Host::set(host_info) in start(host_info)"
         // );
-        Host::info.fiy_host_info_t::log(
+        host().fiy_host_info_t::log(
             static_cast<int>(type),
             (prefix + msg).c_str());
     }

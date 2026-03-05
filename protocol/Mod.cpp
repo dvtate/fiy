@@ -109,36 +109,6 @@ void Mod::save() {
 }
 
 /**
- * Extract usernamaes from csv list of usernames
- * @param str
- * @return
- */
-static boost::unordered_flat_set<std::string> parse_access_whitelist(const char* str) {
-    boost::unordered_flat_set<std::string> ret;
-
-    // Skip leading whitespaces and empty values
-    const char* start = str;
-    while (*start == ' ' || *start == ',')
-        start++;
-
-    while (*start) {
-        // Find end of value
-        const char* end = start;
-        while (*end && *end != ' ' && *end != ',')
-            end++;
-
-        // Store value
-        ret.emplace(start, end);
-
-        // Next iteration, skip whitespace and commas
-        while (*end == ' ' || *end == ',')
-            end++;
-        start = end;
-    }
-    return ret;
-}
-
-/**
  *
  * @param value user-provided json value
  *  One of the following values
@@ -157,7 +127,7 @@ Mod::AccessChecker Mod::parse_access_checker(const std::string& value) {
 
     // Federated users
     if (value == "federated")
-        return [](const char* user, const char* domain) {
+        return [](const char* user, const char*) {
             return user != nullptr;
         };
 
@@ -214,7 +184,8 @@ void Mod::load() {
         } else {
             auto new_id = conf_id.get<std::string>();
             if (m_id != new_id)
-                LOG_ERR("module.json: \"id\" field does not match directory name, the mod may not work");
+                LOG_ERR(m_id << "/module.json: \"id\" field (" <<new_id
+                    <<") does not match directory name, the mod may not work");
             m_id = new_id;
         }
     }

@@ -32,10 +32,13 @@ CREATE TABLE Notifications (
     viewTs INTEGER DEFAULT 0,
 );
 
+-- Future feature that lets notifications add actions
+--  eg. mute, mark as read, block, follow back, etc.
 CREATE TABLE NotificationActions (
     actionId INTEGER PRIMARY KEY,
     notificationId INTEGER REFERENCES Notifications,
 
     label TEXT NOT NULL,
+    icon TEXT NOT NULL,
     action TEXT NOT NULL
 );

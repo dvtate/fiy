@@ -13,7 +13,7 @@
 namespace DB {
     SQLite::Database& connection() {
         thread_local SQLite::Database db{
-            std::string(fiy::Host::info.data_dir) + "/db.db3",
+            std::string(fiy::host().data_dir) + "/db.db3",
             SQLite::OPEN_READWRITE
         };
         return db;
@@ -83,7 +83,7 @@ namespace DB {
                 q_create_card.bind(2);
             else
                 q_create_card.bindNoCopy(2, card.user);
-            q_create_card.bind(3, fiy::Host::info.now());
+            q_create_card.bind(3, fiy::host().now());
             int rows_modified = q_create_card.exec();
             if (rows_modified == 0)
                 fiy::log_error("Failed to create new contact card properties");
@@ -201,7 +201,7 @@ namespace DB {
                 q_update_card.bind(1);
             else
                 q_update_card.bindNoCopy(1, card.user);
-            q_update_card.bind(2, card.update_ts = fiy::Host::info.now());
+            q_update_card.bind(2, card.update_ts = fiy::host().now());
             q_update_card.bind(3, card.id);
             q_update_card.bind(4, card.owner);
             const int updated = q_update_card.exec();
@@ -347,7 +347,7 @@ namespace DB {
         if (ret.id == -1) {
             // Ignore non-existent local users
             if (user.find('@') == std::string_view::npos
-                && fiy::Host::info.user_info(user.c_str(), nullptr) != 0) {
+                && fiy::host().user_info(user.c_str(), nullptr) != 0) {
                 fiy::log_warning("Non-existent user: " + user);
                 return ret;
             }
@@ -392,7 +392,7 @@ namespace DB {
                 : 2;
     }
 
-    std::string get_profile(
+    VC get_profile(
         const std::string& user,
         const char* req_user,
         const char* req_domain
@@ -403,7 +403,7 @@ namespace DB {
         VC ret = get_profile_base(user);
         if (ret.invalid()) {
             fiy::log_warning("Could not get profile base for user " + user);
-            return "";
+            return {};
         }
 
         if (trust_level == 0 || trust_level == 1) {
@@ -457,7 +457,7 @@ namespace DB {
             }
             query.reset();
         }
-        return ret.to_vcard();
+        return ret;
     }
 
     std::string get_user_rolodex(const std::string& local_user) {
@@ -514,7 +514,7 @@ namespace DB {
 
         // Add profile to the cards list if it doesn't exist
         if (!found_profile) {
-            ret += get_profile(local_user, local_user.c_str(), "");
+            ret += get_profile(local_user, local_user.c_str(), "").to_vcard();
         }
 
         return ret;

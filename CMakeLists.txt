@@ -69,10 +69,10 @@ add_executable(protocol_server ${protocol_server_sources}
 target_compile_definitions(protocol_server PRIVATE
     $<$<CONFIG:Debug>:FEDIY_DEBUG=1>
 )
-target_compile_options(protocol_server PRIVATE
-    $<$<CONFIG:Debug>:-O0;-g>
-    $<$<CONFIG:Release>:-O3>
-)
+#target_compile_options(protocol_server PRIVATE
+#    $<$<CONFIG:Debug>:-O0;-g>
+#    $<$<CONFIG:Release>:-O3>
+#)
 
 target_include_directories(protocol_server PUBLIC protocol
     third_party/SQLiteCpp/include
@@ -105,6 +105,9 @@ add_library(demo_mod SHARED
     modlib/fediymod.h
 )
 target_link_libraries(demo_mod PRIVATE fediymod)
+target_compile_options(demo_mod PRIVATE
+    -fvisibility=hidden
+)
 
 add_library(demo_mod_cpp SHARED
     modlib/fediymod.h
@@ -112,6 +115,9 @@ add_library(demo_mod_cpp SHARED
     modlib/example_mod.cpp
 )
 target_link_libraries(demo_mod_cpp PRIVATE fediymod)
+target_compile_options(demo_mod_cpp PRIVATE
+    -fvisibility=hidden
+)
 
 add_library(demo_mod_mail SHARED
     modlib/fediymod.h
@@ -120,8 +126,11 @@ add_library(demo_mod_mail SHARED
     mods/mail/mod.cpp
 )
 target_link_libraries(demo_mod_mail PRIVATE fediymod)
+target_compile_options(demo_mod_mail PRIVATE
+    -fvisibility=hidden
+)
 
-# Contacts builtin mod
+# Builtin contacts mod
 add_library(contacts_mod SHARED
     modlib/fediymod.h
     modlib/fediymod.hpp
@@ -144,8 +153,11 @@ target_link_libraries(contacts_mod
 target_include_directories(contacts_mod PUBLIC
     third_party/SQLiteCpp/include
 )
+target_compile_options(contacts_mod PRIVATE
+    -fvisibility=hidden
+)
 
-# Git builtin mod
+# Builtin git builtin mod
 add_library(git_mod SHARED
     modlib/fediymod.h
     modlib/fediymod.hpp
@@ -185,7 +197,11 @@ target_link_libraries(git_mod
     PUBLIC git2
     PUBLIC dl
 )
+target_compile_options(git_mod PRIVATE
+    -fvisibility=hidden
+)
 
+# Builtin http static server mod
 add_library(static_mod SHARED
     modlib/fediymod.h
     modlib/fediymod.hpp
@@ -194,17 +210,39 @@ add_library(static_mod SHARED
     mods/static/mod.cpp
 )
 target_link_libraries(static_mod PRIVATE fediymod)
+target_compile_options(static_mod PRIVATE
+    -fvisibility=hidden
+)
 
+# Builtin http reverse proxy mod
 add_library(reverse_proxy_mod SHARED
     modlib/fediymod.h
     modlib/fediymod.hpp
     mods/reverse_proxy/mod.cpp
 )
 target_link_libraries(reverse_proxy_mod PRIVATE fediymod)
+target_compile_options(reverse_proxy_mod PRIVATE
+    -fvisibility=hidden
+)
 
+# Builtin oauth mod
 add_library(oauth_mod SHARED
     modlib/fediymod.h
     modlib/fediymod.hpp
     mods/oauth/mod.cpp
 )
-target_link_libraries(demo_mod_mail PRIVATE fediymod)
+target_link_libraries(oauth_mod PRIVATE fediymod)
+target_compile_options(oauth_mod PRIVATE
+    -fvisibility=hidden
+)
+
+# Builtin notifications mod
+add_library(notifications_mod SHARED
+    modlib/fediymod.h
+    modlib/fediymod.hpp
+    mods/notifications/mod.cpp
+)
+target_link_libraries(notifications_mod PRIVATE fediymod)
+target_compile_options(notifications_mod PRIVATE
+    -fvisibility=hidden
+)

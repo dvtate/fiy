@@ -13,15 +13,15 @@
 #include "../../../../util/FileCache.hpp"
 
 inline std::string get_frontend_dir() {
-    return fiy::Host::info.data_dir + std::string("/static");
+    return fiy::host().data_dir + std::string("/static");
 }
 
 struct Pages : FileCache<get_frontend_dir> {
 
     static ReplacementMap get_host_data() {
         return {
-            { "{{fiy_domain}}", fiy::Host::info.domain },
-            { "{{fiy_baseuri}}", fiy::Host::info.base_uri },
+            { "{{fiy_domain}}", fiy::host().domain },
+            { "{{fiy_baseuri}}", fiy::host().base_uri },
         };
     }
 
@@ -66,7 +66,7 @@ struct Pages : FileCache<get_frontend_dir> {
         //      that we already have to implement in order for federation to work.
         static constexpr char repo_page[] = "/repo.html";
         auto pfp_url = [](const std::string& user) {
-            return fiy::Host::info.host_base_uri() + "/mods/contacts/pfp/" + user;
+            return fiy::host().host_base_uri() + "/mods/contacts/pfp/" + user;
         };
         static std::string visibility_strs[] = {
             "Private", "Instance private", "Federated", "Public"
@@ -82,7 +82,7 @@ struct Pages : FileCache<get_frontend_dir> {
                 { "last_commit_id", repo.last_commit.id },
                 { "last_commit_msg", repo.last_commit.message.substr(0,
                     repo.last_commit.message.find('\n')) },
-                { "mod_baseurl", fiy::Host::info.base_uri },
+                { "mod_baseurl", fiy::host().base_uri },
                 { "repo_branch", repo.active_branch },
                 { "repo_branches_count", std::to_string(repo.branches_count) },
                 { "repo_commits_count", std::to_string(repo.commits_count) },
@@ -90,12 +90,12 @@ struct Pages : FileCache<get_frontend_dir> {
                 { "repo_forks_count", std::to_string(-1) },
                 { "repo_likes_count", std::to_string(repo.likes_count) },
                 { "repo_name", repo.name },
-                { "repo_owner", fiy::Host::info.base_uri + ("/" + repo.owner_user()) },
+                { "repo_owner", repo.owner_user() },
                 { "repo_tags_count", std::to_string(repo.commits_count) },
                 // { "repo_tags_html", "" }, // descriptive tags ala hashtags
                 { "repo_tickets_count", std::to_string(repo.tickets_count) },
                 { "repo_visibility", visibility_strs[(size_t)repo.visibility] },
-                { "repo_clone_url", fiy::Host::info.base_uri + std::string("/") + repo.path() },
+                { "repo_clone_url", fiy::host().base_uri + std::string("/") + repo.path() },
                 { "repo_entries_html", repo.entries_html() }
             })
         );

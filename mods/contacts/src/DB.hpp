@@ -18,7 +18,7 @@ namespace DB {
     void transaction_commit();
 
 
-    std::string get_profile(
+    VC get_profile(
         const std::string& user,
         const char* req_user,
         const char* req_domain

@@ -184,8 +184,9 @@ Session::User Session::find_user() {
     static const User unauthenticated = { .domain=nullptr, .user=" " };
 
     // Local User authentication
-    if (const auto u = find_user_local(); u != nullptr)
-        return { .domain=nullptr, .user=u->get_username() };
+    const auto lu = find_user_local();
+    if (lu != nullptr)
+        return { .domain=nullptr, .user=lu->get_username() };
 
     // Peer authentication
     const auto it = req().find("Fiy-Peer");

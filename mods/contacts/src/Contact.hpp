@@ -51,6 +51,9 @@ struct VC {
     /// Convert to vCard text
     std::string to_vcard() const;
 
+    /// Convert to internal JSON representation
+    std::string to_internal_json() const;
+
     bool parse(std::string vc);
 
     static VC basic_profile(const std::string& user);
@@ -58,4 +61,5 @@ struct VC {
     [[nodiscard]] bool invalid() const {
         return id == -1 && update_ts == 0;
     }
+
 };

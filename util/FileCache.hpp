@@ -10,7 +10,6 @@
 #include <iostream>
 #include <vector>
 
-
 #if __has_include("../protocol/defs.hpp")
 #include "../protocol/defs.hpp"
 #else
@@ -21,6 +20,7 @@
 template <auto(*GetBaseDirFunctor)(void)>
 struct FileCache {
 
+    // TODO should use map/unordered_map instead
     using ReplacementMap = std::vector<std::pair<std::string, std::string>>;
 
     /// Load entire file contents into a string
@@ -108,6 +108,8 @@ struct FileCache {
     template<class Replacements>
     [[nodiscard]] static std::string
     mustache(std::string template_string, const Replacements& rules) {
+        // Editing in-place to reduce memory consumption
+        // Probably a more performant way to do this
         std::size_t i = 0;
         while ((i = template_string.find("{{", i)) != std::string::npos) {
             i += 2;
@@ -120,8 +122,84 @@ struct FileCache {
         }
         return template_string;
     }
+//
+//     /**
+//      * Subset of Mustache templating engine that only handles simple replacements
+//      * @tparam VecType list of replacement mappings
+//      * @tparam T list entry type, probably a pair of strings
+//      * @param template_string mustache template
+//      * @param rules list of replacement mappings
+//      * @param remove_unused if invalid variable
+//      * @return populated template
+//      */
+//     template<
+//         template<typename T> class VecType,
+//         typename T = std::pair<std::string_view, std::string>
+//     >
+//     [[nodiscard]] static std::string
+//     mustache(
+//         std::string template_string,
+//         const VecType<T>& rules,
+//         const bool remove_unused = false
+//     ) {
+//         // Editing in-place to reduce memory consumption
+//         // Probably a more performant way to do this
+//         std::size_t i = 0;
+//         while ((i = template_string.find("{{", i)) != std::string::npos) {
+//             i += 2;
+//             const std::size_t end = template_string.find("}}", i);
+//             const auto tag = template_string.substr(i, end - i);
+//             typename T::second_type* value = nullptr;
+//             for (const auto& [ needle, replacement ] : rules)
+//                 if (tag == needle)
+//                     value = &replacement;
+//
+//             if (value != nullptr || remove_unused)
+//                 template_string.replace(
+//                     i - 2,
+//                     end - i + 4,
+//                     value == nullptr ? "" : *value
+//                 );
+// #ifdef FEDIY_DEBUG
+//             if (value == nullptr && remove_unused)
+// #endif
+//             i = end + 2;
+//         }
+//         return template_string;
+//     }
 
-    // TODO sanitize html (ie - to prevent XSS)
+    /**
+     * Escape HTML characters in a string
+     * @param non_html String to escape HTML characters in
+     * @return string with HTML characters escaped
+     */
+    static std::string escape_html(const std::string& non_html) {
+        std::string ret;
+        // note could probably pre-reserve an expected growth ratio
+        ret.reserve(non_html.size());
+        for (const char c : non_html) {
+            switch (c) {
+                case '<':
+                    ret += "&lt;";
+                    break;
+                case '&':
+                    ret += "&amp;";
+                    break;
+                case '>':
+                    ret += "&gt;";
+                    break;
+                case '\'':
+                    ret += "&apos;";
+                    break;
+                case '\"':
+                    ret += "&quot;";
+                    break;
+                default:
+                    ret += c;
+            }
+        }
+        return ret;
+    }
 };
 
 #endif //FEDIY_FILECACHE_HPP

@@ -22,9 +22,12 @@ Manage contacts for federated users.
 - [x] Upload contact(s)
 
 ### TODO
+- [ ] UI Improvements
+  - Distinction between normal contacts and profiles
+  - photos and names should be at the top
+  - less useful properties go at the end (eg. update ts, contact id, etc.)
 - [ ] CardDAV: https://datatracker.ietf.org/doc/rfc6352/
 - [ ] Share contacts and profiles with other users
 - [ ] View (but not edit) contacts of other users
 - [ ] Accept/merge received contacts
 - [ ] i18n
-- [ ] Make UI less ugly

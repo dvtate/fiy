@@ -8,7 +8,7 @@
 #include <iomanip>
 
 std::string RepoFileBrowserPageData::time_diff_str(const time_t then) {
-    const time_t now = fiy::Host::info.now();
+    const time_t now = fiy::host().now();
     const auto secs = abs(then - now);
     const std::string dist = now > then ? " ago" : " from now";
 
@@ -17,9 +17,14 @@ std::string RepoFileBrowserPageData::time_diff_str(const time_t then) {
     constexpr long hour = 60 * min;
     constexpr long day = 24 * hour;
     constexpr long week = 7 * day;
+    constexpr long month = 30 * day;
     constexpr long year = 52 * week;
     if (secs / year > 1)
         return std::to_string(secs / year) + " years" + dist;
+    if (secs / year == 1)
+        return now > then ? "last year" : "next year";
+    if (secs / month > 1)
+        return std::to_string(secs / month) + " months" + dist;
     if (secs / week > 1)
         return std::to_string(secs / week) + " weeks" + dist;
     if (secs / day > 1)

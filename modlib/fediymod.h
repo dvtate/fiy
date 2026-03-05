@@ -304,4 +304,6 @@ typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host
 } // namespace fiy
 #endif
 
+#define FIY_EXPORT  extern "C" __attribute__((visibility("default")))
+
 #endif //FEDIY_FEDIYMOD_H

@@ -14,14 +14,11 @@
 #include "Repos/LocalRepo.hpp"
 #include "Routes/RepoRouter.hpp"
 
-
-fiy::Host fiy::Host::info;
-
 /// User is unauthenticated, send them to login page
 void unauthenticated(const fiy::Request& req, const fiy::Callback cb) {
     static const fiy::Response no_auth_resp{
         303,
-        "Location: " + fiy::Host::info.host_base_uri() + "/portal/login",
+        "Location: " + fiy::host().host_base_uri() + "/portal/login",
         fiy::Body()
     };
 
@@ -67,7 +64,7 @@ void delete_user(const char* username) {
 }
 
 /// Export: Start module
-extern "C" fiy::ModInfo* start(const fiy_host_info_t* host_info) {
+FIY_EXPORT fiy::ModInfo* start(const fiy_host_info_t* host_info) {
     // Initialize libgit2
     if (git_libgit2_init() < 0) {
         const git_error *e = giterr_last();
@@ -89,12 +86,12 @@ extern "C" fiy::ModInfo* start(const fiy_host_info_t* host_info) {
         .id="git",
         .version = "0.0"
     };
-    fiy::Host::set(*host_info);
+    fiy::host() = *host_info;
     return &mod_info;
 }
 
 /// Export: Stop module
-extern "C" void stop() {
+FIY_EXPORT void stop() {
     // Shutdown libgit2
     if (git_libgit2_shutdown() < 0) {
         const git_error *e = giterr_last();

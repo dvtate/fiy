@@ -3,7 +3,6 @@
 
 #include "../../modlib/fediymod.hpp"
 
-fiy::Host g_host_info;
 
 void handle_request(struct fiy_request_t* request, fiy::Callback cb) {
     auto& req = *(fiy::Request*) request;
@@ -16,7 +15,7 @@ void handle_request(struct fiy_request_t* request, fiy::Callback cb) {
         case fiy::Request::Method::POST: {
             std::string username, password;
             // 
-            bool ok = g_host_info.local_login(username.c_str(), password.c_str());
+            bool ok = fiy::host().local_login(username.c_str(), password.c_str());
             break;
         };
         default:
@@ -25,13 +24,13 @@ void handle_request(struct fiy_request_t* request, fiy::Callback cb) {
     }
 }
 
-extern "C" fiy::ModInfo* start(const fiy_host_info_t* host_info) {
+FIY_EXPORT fiy::ModInfo* start(const fiy_host_info_t* host_info) {
     static fiy::ModInfo mod_info = {
         .on_request = handle_request,
         .delete_user = nullptr,
         .id = "fiy.oauth",
         .version = "0.0"
     };
-    g_host_info = *host_info;
+    fiy::host() = *host_info;
     return &mod_info;
 }

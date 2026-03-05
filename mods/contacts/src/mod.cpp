@@ -15,8 +15,6 @@
 #include "Contact.hpp"
 #include "timezones.hpp"
 
-fiy::Host fiy::Host::info;
-
 /**
  * User profile endpoint
  * @param user_str user to get profile of
@@ -26,11 +24,11 @@ fiy::Host fiy::Host::info;
 static void get_profile(const std::string_view user_str, fiy::Request& req, fiy::Callback cb) {
     // TODO if local request, check and see if the user already has a contact for that user
 
-    const auto [user, dom] = fiy::Host::info.split_user_str(user_str);
+    const auto [user, dom] = fiy::host().split_user_str(user_str);
 
     // Handle local user
     if (dom.empty()) {
-        const auto card = DB::get_profile(std::string(user), req.user, req.domain);
+        const auto card = DB::get_profile(std::string(user), req.user, req.domain).to_vcard();
         if (card.empty())
             req.respond(cb, 404, "", fiy::Body("Not found"));
         else
@@ -51,7 +49,7 @@ static void get_profile(const std::string_view user_str, fiy::Request& req, fiy:
     };
     req.domain = ctx->domain.c_str();
 
-    fiy::Host::info.request(
+    fiy::host().request(
         "contacts",
         &req,
         ctx,
@@ -85,7 +83,7 @@ static void get_profile(const std::string_view user_str, fiy::Request& req, fiy:
  * @param cb request callback
  */
 static void get_pfp(std::string_view user_str, fiy::Request& req, fiy::Callback cb) {
-    auto [user, dom] = fiy::Host::info.split_user_str(user_str);
+    auto [user, dom] = fiy::host().split_user_str(user_str);
 
     static const fiy::fiy_response_t default_pfp {
         .status = 404,
@@ -128,7 +126,7 @@ static void get_pfp(std::string_view user_str, fiy::Request& req, fiy::Callback 
         };
         req.domain = ctx->domain.c_str();
 
-        fiy::Host::info.request(
+        fiy::host().request(
             "contacts",
             &req,
             ctx,
@@ -219,7 +217,7 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
     // Everything past here requires a login (either local or federated)
     static const fiy::Response no_auth_resp{
         303,
-        "Location: " + fiy::Host::info.host_base_uri() + "/portal/login",
+        "Location: " + fiy::host().host_base_uri() + "/portal/login",
         fiy::Body()
     };
     if (req.user == nullptr) {
@@ -405,13 +403,13 @@ static void delete_user(const char* username) {
     DB::delete_user(username);
 }
 
-extern "C" fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
+FIY_EXPORT fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
     static fiy::ModInfo mod_info = {
         .on_request = handle_request,
         .delete_user = delete_user,
         .id="fiy.contacts",
         .version = "0.0"
     };
-    fiy::Host::set(*host_info);
+    fiy::host() = *host_info;
     return &mod_info;
 }

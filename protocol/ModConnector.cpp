@@ -174,7 +174,6 @@ struct ModDLLHostInfo : fiy::fiy_host_info_t {
         this->user_info = ModDLLHostInfo::user_info_impl;
         this->data_dir = mod->m_user_data_dir.c_str();
         this->mod_config = mod->m_config.c_str();
-        std::cout <<"Mod " <<mod->m_id <<" - dd: " <<this->data_dir <<std::endl;
     }
 
     /**
