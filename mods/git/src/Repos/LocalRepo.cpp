@@ -109,7 +109,8 @@ const char* LocalRepo::create() {
     git_repository_free(repo); // Free the repository object
 
     // Add to database
-    thread_local auto q = "INSERT INTO Repos (userName, repoName, description, visibility, createTs) VALUES (?, ?, ?, ?, ?)"_sql;
+    thread_local auto q = "INSERT INTO Repos (userName, repoName, description, visibility, createTs)"
+        " VALUES (?, ?, ?, ?, ?)"_sql;
     q.bindNoCopy(1, this->owner);
     q.bindNoCopy(2, this->name);
     q.bindNoCopy(3, this->description);

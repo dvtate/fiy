@@ -525,8 +525,6 @@ namespace DB {
         const char* req_user,
         const char* req_domain
     ) {
-        const int vis = visibility(user, req_user, req_domain);
-
         // Check their contacts
         if (req_user != nullptr && req_domain == nullptr) {
             thread_local auto query_contacts =
@@ -556,9 +554,10 @@ namespace DB {
                     " AND visibility>=?"
             " ) AND name = 'PHOTO'"_sql;
 
+        const int vis = visibility(user, req_user, req_domain);
         query_profiles.bindNoCopy(1, user);
-
         query_profiles.bind(2, vis);
+
         while (query_profiles.executeStep()) {
             auto ret = query_profiles.getColumn(0).getString();
             if (ret.empty())

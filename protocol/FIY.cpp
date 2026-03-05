@@ -41,7 +41,7 @@ bool FIY::start() {
     std::vector<std::thread> v;
     v.reserve(m_config.m_concurrency - 1);
     DEBUG_LOG("Using " << m_config.m_concurrency << " threads");
-    for(auto i = m_config.m_concurrency - 1; i > 0; --i)
+    for (auto i = m_config.m_concurrency - 1; i > 0; --i)
         v.emplace_back([this]{ m_ioc->run(); });
     m_ioc->run();
 

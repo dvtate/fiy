@@ -115,6 +115,22 @@ static void mod_send_msg(std::shared_ptr<Session> conn) {
 
     // Forward to mods
     if (m == nullptr) {
+        // No '' mod, use default index.html
+        if (conn->req().target() == "/"
+            && conn->req()["host"] == g_fiy->m_config.m_hostname
+        ) {
+            static const char subpath[] = "/index.html";
+            Session::StringResponse res{
+                http::status::ok,
+                conn->req().version(),
+                g_fiy->m_pages->file_contents<subpath>()
+            };
+            res.set(http::field::content_type, "text/html");
+            conn->respond(conn->prep(std::move(res)));
+            return;
+        }
+
+        // Warn about missing mod
         Session::DynamicResponse res;
         res.result(404);
         boost::beast::ostream(res.body())
