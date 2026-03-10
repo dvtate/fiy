@@ -1,8 +1,21 @@
 # TODO
 
+## CLI
+Convert protocol/main.cpp into a CLI with more functionality (or make a bash wrapper).
+
+### Commands
+These are just some ideas
+- Run server
+  - specify config
+- Set up mods
+- Check mods and configs
+- Admin web interface
+- Admin CLI
+
 ## Easy Changes
 - fix include order 
 - replace std::unordered_map with boost::unordered_flat_map where possible
+- Replace SQLiteCpp
 
 ## Portal+Protocol Server Features
 - Use local copies of CSS+JS Libraries
@@ -22,6 +35,7 @@ This wrapper would enable some degree of horizontal scaling without having to re
 - Log files
 - Module log files
 - Maybe write logs in a different format?
+- Maybe good for new users
 
 ## More than just SQLite
 SQLite prevents horizontal scaling.

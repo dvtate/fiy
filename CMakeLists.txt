@@ -25,7 +25,7 @@ endif()
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/SQLiteCpp)
 
-find_package(Boost REQUIRED COMPONENTS url)
+find_package(Boost REQUIRED COMPONENTS url context)
 
 file(GLOB protocol_server_sources protocol/*.cpp)
 
@@ -188,6 +188,8 @@ add_library(git_mod SHARED
     mods/git/src/Routes/ApiRouter.hpp
     mods/git/src/Routes/AssetRouter.cpp
     mods/git/src/Routes/AssetRouter.hpp
+    mods/git/src/Routes/UserPageData.cpp
+    mods/git/src/Routes/UserPageData.hpp
 )
 target_link_libraries(git_mod
     PRIVATE fediymod
@@ -245,4 +247,30 @@ add_library(notifications_mod SHARED
 target_link_libraries(notifications_mod PRIVATE fediymod)
 target_compile_options(notifications_mod PRIVATE
     -fvisibility=hidden
+)
+
+add_executable(fiy_cdn mods/storage/cdn/main.cpp)
+target_compile_definitions(fiy_cdn PRIVATE
+    $<$<CONFIG:Debug>:FEDIY_DEBUG=1>
+)
+#target_compile_options(fiy_cdn PRIVATE
+#    $<$<CONFIG:Debug>:-O0;-g>
+#    $<$<CONFIG:Release>:-O3>
+#)
+
+target_include_directories(fiy_cdn PUBLIC
+    third_party/SQLiteCpp/include
+    ${Boost_INCLUDE_DIRS}
+)
+
+target_link_libraries(fiy_cdn
+    SQLiteCpp
+    sqlite3
+    pthread
+    crypto
+    ssl
+    curl
+    Boost::headers
+    Boost::url
+    Boost::context
 )
