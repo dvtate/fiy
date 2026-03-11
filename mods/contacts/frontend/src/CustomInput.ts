@@ -1,6 +1,6 @@
 import { VCProperty } from "./VCProperty";
 import { VCDateTime } from "./VCDateTime";
-import { getTzDb } from "./api";
+import { getTzDb, domain } from "./api";
 
 /*
 
@@ -528,7 +528,9 @@ export class CustomImageInput extends CustomInput {
                 ctx.drawImage(img, 0, 0, iw, ih);
 
                 // Extract dataurl from canvas
-                let ret = canvas.toDataURL('image/png', 0.7);
+                let ret = canvas.toDataURL('image/png', 1);
+                if (ret.length > 200_000)
+                    ret = canvas.toDataURL('image/png', 0.7);
                 if (ret.length > 200_000) {
                     console.warn("Scaled image still too big, reducing quality");
                     ret = canvas.toDataURL('image/png', 0.5);
@@ -667,4 +669,23 @@ export class CustomLangInput extends CustomTextInput {
     }
 }
 
-// TODO CustomFediyUserInput
+export class CustomFiyUserInput extends CustomTextInput {
+    override placeholderText(){
+        return 'user@example.com';
+    }
+
+    override getValue() {
+        const e = document.getElementById(this.id) as HTMLInputElement;
+        if (!e.value.includes('@'))
+            e.value += '@' + domain;
+        return e.value;
+    }
+
+    override validate(): string | null {
+        if (this.getValue().length === 0)
+            return 'Value cannot be empty';
+        if (this.getValue()[0] === '@')
+            return 'User should not start with @';
+        return null;
+    }
+}

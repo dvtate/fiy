@@ -14,20 +14,24 @@ protected:
 public:
     void read_lock() {
         m_mtx.lock();
-        m_readers++;
+        ++m_readers;
         m_mtx.unlock();
     }
 
     void read_unlock() {
-        m_readers--;
+        --m_readers;
     }
 
     /**
      * Upgrade read lock to write lock (optimization)
      */
     void read_to_write() {
-        m_mtx.lock();
-        m_readers--;
+        if (m_mtx.try_lock()) {
+            --m_readers;
+        } else {
+            --m_readers;
+            m_mtx.lock();
+        }
         while (m_readers > 0); // spinlock is kinda ugly but eh
     }
 

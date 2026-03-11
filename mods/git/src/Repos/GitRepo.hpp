@@ -43,7 +43,7 @@ public:
     };
 
     struct Commit {
-        char id[GIT_OID_HEXSZ + 1];
+        char id[GIT_OID_HEXSZ + 1]{""};
         std::string message;
         time_t ts{0};
         User author;

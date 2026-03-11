@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head>
+    <title>FIY - Federate It Yourself</title>
     <style>
         body {
             background-color: #ddd;
@@ -18,6 +19,7 @@
             background-color: rgb(250,77,96);
             font-weight: bold;
             color: white;
+            text-decoration: none;
         }
         .get-started-button:hover {
             background-color: rgb(255,100,120);
@@ -30,26 +32,103 @@
 <body>
     <a href="/portal">Portal</a> | <a href="/portal/signup">Signup</a>
     <section>
-        <h1>Welcome to FeDIY!</h1>
+        <h1>Welcome to <abbr>FIY</abbr> &mdash; Federate It Yourself!</h1>
         <p>
             FeDIY is a federation protocol and app platform that lets you own your data
             without losing the interconnectedness of the internet. You can use the same
             account across multiple apps and instances.
         </p>
     </section>
+    <section id="whats-federation">
+        <h2>What is Federation?</h2>
+        <p>Federation is when services agree on standards allowing them to operate in as a collective.</p>
+        <p>One example is Email. Users can host their own Email server or make an account on one of the many
+            public Email providers and because Email uses federated protocols this choice is largely irrelevant.
+        </p>
+
+        <h2>Why Federation?</h2>
+        <p>
+            Control of the internet is increasingly concentrated in the hands of a few powerful corporate monopolies.
+            The public actions, profit incentives, poor governance, and lack of legal oversight have led to widespread
+            public distrust in the custodians of the internet and a push for alternatives not under their control.
+        </p>
+        <p>
+            Alternatives generally fall into one of a few categories:
+        </p>
+        <dl>
+            <dt>Corporate Alternative</dt>
+            <dd>Alternatives and competition are good however, eventually one of 3 things happens:
+                <ol>
+                    <li>Company acquired, often </li>
+                    <li>Change in leadership/governance</li>
+                    <li>Service shuts down</li>
+                    <li>Same trust issues</li>
+                </ol>
+            </dd>
+            <dd>For example, instead of Slack you could use Discord.</dd>
+
+            <dt>Self-hosting</dt>
+            <dd>Effectively same product used by companies but designed for people to operate independently.</dd>
+            <dd>Many of these are also <abbr title="Free and Open Source Software">FOSS</abbr>, which gives additional trust and freedom.</dd>
+            <dd>The independence and control this offers is perfect for single-user services, however,
+                users are forced to create accounts on every server they interact with, which doesn't
+                make sense for most multi-user services.
+            </dd>
+            <dd>For example, switching from Discord to RocketChat.</dd>
+
+            <dt>Federated Alternatives</dt>
+            <dd>
+                A collection of servers running shared protocols enabling cross-server interactions.
+                Like email, you can create an account on an email server of your choosing (or host your own)
+                and still interact with users on other servers.
+            </dd>
+            <dd>This gives all the benefits of self-hosting without hindering collaboration.</dd>
+        </dl>
+
+        <h2>FIY &mdash; Your Home for Federated Apps</h2>
+        <p>
+            Many servers host a combination of simple self-hosted apps and federated apps, requiring users
+            to make multiple accounts on the same server. Additionally, these apps don't work together,
+            resulting in a user experience that's inferior to the many corporate app suites
+            (ie - GSuite, O365, Zoho, etc.).
+        </p>
+        <p>
+            FIY makes it easy to host federated apps and lets you use the same account on all these apps.
+            The host handles authentication and facilitates communication between apps on the same and
+            different instances. This enables a lot of features, for example: having a single home for
+            notifications, using the same profile everywhere, ease of development, etc.
+        </p>
+        <p>
+            For developers, the host handles user and peer authentication and provides simple APIs and interfaces for
+            deploying apps, it's easy to federate existing apps.
+        </p>
+
+        <!--
+            Criteria:
+            - Free from corporate hegemony
+            - User-owned
+            - Private
+            - Risk of shutdown
+            - Interconnected
+        -->
+
+
+        <h2>How Federation? &mdash; FIY</h2>
+        <p></p>
+    </section>
     <section id="features">
         <h2>Key Features</h2>
-        <p>FeDIY offers many advantages to </p>
+        <p>FeDIY offers many advantages over centralized apps and even over other federated services.</p>
         <dl>
             <dt>Self-hostable</dt>
             <dd>Find an instance to join or host your own for ultimate privacy.</dd>
             <dd>FeDIY is designed to easy to self-host, even on consumer hardware.</dd>
 
             <dt>App platform</dt>
-            <dd>Use your account across a wide variety installable apps, and even with 3rd party apps with oauth.</dd>
+            <dd>Use the same account on all the apps installed on your instance, and even with 3rd party apps via oauth.</dd>
 
             <dt>Data Sovereignty</dt>
-            <dd>Own your own data: control access, ensure it's deleted, easily make backups, etc.</dd>
+            <dd>Own your own data: control access, ensure it&apos;s deleted, easily make backups, etc.</dd>
 
             <dt>Free and Open Source</dt>
             <dd>The <a href="https://fediy.org/git/fediy" target="_blank">platform and protocol are open source</a> allowing 3rd party audits and bug reports.</dd>
@@ -94,18 +173,9 @@
         </p>
     </section>
 
-    <section>
-        <a href="/portal/signup">
-            <div class="get-started-button" id="signup-btn">
-                Make an account
-            </div>
-        </a>
-
-        <a href="https://fediy.org" target="_blank">
-            <div class="get-started-button">
-                Host your own instance
-            </div>
-        </a>
+    <section class="get-started">
+        <a class="get-started-button" href="/portal/signup" id="signup-btn">Make an account</a>
+        <a class="get-started-button" href="https://fediy.org" target="_blank">Host your own instance</a>
     </section>
 
     <script>

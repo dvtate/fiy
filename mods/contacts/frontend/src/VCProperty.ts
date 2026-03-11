@@ -1,4 +1,4 @@
-import {VCDateTime} from "./VCDateTime";
+import { VCDateTime } from "./VCDateTime";
 import {
     CustomAddressInput,
     CustomDateInput,
@@ -9,7 +9,13 @@ import {
     CustomTextAreaInput,
     CustomTextInput,
     CustomUriInput,
-    CustomNameInput, CustomImageInput, CustomGeoInput, CustomSocialInput, CustomTimezoneInput, CustomLangInput,
+    CustomNameInput,
+    CustomImageInput,
+    CustomGeoInput,
+    CustomSocialInput,
+    CustomTimezoneInput,
+    CustomLangInput,
+    CustomFiyUserInput,
 } from "./CustomInput";
 
 type VCValueType = 'boolean' | 'DATE' | 'DATE-AND-OR-TIME' | 'DATE-TIME'
@@ -182,7 +188,7 @@ const vCardProperties: { [k: string]: VCPropSpec } = {
         customInput: CustomGeoInput,
     },
     'IMPP': {
-        name: 'Instant messenger handle',
+        name: 'Instant Messenger Handle',
         description: 'Instant messenger handle',
         type: 'uri',
         versions: ['3.0', '4.0'],
@@ -375,8 +381,11 @@ const vCardProperties: { [k: string]: VCPropSpec } = {
         name: 'Fediy User Profile',
         description: 'Fediy user who owns this profile',
         type: 'text',
-        versions: false,
-        const: true,
+        versions: true,
+        customInput: CustomFiyUserInput,
+        // If user changes the fiy-profile on their profile
+        // the backend will simply make a new one as needed
+        // so it's safe to make it editable
     }
 };
 

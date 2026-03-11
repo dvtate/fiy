@@ -57,8 +57,6 @@ std::string VC::to_vcard() const {
     if (!this->user.empty()) {
         ret += "X-SOCIALPROFILE;TYPE=fediy:";
         ret += this->user;
-        ret += "@";
-        ret += fiy::host().domain;
         ret += "\r\n";
     }
     if (this->update_ts) {
@@ -179,10 +177,10 @@ bool VC::parse(std::string vc) {
         }
         if (name == "X-FEDIY-PROFILE") {
             this->user = value;
-            if (this->owner != value) {
-                fiy::log_error("VC::parse(): User not owner of profile card? "
-                    + this->user + " != " + this->owner);
-            }
+            // if (this->owner != value) {
+            //     fiy::log_error("VC::parse(): User not owner of profile card? "
+            //         + this->user + " != " + this->owner);
+            // }
             continue;
         }
 
@@ -190,6 +188,16 @@ bool VC::parse(std::string vc) {
         if (name == "REV") {
             this->update_ts = parse_timestamp_str(value);
             continue;
+        }
+
+        if (name == "SOURCE") {
+            continue; // we are the source now
+            // if (value.find(fiy::host().domain) != std::string::npos) {
+            //     if (this->id == -1)
+            //         continue;
+            //     if (value.ends_with("/id/" + std::to_string(this->id)))
+            //         continue;
+            // }
         }
 
         // Handle parameters
@@ -215,10 +223,10 @@ bool VC::parse(std::string vc) {
                     if (p.starts_with("TYPE=fediy") && name == "X-SOCIALPROFILE") {
                         const auto [u, domain] = fiy::host().split_user_str(value);
                         if (domain.empty())
-                            this->user = u;
+                            this->user = std::string(u) + "@" + fiy::host().domain;
                         else
                             this->user = value;
-                        continue; // alt for X-FEDIY-PROFILE
+                        goto skip_property; // alt for X-FEDIY-PROFILE
                     }
 
                     // TODO check if no = ?
@@ -240,6 +248,7 @@ bool VC::parse(std::string vc) {
             .value=value,
             .visibility=visibility
         });
+skip_property:;
     }
 
     return true;

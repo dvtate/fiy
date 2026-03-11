@@ -49,10 +49,10 @@ struct VC {
     };
 
     /// Convert to vCard text
-    std::string to_vcard() const;
+    [[nodiscard]] std::string to_vcard() const;
 
     /// Convert to internal JSON representation
-    std::string to_internal_json() const;
+    [[nodiscard]] std::string to_internal_json() const;
 
     bool parse(std::string vc);
 

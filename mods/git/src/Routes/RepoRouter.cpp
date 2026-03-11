@@ -8,6 +8,7 @@
 #include "../../../util/WebUtils.hpp"
 #include "../Repos/BasicRepo.hpp"
 #include "Pages.hpp"
+#include "../Repos/Repos.hpp"
 
 /// User is unauthenticated, send them to login page
 static void unauthenticated(const fiy::Request& req, const fiy::Callback cb) {
@@ -140,13 +141,14 @@ bool repo_request_router(
     if (!basic_repo.from_path(path))
         return false;
 
+    // Handle remote repo
     if (!basic_repo.is_local()) {
         // TODO handle remote request
+        return false;
     }
 
-
-    // TODO instead use cached version
-    LocalRepo repo{basic_repo};
+    // Handle local repo
+    LocalRepo& repo = *Repos::cache.local_repo(basic_repo);
     if (!repo.valid())
         return false;
 
@@ -170,7 +172,6 @@ bool repo_request_router(
             fiy::Body(body)
         );
         return true;
-
     }
 
     // Else, we don't know the path, send it to the cgi

@@ -5,21 +5,23 @@
 #include "Mods.hpp"
 
 void Mods::find_modules() {
+    // Load mods from mods directory
     const auto mods_dir = g_fiy->m_config.m_data_dir + "/mods";
-    std::string fail_reason;
-
-    // TODO sort alphabetically?
     for (auto& p : std::filesystem::directory_iterator(mods_dir))
         if (p.is_directory()) {
-            auto&& id = p.path().filename().string();
-            auto* m = new Mod(id);
+            auto* m = new Mod(p.path().filename().string());
             if (!m->m_enabled) {
-                DEBUG_LOG("Mod" <<m->m_id <<" is disabled.");
+                LOG_WARN("Mod '" <<m->m_id <<"' is disabled.");
                 delete m;
                 continue;
             }
             m_mods.emplace_back(m);
         }
+
+    // Sort alphabetically by id
+    std::ranges::sort(m_mods, [](const Mod* m1, const Mod* m2) {
+        return m1->m_id < m2->m_id;
+    });
 
     // m_mtx should be locked for write
     const size_t mod_count = m_mods.size();
