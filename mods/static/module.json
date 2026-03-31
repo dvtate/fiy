@@ -1,14 +1,14 @@
 {
-  "name":"Static Blog",
-  "description": "Demo for hosting a static blog",
+  "name":"Static Website",
+  "description": "Demo for hosting a static website",
   "enabled": true,
   "icon": "icon.png",
   "connector": "shared_object",
-  "path": "blog",
-  "id": "static.blog",
+  "path": "www",
+  "id": "static.www",
   "access": "public",
   "mod_settings": {
-    "root": "/opt/fediy/mods/static.blog/www",
+    "root": "www",
     "index": ["index.html", "index.htm", "index.xhtml"]
   }
 }

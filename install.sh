@@ -129,6 +129,8 @@ fi
 ###
 # Install builtin mods
 ###
+
+# C++ demo mod
 if [ "$DEVEL_INSTALL" -eq 1 ]; then
     mkdir "$INSTALL_PATH/mods/demo_cpp"
     echo '{"name": "Demo",
@@ -142,11 +144,13 @@ if [ "$DEVEL_INSTALL" -eq 1 ]; then
     echo "Installed C++ testing mod."
 fi
 
+# Mail mod
 mkdir "$INSTALL_PATH/mods/mail"
 cp $CP_INSTALL_FLAG "$(realpath ./mods/mail/module.json)" "$INSTALL_PATH/mods/mail/module.json"
 cp $CP_INSTALL_FLAG "$(realpath ./build/libdemo_mod_mail.so)" "$INSTALL_PATH/mods/mail/module.so"
 echo "Installed Mail mod."
 
+# Contacts mod
 mkdir "$INSTALL_PATH/mods/contacts"
 mkdir "$INSTALL_PATH/mods/contacts/assets"
 cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/module.json)" "$INSTALL_PATH/mods/contacts/"
@@ -155,6 +159,7 @@ cp $CP_INSTALL_FLAG "$(realpath ./mods/contacts/frontend/dist)"/* "$INSTALL_PATH
 sqlite3 "$INSTALL_PATH/mods/contacts/db.db3" < ./mods/contacts/db.sql
 echo "Installed Contacts mod."
 
+# Git mod
 mkdir "$INSTALL_PATH/mods/git"
 mkdir "$INSTALL_PATH/mods/git/repos"
 mkdir "$INSTALL_PATH/mods/git/static"
@@ -164,6 +169,21 @@ cp $CP_INSTALL_FLAG "$(realpath ./mods/git/frontend)"/* "$INSTALL_PATH/mods/git/
 sqlite3 "$INSTALL_PATH/mods/git/db.db3" < ./mods/git/db.sql
 echo "Installed Git mod."
 
+# Static hosting example mod
+# Admins can duplicate this mod if they want to host multiple static sites with different paths
+mkdir "$INSTALL_PATH/mods/static.www"
+mkdir "$INSTALL_PATH/mods/static.www/www"
+cp $CP_INSTALL_FLAG "$(realpath ./mods/static/module.json)" "$INSTALL_PATH/mods/static.www/."
+cp $CP_INSTALL_FLAG "$(realpath ./build/libstatic_mod.so)" "$INSTALL_PATH/mods/static.www/module.so"
+cp $CP_INSTALL_FLAG "$(realpath ./mods/static/www)"/* "$INSTALL_PATH/mods/static.www/www"
+if [[ -z "$CP_INSTALL_FLAG" ]]; then
+    echo "<p>Place your static website in <b style=\"font-family: monospace; font-size: 120%\">$INSTALL_PATH/mods/static.www/www/</b>
+        to see it here.</p>
+        <hr/>
+        <a href=\"//$HOSTNAME/portal\">$HOSTNAME User Portal</a>
+    " >> "$INSTALL_PATH/mods/static.www/www/index.html"
+fi
+echo "Installed Static hosting example mod."
 
 # Install protocol server
 cp $CP_INSTALL_FLAG "$(realpath ./build/protocol_server)" "$INSTALL_PATH/server"
@@ -211,6 +231,7 @@ openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in "$INSTALL_PATH/auth/_
 echo "Generated server key pair."
 
 # FIXME
+# Right thing to do is create a new unprivileged user with access to install dir and restrict access only to that user
 chmod -R 777 "$INSTALL_PATH"
 
 ###

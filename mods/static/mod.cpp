@@ -100,7 +100,7 @@ void handle_request(fiy::Request& req, const fiy::fiy_callback_t cb) {
     // posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
     res.body = fiy::Body(fd, 0);
     res.status = 200;
-    res.set_headers("Cache-Control: max-age=604800\nContent-Type: "
+    res.set_headers("Cache-Control: max-age=600\nContent-Type: "
         + std::string(get_ext_mime_type(f->extension().string().substr(1))));
     req.respond(cb, res);
     if (close(fd) != 0)
@@ -122,6 +122,9 @@ FIY_EXPORT fiy::ModInfo* start(const fiy_host_info_t* host_info) {
         return nullptr;
     }
     g_static_root = config["root"].get<std::string>();
+    if (g_static_root.is_relative())
+        g_static_root = fiy::host().data_dir / g_static_root;
+
     try {
         g_static_root = std::filesystem::absolute(g_static_root);
         if (!std::filesystem::exists(g_static_root)) {
