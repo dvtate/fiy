@@ -274,3 +274,17 @@ target_link_libraries(fiy_cdn
     Boost::url
     Boost::context
 )
+
+add_library(social_mod SHARED
+    modlib/fediymod.h
+    modlib/fediymod.hpp
+    mods/social/src/mod.cpp
+    mods/social/src/Post.hpp
+    mods/social/src/Post.cpp
+    mods/social/src/Posts.hpp
+    mods/social/src/Posts.hpp
+)
+target_link_libraries(social_mod PRIVATE fediymod)
+target_compile_options(social_mod PRIVATE
+    -fvisibility=hidden
+)

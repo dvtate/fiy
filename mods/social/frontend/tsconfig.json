@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "outDir": "/dev/null",
+    "module": "esnext",
+    "target": "ES2022",
+    "allowJs": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "strictNullChecks": false,
+    "esModuleInterop": true
+  },
+  "include": [ "src/*.ts", "src/*/*.ts" ],
+  "exclude" : [ "node_modules", "static" ]
+}
