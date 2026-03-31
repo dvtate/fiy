@@ -33,10 +33,8 @@ public:
 
     std::string login_page(const std::string& fail_reason = "");
     std::string signup_page(const std::string& fail_reason = "");
-
     std::string portal_apps(const LocalUser& user);
     std::string portal_settings(const LocalUser& user);
-
 
 protected:
     static kainjow::mustache::mustache open_mustache_file(std::string&& path);

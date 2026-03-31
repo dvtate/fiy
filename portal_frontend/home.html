@@ -31,7 +31,7 @@
 
 <div class="container">
     <h1>Installed Apps</h1>
-    <input type="text" placeholder="Find an installed app..." id="apps-search" onkeyup="searchApps()" />
+    <input type="text" placeholder="Find an installed app..." id="apps-search" onkeyup="searchApps()" autofocus />
 
     <!-- list of installed apps -->
     <span id="installed-apps-list"></span>
@@ -88,8 +88,12 @@
         ]);
     }
 
+    // TODO if the user types name of mod
+
     // App actions
-    function launchApp(appId) {}
+    function launchApp(appId) {
+        window.location = '/mods/' + appId;
+    }
 
     function updateApp(appId) {}
     function enableApp(appId) {}

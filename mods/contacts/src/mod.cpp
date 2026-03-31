@@ -86,7 +86,7 @@ static void get_pfp(std::string_view user_str, fiy::Request& req, fiy::Callback 
     auto [user, dom] = fiy::host().split_user_str(user_str);
 
     static const fiy::fiy_response_t default_pfp {
-        .status = 404,
+        .status = 404,  // should this be 200 instead?
         .headers = "Content-Type: image/png\nCache-Control: max-age=300",
         .body = fiy::Body(
             (const char*)VC::default_pfp_raw,
@@ -306,6 +306,24 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
             );
             return;
         }
+    }
+
+    // Icon
+    if (path == "/icon.svg") {
+        static constexpr char file_path[] = "icon.svg";
+        req.respond(cb, 200,
+            "Cache-Control: max-age=604800\nContent-Type: image/svg+xml",
+            Pages::file_body<file_path>()
+        );
+        return;
+    }
+    if (path == "/favicon.ico") {
+        static constexpr char file_path[] = "favicon.ico";
+        req.respond(cb, 200,
+            "Cache-Control: max-age=604800\nContent-Type: image/x-icon",
+            Pages::file_body<file_path>()
+        );
+        return;
     }
 
     // Landing page

@@ -11,7 +11,7 @@
 
 #include "Repos/git_http_backend.hpp"
 #include "Routes/Pages.hpp"
-#include "Repos/LocalRepo.hpp"
+#include "Routes/AssetRouter.hpp"
 #include "Routes/RepoRouter.hpp"
 
 /// User is unauthenticated, send them to login page
@@ -35,7 +35,6 @@ void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
 
     std::string_view path = req.path;
 
-    std::cout <<"GIT path: " << path << std::endl;
     if (path == "/") {
         static constexpr char file_path[] = "/landing.html";
         req.respond(cb, 200,
@@ -45,9 +44,12 @@ void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
         return;
     }
 
-    // Handle repo routes
-    if (repo_request_router(path, cb, req))
+    if (repo_request_router(path, cb, req)
+        || static_asset_router(path, cb, req))
         return;
+
+    // No router
+    not_found_404(req, cb);
 }
 
 void delete_user(const char* username) {

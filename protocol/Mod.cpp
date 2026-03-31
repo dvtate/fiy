@@ -91,7 +91,7 @@ std::string Mod::user_json() {
         { "version", m_version.str() },
         { "name", m_name },
         { "description", m_description },
-        { "icon", m_icon },
+        { "icon","/mods/" + m_id + "/" + m_icon },
         { "status", status() }, // TODO give string instead
         { "loaded", m_loaded },
         { "enabled", m_enabled },
@@ -291,13 +291,10 @@ void Mod::load() {
     if (conf.contains("icon")) {
         auto icon = conf.at("icon");
         if (icon.is_string()) {
-            auto icon_path = icon.get<std::string>();
-            if (icon_path[0] == '/')
-                m_icon = icon_path;
-            else
-                m_icon = dir() / icon_path;
-        } else if (!icon.is_null()) {
-            load_error("module.json: \"icon\" should be a string containing the icon file name");
+            m_icon = icon.get<std::string>();
+        } else {
+            load_error("module.json: \"icon\" should be a string containing"
+                " a path to request the module to get the icon");
         }
     }
 

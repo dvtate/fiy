@@ -144,12 +144,13 @@ bool repo_request_router(
     if (!basic_repo.is_local()) {
         // TODO properly handle remote request
         // I think this only works for unauthenticated git pull
+        fiy::host().log_info("remote request: " + std::string(path));
         req.domain = basic_repo.instance.c_str();
         fiy::host().request_mod(fiy::host().app_id, &req,
             [req, cb](const fiy_response_t* res) {
                 req.respond(cb, *res);
             });
-        return false;
+        return true;
     }
 
     // Handle local repo
