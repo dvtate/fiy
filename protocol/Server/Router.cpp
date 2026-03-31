@@ -642,6 +642,15 @@ void route_request(std::shared_ptr<Session> conn) {
                 res.body() = g_fiy->m_config.m_public_key;
                 conn->respond(conn->prep(std::move(res)));
                 return;
+            } else if (path == "/robots.txt") {
+                Session::StringResponse res;
+                res.result(200);
+                static constexpr char robots_txt[] = "/robots.txt";
+                res.body() = g_fiy->m_pages->file_contents<robots_txt>();
+                res.set(http::field::content_type, "text/plain");
+                res.set("Cache-control", "max-age=60000");
+                conn->respond(conn->prep(std::move(res)));
+                return;
             } else {
                 mod_send_msg(std::move(conn));
                 return;
