@@ -123,7 +123,6 @@ bool repo_request_router(
             return true;
         }
         path.remove_prefix(5);
-        std::cout <<"Req.user: " << req.user_str("xxx") <<std::endl;
         if (path.starts_with("/new")) {
             if (req.method == fiy::Request::Method::GET) {
                 repo_create_get(req, cb);

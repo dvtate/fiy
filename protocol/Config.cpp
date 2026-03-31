@@ -52,22 +52,26 @@ bool FediyConfig::from_argv(int argc, char** argv) {
         if (argv[i][0] != '-') {
             from_file(argv[i]);
             set_defaults();
+            return false;
         }
         const char* p = argv[i];
         while (*p == '-') p++;
 
-        if (strcmp(p, "help")) {
+        if (strcmp(p, "help") == 0) {
             std::cout <<"Usage: " <<argv[0] <<" [CONFIG_FILE_PATH] [CONFIG_OVERRIDES]...\n\n"
                 "\tConfig overrides have the same names as in the config file but must be prepended with '--'";
             continue;
         }
 
         if (i + 1 >= argc) {
-            LOG_ERR("Option -" << p << ": missing value");
+            LOG_ERR("Option '" << p << "': missing value");
+            m_error = true;
             return false;
         }
-        if (!set_key("", p, argv[i]))
+        if (!set_key("", p, argv[i])) {
+            m_error = true;
             return false;
+        }
     }
     set_defaults();
     return true;

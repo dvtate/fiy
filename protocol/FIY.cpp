@@ -14,9 +14,12 @@
  */
 bool FIY::start(const int argc, char* argv[]) {
     // Load config
-    if (!m_config.from_argv(argc, argv) || m_config.m_error) {
-        LOG_ERR("Failed to parse config file.");
-        return false;
+    if (!m_config.from_argv(argc, argv)) {
+        if (m_config.m_error) {
+            LOG_ERR("Failed to load configuration.");
+            return false;
+        }
+        return true; // --help
     }
 
     return start();
