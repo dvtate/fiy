@@ -61,7 +61,11 @@ struct Pages : FileCache<get_frontend_dir> {
         );
     }
 
-    static std::string repo_page(const RepoPageData& repo) {
+    // This isn't gonna work...
+    // Edge cases not handled:
+    //  - user not logged in but still shows profile tab
+    //  - repo not initialized (ie - no files), should give new repo instructions
+    static std::string repo_page(const RepoPageData& repo, const char* request_user = nullptr) {
         // TODO the right way to do this is probably to populate the page data by calling the API
         //      that we already have to implement in order for federation to work.
         static constexpr char repo_page[] = "/repo.html";
@@ -96,7 +100,9 @@ struct Pages : FileCache<get_frontend_dir> {
                 { "repo_tickets_count", std::to_string(repo.tickets_count) },
                 { "repo_visibility", visibility_strs[(size_t)repo.visibility] },
                 { "repo_clone_url", fiy::host().base_uri + std::string("/") + repo.path() },
-                { "repo_entries_html", repo.entries_html() }
+                { "repo_entries_html", repo.entries_html() },
+                { "request_user", request_user == nullptr ? "" : request_user },
+                { "fiy_domain", fiy::host().domain }
             })
         );
         // TODO future: contributors, languages, readme viewer,

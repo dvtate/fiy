@@ -112,13 +112,17 @@ struct FileCache {
         // Probably a more performant way to do this
         std::size_t i = 0;
         while ((i = template_string.find("{{", i)) != std::string::npos) {
-            i += 2;
-            const std::size_t end = template_string.find("}}", i);
-            const auto tag = template_string.substr(i, end - i);
+            const std::size_t end = template_string.find("}}", i + 2);
+            const auto tag = template_string.substr(i + 2, end - (i + 2));
             for (const auto& [ needle, replacement ] : rules)
-                if (tag == needle)
-                    template_string.replace(i - 2, needle.size() + 4, replacement);
+                if (tag == needle) {
+                    template_string.replace(i, needle.size() + 4, replacement);
+                    i += replacement.size();
+                    goto match_found;
+                }
             i = end + 2;
+match_found:
+            ;
         }
         return template_string;
     }

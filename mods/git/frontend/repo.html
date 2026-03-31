@@ -1,4 +1,5 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <title>{{repo_owner}}/{{repo_name}}: {{repo_description}}</title>
     <meta charset="UTF-8">
@@ -15,7 +16,6 @@
             --text-main: #c9d1d9;
             --text-muted: #8b949e;
             --accent-blue: #58a6ff;
-            --tag-bg: #238636;
         }
 
         /* Light mode */
@@ -238,9 +238,9 @@
 </head>
 <body>
     <nav>
-        <a href="#">Portal</a>
-        | <a href="#">Git-IY</a>
-        | <a href="#">Profile</a>
+        <a href="//{{fiy_domain}}">Portal</a>
+        | <a href="{{mod_baseurl}}">Git-IY</a>
+        | <a href="{{mod_baseurl}}/{{request_user}}">Profile</a>
         <hr/>
     </nav>
 
@@ -248,13 +248,13 @@
 
         <!-- [pfp] user / repo [visibility] -->
         <header id="repo-title-area">
-            <a id="repo-owner" href="//{{mod_baseurl}}/{{repo_owner}}" >
+            <a id="repo-owner" href="{{mod_baseurl}}/{{repo_owner}}" >
 <!--                <img id="repo-owner-pfp" src="//{{fiy_instance}}/mods/contacts/pfp/{{repo_owner}}" alt="{{repo_owner}}" />-->
                 <img id="repo-owner-pfp" src="{{repo_owner_pfp}}" alt="{{repo_owner}}" />
                 {{repo_owner}}
             </a>
             /
-            <a href="//{{mod_baseurl}}/{{repo_owner}}/{{repo_name}}" id="repo-name">
+            <a href="{{mod_baseurl}}/{{repo_owner}}/{{repo_name}}" id="repo-name">
                 {{repo_name}}
             </a>
             <span id="repo-visibility">{{repo_visibility}}</span>

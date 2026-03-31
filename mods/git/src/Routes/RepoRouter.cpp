@@ -91,9 +91,12 @@ void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
 
     const char* err = repo.create();
     if (err != nullptr) {
-        std::string msg = "<h1>That didn't work!</h1><br/>";
+        std::string msg = "<h1>That didn't work!</h1><br/><p>";
         msg += err;
-        req.respond(cb, err[0] == '4' ? 400 : 500, "", fiy::Body(msg));
+        msg += "</p>";
+        req.respond(cb, err[0] == '4' ? 400 : 500,
+            "Content-type: text/html; charset=utf-8",
+            fiy::Body(msg));
         return;
     }
 
@@ -140,6 +143,30 @@ bool repo_request_router(
     if (!basic_repo.from_path(path))
         return false;
 
+    // Remove the /user/repo part
+    std::string_view subpath = path;
+    {
+        // Skip leading /
+        while (subpath[0] == '/')
+            subpath.remove_prefix(1);
+
+        // Skip user
+        subpath.remove_prefix(subpath.find('/'));
+
+        // Find end of repo name
+        auto end = subpath.find('/', 1);
+        if (end == std::string_view::npos)
+            end = subpath.find_first_of("?#");
+        if (end != std::string_view::npos)
+            subpath.remove_prefix(end);
+        else
+            subpath = "";
+
+        // Skip leading /
+        while (subpath[0] == '/')
+            subpath.remove_prefix(1);
+    }
+
     // Handle remote repo
     if (!basic_repo.is_local()) {
         // TODO properly handle remote request
@@ -158,26 +185,46 @@ bool repo_request_router(
     if (!repo.valid())
         return false;
 
-    //
+    // Repo page
     auto access = LocalRepo::Access::Read;
-    auto slash = path.find('/', 1);
-    if (slash == std::string_view::npos)
-        return false;
-    slash = path.find('/', slash + 1);
-    if (slash == std::string_view::npos) {
+    if (subpath.empty() || subpath[0] == '?' || subpath[0] == '#') {
         if (!repo.can_access(access, req.user, req.domain)) {
             unauthenticated(req, cb);
             return true;
         }
+
         RepoPageData data;
         repo.get_repo_page_data(repo.default_branch(), data);
-        const auto body = Pages::repo_page(data);
+        const auto body = Pages::repo_page(data, req.domain == nullptr ? req.user : nullptr);
         req.respond(cb,
             200,
             "Content-Type: text/html",
             fiy::Body(body)
         );
         return true;
+    }
+
+    if (subpath.starts_with("commit/")) {
+        subpath.remove_prefix(7);
+        auto commit_id = subpath.substr(0, subpath.find_first_of("/?#"));
+
+        static const auto invalid_resp = fiy::Response{
+            400,
+            "",
+            fiy::Body("Invalid commit id")
+        };
+        if (commit_id.size() > 100) {
+            req.respond(cb, invalid_resp);
+            return true;
+        }
+        for (const char c : commit_id)
+            if (! ((c >= 'a' && c <= 'f') || (c >= '0' && c <= '9'))) {
+                req.respond(cb, invalid_resp);
+                return true;
+            }
+
+        // TODO Respond with output comparable to git show
+        return false;
     }
 
     // Else, we don't know the path, send it to the cgi

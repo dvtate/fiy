@@ -79,11 +79,14 @@ const char* LocalRepo::create() {
     std::string repo_path = fiy::host().data_dir;
     repo_path += "/repos/" + owner + "/" + name;
 
-    thread_local auto exists = "SELECT 1 FROM Repos WHERE userName=? AND repoName=?"_sql;
-    exists.bindNoCopy(1, owner);
-    exists.bindNoCopy(2, name);
-    if (exists.executeStep())
+    thread_local auto q_exists = "SELECT 1 FROM Repos WHERE userName=? AND repoName=?"_sql;
+    q_exists.bindNoCopy(1, owner);
+    q_exists.bindNoCopy(2, name);
+    if (q_exists.executeStep()) {
+        q_exists.reset();
         return "4XX: Repo with same name already exists";
+    }
+    q_exists.reset();
 
     std::string user_repos_dir = fiy::host().data_dir;
     user_repos_dir += "/repos/" + owner;
