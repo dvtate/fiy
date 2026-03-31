@@ -111,7 +111,7 @@ void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
 bool repo_request_router(
     std::string_view path,
     fiy::Callback cb,
-    fiy::Request &req
+    fiy::Request& req
 ) {
     if (path.empty())
         return false;
@@ -143,7 +143,13 @@ bool repo_request_router(
 
     // Handle remote repo
     if (!basic_repo.is_local()) {
-        // TODO handle remote request
+        // TODO properly handle remote request
+        // I think this only works for unauthenticated git pull
+        req.domain = basic_repo.instance.c_str();
+        fiy::host().request_mod(fiy::host().app_id, &req,
+            [req, cb](const fiy_response_t* res) {
+                req.respond(cb, *res);
+            });
         return false;
     }
 

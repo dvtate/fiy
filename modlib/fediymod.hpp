@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <map>
 
@@ -20,6 +21,161 @@ namespace fiy {
     using ModInfo = fiy_mod_info_t;
     using BodyType = fiy_body_type;
     using StartFunction = fiy_mod_start_function_t;
+
+    /**
+     * Type for response bodies
+     * @note for string/buffer bodies, this operates like a string_view
+     *      the passed in data shouldn't get free'd until after callback/respond called
+     */
+    struct Body : public fiy_body_t {
+        using Type = fiy_body_type;
+        Body(): fiy_body_t({
+            .type = FIY_BODY_NONE,
+            .buffer = { nullptr, 0 }
+        }) {}
+        explicit Body(FILE* f): fiy_body_t({
+            .type = Type::FIY_BODY_FILE,
+            .file = { .fd= fileno(f), .offset = ftell(f) }
+        }) {}
+        explicit Body(const int file_descriptor, const long offset = 0):
+            fiy_body_t({
+                .type = Type::FIY_BODY_FILE,
+                .file = { .fd = file_descriptor, .offset = offset }
+            })
+        {}
+
+        Body(const fiy_buffered_reader_fn fn, void* context): fiy_body_t({
+            .type = FIY_BODY_READER,
+            .reader = { .read = fn, .context = context }})
+        {}
+
+        explicit Body(const std::string_view body): fiy_body_t({
+            .type = body.empty() ? FIY_BODY_NONE : FIY_BODY_BUFFER,
+            .buffer = { body.data(), body.length() }
+        }) {}
+        explicit Body(const char* buffer): fiy_body_t({
+            .type = FIY_BODY_BUFFER,
+            .buffer = { .data = buffer, .length = strlen(buffer) }
+        }) {}
+        Body(const char* buffer, const size_t length): fiy_body_t({
+            .type = FIY_BODY_BUFFER,
+            .buffer = { .data = buffer, .length = length }
+        }) {}
+        Body(std::string&& body) = delete;
+            // this structure works like a string_view.
+
+        [[nodiscard]] static std::string to_string(const fiy_body_t& body) {
+            switch (body.type) {
+            case FIY_BODY_NONE:
+                return "";
+
+            case FIY_BODY_BUFFER:
+                return std::string(body.buffer.data, body.buffer.length);
+
+            case FIY_BODY_READER: {
+                std::string ret;
+                char buff[8192];
+                for (;;) {
+                    const auto n = body.reader.read(body.reader.context, buff, 8192);
+                    if (n > 0)
+                        ret.append(buff, n);
+                    else
+                        return ret;
+                }
+            }
+
+            case FIY_BODY_FILE: {
+                std::string ret;
+                char buff[8192];
+                for (;;) {
+                    const auto n = read(body.file.fd, buff, sizeof buff);
+                    if (n > 0)
+                        ret.append(buff, n);
+                    else
+                        return ret;
+                }
+            }
+
+            // invalid
+            default:
+                std::cerr <<"fiy::Body::to_string(): Invalid body type!!\n";
+                // std::unreachable();
+                return "";
+            }
+        }
+
+        /**
+         * Read contents of body into string
+         * @return body as a string
+         */
+        [[nodiscard]] std::string to_string() const {
+            return to_string(*this);
+        }
+    };
+
+    struct Response : public fiy_response_t {
+    protected:
+        std::string m_headers;
+
+    public:
+        Response():
+            fiy_response_t({
+                .status = 200,
+                .headers = nullptr,
+                .body = Body()
+            })
+        {}
+
+        explicit Response(
+            const int status,
+            std::string headers_str = "",
+            const Body& body = Body()
+        ):
+            m_headers(std::move(headers_str))
+        {
+            this->status = status;
+            this->headers = m_headers.c_str();
+            this->body = body;
+        }
+
+        Response(const Response& other) {
+            this->status = other.status;
+            this->body = other.body;
+            m_headers = other.m_headers;
+            headers = m_headers.c_str();
+        }
+
+        void add_header(const std::string_view field, const std::string_view value) {
+            m_headers += field;
+            m_headers += ": ";
+            m_headers += value;
+            m_headers += '\n';
+            headers = m_headers.c_str();
+        }
+        void add_header(const std::string_view header) {
+            m_headers += header;
+            m_headers += '\n';
+            headers = m_headers.c_str();
+        }
+
+        void clear_headers() {
+            m_headers.clear();
+            headers = nullptr;
+        }
+
+        void set_headers(const std::string_view headers_str) {
+            m_headers = headers_str;
+            headers = m_headers.c_str();
+        }
+
+#if 0
+        ~Response() {
+            clear_headers();
+        }
+#endif
+    };
+
+
 
     // TODO maybe make this a namespace instead?
     struct Host : public fiy_host_info_t {
@@ -117,9 +273,50 @@ namespace fiy {
                 user.substr(at_idx + 1)
             );
         }
+
+        /**
+         * Send a request to another mod
+         * @param mod_id app to send the request to
+         * @param request request to send to the other mod
+         *      method   - http method
+         *      path     - uri path
+         *      domain   - remote server to send request to or nullptr if local request
+         *      user     - local user or nullptr if unauthenticated
+         * @param callback called with response
+         * @remark this is a wrapper around the host-provided "request" member
+         * @notes
+         * - local apps can send requests to each other without restrictions
+         * - an app on server a can only send requests to apps on server b on behalf of users residing on server a
+         *    - this prevents false impersonation
+         */
+        void request_mod(
+            const char* mod_id,
+            const struct fiy_request_t* request,
+            std::function<void(const Response*)> callback
+        ) const {
+            // Check params
+            if (request == nullptr || mod_id == nullptr || callback == nullptr)
+                return;
+
+            // Check host property
+            if (this->request == nullptr)
+                return;
+
+            // Call host implementation
+            auto* cb = new std::function{std::move(callback)};
+            this->request(
+                mod_id,
+                request,(void*) cb,
+                [](const fiy_response_t* response, void* context) {
+                    auto* cb = static_cast<decltype(&callback)>(context);
+                    (*cb)(static_cast<const Response*>(response));
+                    delete cb;
+                }
+            );
+        }
     };
 
-    // Mod-local singleton
+    /// Mod-local singleton
     __attribute__((visibility("hidden")))
     inline Host& host() {
         static Host static_host_info{fiy_host_info_t{
@@ -136,159 +333,6 @@ namespace fiy {
         }};
         return static_host_info;
     }
-
-    /**
-     * Type for response bodies
-     * @note for string/buffer bodies, this operates like a string_view
-     *      the passed in data shouldn't get free'd until after callback/respond called
-     */
-    struct Body : public fiy_body_t {
-        using Type = fiy_body_type;
-        Body(): fiy_body_t({
-            .type = FIY_BODY_NONE,
-            .buffer = { nullptr, 0 }
-        }) {}
-        explicit Body(FILE* f): fiy_body_t({
-            .type = Type::FIY_BODY_FILE,
-            .file = { .fd= fileno(f), .offset = ftell(f) }
-        }) {}
-        explicit Body(const int file_descriptor, const long offset = 0):
-            fiy_body_t({
-                .type = Type::FIY_BODY_FILE,
-                .file = { .fd = file_descriptor, .offset = offset }
-            })
-        {}
-
-        Body(const fiy_buffered_reader_fn fn, void* context): fiy_body_t({
-            .type = FIY_BODY_READER,
-            .reader = { .read = fn, .context = context }})
-        {}
-
-        explicit Body(const std::string_view body): fiy_body_t({
-            .type = body.empty() ? FIY_BODY_NONE : FIY_BODY_BUFFER,
-            .buffer = { body.data(), body.length() }
-        }) {}
-        explicit Body(const char* buffer): fiy_body_t({
-            .type = FIY_BODY_BUFFER,
-            .buffer = { .data = buffer, .length = strlen(buffer) }
-        }) {}
-        Body(const char* buffer, const size_t length): fiy_body_t({
-            .type = FIY_BODY_BUFFER,
-            .buffer = { .data = buffer, .length = length }
-        }) {}
-        Body(std::string&& body) = delete;
-            // this structure works like a string_view.
-
-        [[nodiscard]] static std::string to_string(const fiy_body_t& body) {
-            switch (body.type) {
-                case FIY_BODY_NONE:
-                    return "";
-
-                case FIY_BODY_BUFFER:
-                    return std::string(body.buffer.data, body.buffer.length);
-
-                case FIY_BODY_READER: {
-                    std::string ret;
-                    char buff[8192];
-                    for (;;) {
-                        const auto n = body.reader.read(body.reader.context, buff, 8192);
-                        if (n > 0)
-                            ret.append(buff, n);
-                        else
-                            return ret;
-                    }
-                }
-
-                case FIY_BODY_FILE: {
-                    std::string ret;
-                    char buff[8192];
-                    for (;;) {
-                        const auto n = read(body.file.fd, buff, sizeof buff);
-                        if (n > 0)
-                            ret.append(buff, n);
-                        else
-                            return ret;
-                    }
-                }
-
-                // invalid
-                default:
-                    std::cerr <<"fiy::Body::to_string(): Invalid body type!!\n";
-                    // std::unreachable();
-                    return "";
-            }
-        }
-
-        /**
-         * Read contents of body into string
-         * @return body as a string
-         */
-        [[nodiscard]] std::string to_string() const {
-            return to_string(*this);
-        }
-    };
-
-    struct Response : public fiy_response_t {
-    protected:
-        std::string m_headers;
-
-    public:
-        Response():
-            fiy_response_t({
-                .status = 200,
-                .headers = nullptr,
-                .body = Body()
-            })
-        {}
-
-        explicit Response(
-            const int status,
-            std::string headers_str = "",
-            const Body& body = Body()
-        ):
-            m_headers(std::move(headers_str))
-        {
-            this->status = status;
-            this->headers = m_headers.c_str();
-            this->body = body;
-        }
-
-        Response(const Response& other) {
-            this->status = other.status;
-            this->body = other.body;
-            m_headers = other.m_headers;
-            headers = m_headers.c_str();
-        }
-
-        void add_header(const std::string_view field, const std::string_view value) {
-            m_headers += field;
-            m_headers += ": ";
-            m_headers += value;
-            m_headers += '\n';
-            headers = m_headers.c_str();
-        }
-        void add_header(const std::string_view header) {
-            m_headers += header;
-            m_headers += '\n';
-            headers = m_headers.c_str();
-        }
-
-        void clear_headers() {
-            m_headers.clear();
-            headers = nullptr;
-        }
-
-        void set_headers(const std::string_view headers_str) {
-            m_headers = headers_str;
-            headers = m_headers.c_str();
-        }
-
-#if 0
-        ~Response() {
-            clear_headers();
-        }
-#endif
-    };
 
     /// Degrees of separation
     enum class Locality {

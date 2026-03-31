@@ -112,3 +112,8 @@ CREATE TABLE RepoTicketComments (
 );
 -- CREATE TABLE RepoTicketCommentEdits
 
+-- email -> fiy user map
+CREATE TABLE UserEmails (
+    email TEXT UNIQUE NOT NULL,
+    user TEXT
+);

@@ -296,6 +296,8 @@ struct fiy_host_info_t {
     // TODO this could be used to provide context to other functions
     // struct Mod;
     // Mod* mod;
+
+    // TODO get a list of installed mods (by id)
 };
 
 typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host_info_t*);
