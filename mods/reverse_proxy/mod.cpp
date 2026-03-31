@@ -10,6 +10,11 @@ std::string g_proxy_target;
 
 void handle_request(fiy::Request& r, const fiy::Callback cb) {
     // TODO the hard part: proxy request with added user header
+    static const std::string body = "<h1>Not implemented</h1>"
+        "<p>If you are an admin, please either update this mod or remove it</p>"
+        "<p>This mod is configured to reverse-proxy requests to " + g_proxy_target
+        + "</p>";
+    r.respond(cb, 501, "Content-type: text/html", fiy::Body(body));
 }
 
 /// Export: Start module

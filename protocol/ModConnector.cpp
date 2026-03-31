@@ -36,10 +36,10 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
         auto& r = m_conn->req();
 
         // Initialize fiy_request_t
-        this->method = (uint8_t) r.method();
+        this->method = static_cast<uint8_t>(r.method());
         // TODO should use string_view equivalent to avoid copies
         this->path = new_cstr_from_string(r.target());
-        this->body = new_cstr_from_string(r.body());
+        this->body = r.body().data(); // this should be safe bc we have shared
         this->body_len = r.body().size();
         this->domain = user.domain;
         this->user = (user.user.empty() || user.user == " ")
@@ -49,7 +49,6 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
     }
 
     virtual ~ModDllConnectorRequest() {
-        delete[] this->body;
         delete[] this->path;
         delete[] this->user;
         delete[] this->headers;
@@ -79,6 +78,7 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
                     fp.seek(r->body.file.offset, ec);
                     if (ec) {
                         LOG_ERR("Seek failed: " << ec.message());
+                        break;
                     }
                 }
 
@@ -128,6 +128,7 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
         }
         std::string ret;
         for (const auto& h : f) {
+            // TODO maybe some headers we should skip?
             ret += h.name_string();
             ret += ": ";
             ret += h.value();
@@ -343,14 +344,15 @@ void ModDLLConnector::handle_request(const std::shared_ptr<Session> conn) {
     }
 
     // Send it to the mod
-    fiy::fiy_request_t* r = new ModDllConnectorRequest(conn, user);
+    fiy::fiy_request_t* r = new ModDllConnectorRequest(std::move(conn), user);
     m_mod_info->on_request(
         r,
         [](
             const fiy::fiy_request_t* req,
             const fiy::fiy_response_t* resp
         ){
-            ((ModDllConnectorRequest*) req)->callback(resp);
+            const auto r = (ModDllConnectorRequest*) req;
+            r->callback(resp); // this deletion of r
         }
     );
 }
@@ -360,6 +362,11 @@ void ModDLLConnector::handle_request(
     void* context,
     void (*callback)(const struct fiy::fiy_response_t*, void*)
 ) {
+    // TODO maybe we should give each mod a dedicated handler thread + task queue
+    //      so that it block the server/asio thread
+    //  downside: slightly increased latency
+
+    // Augmented request object with callback+context
     struct ModDllConnectorRequestWrapper : public fiy::fiy_request_t {
         ModDllConnectorRequestWrapper(
             const fiy::fiy_request_t& req,

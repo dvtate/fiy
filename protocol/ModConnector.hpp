@@ -17,6 +17,7 @@ class Mod;
 /**
  * Abstract class that handles communication between the protocol host and mods
  */
+// TODO we should track requests, if 500+ requests awaiting response, we should maybe warn the user
 class ModConnector {
 public:
     /// Owner

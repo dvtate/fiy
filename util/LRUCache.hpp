@@ -8,6 +8,11 @@
 #include <stdexcept>
 #include <unordered_map>
 
+// TODO new DS idea: GC cache
+//  set a flag when item used
+//  periodically wipe the flags
+//  periodically/as needed, delete unused items
+
 /**
  * Simple LRU Cache implementation
  * @tparam K Key type
