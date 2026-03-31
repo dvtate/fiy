@@ -15,8 +15,10 @@
 /**
  * INI Config file abstract base class
  */
-class Config {
+class INIConfig {
 public:
+    virtual ~INIConfig() = default;
+
     bool m_error{false};
 
     bool parse(const std::string& path);
@@ -43,21 +45,23 @@ protected:
 /**
  * Parse protocol server config file
  */
-class FediyConfig : public Config {
+class FediyConfig : public INIConfig {
 public:
     // TODO move to /etc
     static constexpr const char* CONFIG_FILE_PATH = "/opt/fediy/config.ini";
 
-    explicit FediyConfig(const std::string& path = CONFIG_FILE_PATH) {
+    FediyConfig() = default;
+    explicit FediyConfig(const std::string& path) {
         parse(path);
         set_defaults(); // call after parse
     }
+
 
     /// Where files are stored
     std::string m_data_dir{"/opt/fediy"};
 
     /// Domain where we're hosting the service
-    char* m_hostname;
+    char* m_hostname{nullptr};
 
     /// Password salt that should not be changed
     // if we have a store with purchases we can give the user a key that only works with their salt
@@ -77,7 +81,13 @@ public:
     /// Server private key
     EVP_PKEY* m_private_key{nullptr};
 
+    /// Listen address
+    std::string m_listen_addr;
+
     // TODO request timeouts?
+
+    bool from_argv(int argc, char** argv);
+    bool from_file(const std::string& path = CONFIG_FILE_PATH);
 
 protected:
     bool set_key(const char* section, const char* key, const char* value) override;

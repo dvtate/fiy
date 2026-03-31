@@ -19,7 +19,7 @@
 struct RepoPageData;
 struct RepoFileBrowserPageData;
 
-class LocalRepo : public BasicRepo, protected GitRepo {
+class LocalRepo : public BasicRepo, public GitRepo {
 public:
     /// Short description for the repo
     std::string description{};

@@ -6,9 +6,32 @@
 
 #include "FIY.hpp"
 
+/**
+ * Start the protocol server + portal
+ * @param argc from main
+ * @param argv from main
+ * @return false on error
+ */
+bool FIY::start(const int argc, char* argv[]) {
+    // Load config
+    if (!m_config.from_argv(argc, argv) || m_config.m_error) {
+        LOG_ERR("Failed to parse config file.");
+        return false;
+    }
+
+    return start();
+}
+
+/**
+ * Start the protocol server + portal
+ * @param argc from main
+ * @param argv from main
+ * @return false on error
+ */
 bool FIY::start() {
     // Note: order is important
 
+    // Make sure config loaded
     if (m_config.m_error) {
         LOG_ERR("Failed to parse config file.");
         return false;

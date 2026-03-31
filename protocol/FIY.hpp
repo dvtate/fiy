@@ -40,9 +40,12 @@ public:
         m_config(config_path)
     {}
 
+
+    bool start(int argc, char* argv[]);
     bool start();
 
-    inline std::time_t now() const {
+
+    std::time_t now() const {
         return m_now;
     }
 
