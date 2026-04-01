@@ -1,4 +1,4 @@
---CREATE DATABASE fediy;
+--CREATE DATABASE fiy;
 
 CREATE TABLE Peers (
     -- domain used to connect to peer

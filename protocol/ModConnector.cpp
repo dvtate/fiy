@@ -15,7 +15,7 @@
 #include "Server/Session.hpp"
 #include "LocalUser.hpp"
 #include "FIY.hpp"
-#include "../modlib/fediymod.hpp"
+#include "../modlib/fiymod.hpp"
 #include "Server/util.hpp"
 
 /// Message passed to shared library

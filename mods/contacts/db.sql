@@ -14,10 +14,10 @@ CREATE TABLE Cards (
     -- unique id for the contact
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    -- fediy user who owns this contact
+    -- FIY user who owns this contact
     owner TEXT NOT NULL,
 
-    -- fediy user that this contact corresponds to
+    -- FIY user that this contact corresponds to
     user TEXT DEFAULT NULL,
 
     updateTs INTEGER

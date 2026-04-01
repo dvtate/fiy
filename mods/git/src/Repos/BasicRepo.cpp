@@ -8,7 +8,7 @@
 #include <iostream>
 
 #include "git_http_backend.hpp"
-#include "../../../../modlib/fediymod.hpp"
+#include "../../../../modlib/fiymod.hpp"
 
 #include "../DB.hpp"
 

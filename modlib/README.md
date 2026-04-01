@@ -1,5 +1,5 @@
-# Fediy Mod Development
-Fediy mods are federated apps that run on top of Fediy.
+# FIY Mod Development
+FIY mods are federated apps that run on top of FIY.
 
 ## Module.json
 This section describes the module.json file which contains relevant information about the mod.
@@ -10,11 +10,11 @@ For example: this would work for the demo mod
     "id": "demo",
     "version": "0.0",
     "name": "C++ Demo Mod",
-    "description": "A simple Fediy mod written in C++ for demonstration purposes",
+    "description": "A simple FIY mod written in C++ for demonstration purposes",
     "icon": "icon.png",
     "enabled": false,
     "connector": "shared_object",
-    "connector_uri": "/opt/fediy/mods/demo/module.so",
+    "connector_uri": "/opt/fiy/mods/demo/module.so",
     "path": "demo",
     "access": "global"
 }
@@ -24,7 +24,7 @@ For example: this would work for the demo mod
 A globally unique name given to the mod to facilitate federation. Ideally this should be in reverse domain name notation in order to eliminate namespace collisions. Some built-in and example mods may not follow this notation. 
 
 Examples:
-- org.fediy.chat
+- net.dvtt.chat
 - com.example.app
 
 ### `version`
@@ -49,12 +49,12 @@ ie - /icon.png should be accessible as <instance>/<mod>/icon.png
 Should this mod be enabled or not?
 
 ### `connector`
-How does the fediy protocol server communicate with this mod?
+How does the FIY protocol server communicate with this mod?
 - For now, the options are `"shared_object"`, `"http"` or `"https"`
 
 ### `connector_uri`
-Where does the fediy protocol server communicate with this mod?
-- `/opt/fediy/mods/demo/module.so` -- shared_object
+Where does the FIY protocol server communicate with this mod?
+- `/opt/fiy/mods/demo/module.so` -- shared_object
 - `cloud.example.com:3000` -- http/https
 
 ### `path`

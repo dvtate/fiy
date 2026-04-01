@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "../../../modlib/fediymod.hpp"
+#include "../../../modlib/fiymod.hpp"
 
 /**
  * Stores only the repository path and basic info

@@ -8,7 +8,7 @@
 
 #include "../../../third_party/SQLiteCpp/include/SQLiteCpp/SQLiteCpp.h"
 
-#include "../../../modlib/fediymod.hpp"
+#include "../../../modlib/fiymod.hpp"
 
 namespace DB {
 

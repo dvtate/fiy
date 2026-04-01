@@ -2,7 +2,7 @@
 set -e
 
 #
-# This script is a temporary way to install the fediy protocol server.
+# This script is a temporary way to install the FIY protocol server.
 # Eventually this will be replaced by an installation package.
 #
 
@@ -47,7 +47,7 @@ prompt_y_N () {
 
 if [ ! -f build/protocol_server ]; then
     echo "Project not built yet";
-    read -p "Press Enter to build Fediy or ctrl+c to cancel..."
+    read -p "Press Enter to build FIY or ctrl+c to cancel..."
     ./build.sh
     echo "Build finished."
 fi
@@ -60,9 +60,9 @@ else
 fi
 
 declare INSTALL_PATH
-read -r -p "Enter install location (default: /opt/fediy) " INSTALL_PATH
+read -r -p "Enter install location (default: /opt/fiy) " INSTALL_PATH
 if [[ -z "$INSTALL_PATH" ]]; then
-    INSTALL_PATH="/opt/fediy"
+    INSTALL_PATH="/opt/fiy"
 fi
 
 declare PORT
@@ -187,7 +187,7 @@ echo "Installed Static hosting example mod."
 
 # Install protocol server
 cp $CP_INSTALL_FLAG "$(realpath ./build/protocol_server)" "$INSTALL_PATH/server"
-cp $CP_INSTALL_FLAG "$(realpath ./build/libfediymod.so)" "$INSTALL_PATH/libfediymod.so"
+cp $CP_INSTALL_FLAG "$(realpath ./build/libfiymod.so)" "$INSTALL_PATH/libfiymod.so"
 echo "Installed binaries."
 
 if [ "$DEVEL_INSTALL" -eq 1 ]; then
@@ -201,25 +201,25 @@ echo "Installed Portal Frontend."
 # systemd unit file
 echo "
 [Unit]
-Description=FedIY Protocol Server
+Description=FIY Protocol Server
 
 [Service]
 Type=simple
 ExecStart=$INSTALL_PATH/server $INSTALL_PATH/config.ini
 #User=$(whoami) # replace this and uncomment
 # For security, it's recommended to run the server as a dedicated non-privileged user
-" > "$INSTALL_PATH/fediy.service"
+" > "$INSTALL_PATH/fiy.service"
 if [ "$INSTALL_SYSTEMD_UNIT" -eq 1 ]; then
-    mv "$INSTALL_PATH/fediy.service" "$INSTALL_PATH/fediy.service.sample"
-    cp "$INSTALL_PATH/fediy.service.sample" /etc/systemd/system/fediy.service
+    mv "$INSTALL_PATH/fiy.service" "$INSTALL_PATH/fiy.service.sample"
+    cp "$INSTALL_PATH/fiy.service.sample" /etc/systemd/system/fiy.service
     echo
-    echo "To enable and start the fediy systemd daemon run"
+    echo "To enable and start the fiy systemd daemon run"
     echo "sudo systemctl daemon-reload"
-    echo "sudo systemctl edit fediy.service"
-    echo "sudo systemctl enable --now fediy.service"
+    echo "sudo systemctl edit fiy.service"
+    echo "sudo systemctl enable --now fiy.service"
     echo
 else
-    echo "Wrote sample systemd unit file to: $INSTALL_PATH/fediy.service"
+    echo "Wrote sample systemd unit file to: $INSTALL_PATH/fiy.service"
 fi
 
 ## Generate and install server keys
@@ -240,8 +240,8 @@ chmod -R 777 "$INSTALL_PATH"
 
 echo
 echo
-echo "Fediy installed to $INSTALL_PATH"
+echo "FIY installed to $INSTALL_PATH"
 echo
-echo "To start the fediy protocol server, run"
+echo "To start the FIY protocol server, run"
 echo "$INSTALL_PATH/server $INSTALL_PATH/config.ini"
 echo

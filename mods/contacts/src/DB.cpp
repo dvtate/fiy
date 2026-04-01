@@ -4,7 +4,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../../../modlib/fediymod.hpp"
+#include "../../../modlib/fiymod.hpp"
 
 #include "Contact.hpp"
 

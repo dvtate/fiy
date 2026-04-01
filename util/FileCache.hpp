@@ -2,8 +2,7 @@
 // Created by tate on 7/31/25.
 //
 
-#ifndef FEDIY_FILECACHE_HPP
-#define FEDIY_FILECACHE_HPP
+#pragma once
 
 #include <string>
 #include <fstream>
@@ -164,7 +163,7 @@ match_found:
 //                     end - i + 4,
 //                     value == nullptr ? "" : *value
 //                 );
-// #ifdef FEDIY_DEBUG
+// #ifdef FIY_DEBUG
 //             if (value == nullptr && remove_unused)
 // #endif
 //             i = end + 2;
@@ -205,5 +204,3 @@ match_found:
         return ret;
     }
 };
-
-#endif //FEDIY_FILECACHE_HPP

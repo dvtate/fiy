@@ -2,14 +2,13 @@
 // Created by tate on 12/3/25.
 //
 
-#ifndef FEDIY_PAGES_HPP
-#define FEDIY_PAGES_HPP
+#pragma once
 
 #include <boost/core/data.hpp>
 
 #include "RepoPageData.hpp"
 #include "../Repos/LocalRepo.hpp"
-#include "../../../../modlib/fediymod.hpp"
+#include "../../../../modlib/fiymod.hpp"
 #include "../../../../util/FileCache.hpp"
 
 inline std::string get_frontend_dir() {
@@ -108,5 +107,3 @@ struct Pages : FileCache<get_frontend_dir> {
         // TODO future: contributors, languages, readme viewer,
     }
 };
-
-#endif //FEDIY_PAGES_HPP

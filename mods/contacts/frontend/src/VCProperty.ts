@@ -377,9 +377,9 @@ const vCardProperties: { [k: string]: VCPropSpec } = {
         versions: true,
         customInput: CustomSocialInput,
     },
-    'X-FEDIY-PROFILE': {
-        name: 'Fediy User Profile',
-        description: 'Fediy user who owns this profile',
+    'X-FIY-PROFILE': {
+        name: 'FIY User Profile',
+        description: 'FIY user who owns this profile',
         type: 'text',
         versions: true,
         customInput: CustomFiyUserInput,

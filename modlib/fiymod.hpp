@@ -2,8 +2,8 @@
 // Created by tate on 7/15/25.
 //
 
-#ifndef FEDIY_FEDIYMOD_HPP
-#define FEDIY_FEDIYMOD_HPP
+#ifndef FIY_FIYMOD_HPP
+#define FIY_FIYMOD_HPP
 
 #include <string>
 #include <string_view>
@@ -14,7 +14,7 @@
 
 #include <unistd.h>
 
-#include "fediymod.h"
+#include "fiymod.h"
 
 namespace fiy {
     using Callback = fiy_callback_t;
@@ -617,4 +617,4 @@ using fiy::fiy_request_t;
 using fiy::fiy_response_t;
 using fiy::fiy_host_info_t;
 
-#endif //FEDIY_FEDIYMOD_HPP
+#endif //FIY_FIYMOD_HPP

@@ -7,8 +7,8 @@ to be run on separate machines.
 
 ## Configuration
 ### MNW Config
-- fediy server address
+- FIY server address
 - listening port number
 
-### FeDIY Config
+### FIY Config
 - MNW address + portnumber

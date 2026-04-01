@@ -3,12 +3,12 @@
 //
 
 #pragma once
-#include <iostream>
+
 #include <string>
 #include <fstream>
 #include <string_view>
 
-#include "../../../modlib/fediymod.hpp"
+#include "../../../modlib/fiymod.hpp"
 
 #include "Contact.hpp"
 #include "DB.hpp"
@@ -101,10 +101,10 @@ namespace Pages {
         static const std::string contents = Pages::replace_all(
             load_file_as_string(full_path("main.bundle.js")),
             {
-                {   "{{fediy_contacts_base_uri}}",
+                {   "{{fiy_contacts_base_uri}}",
                     fiy::host().base_uri
                 }, {
-                    "{{fediy_contacts_domain}}",
+                    "{{fiy_contacts_domain}}",
                     fiy::host().domain
                 }
             }
@@ -116,8 +116,8 @@ namespace Pages {
         static std::string contents = replace_all(
             load_file_as_string(full_path("index.html")),
             {
-                { "{{fediy_contacts_base_uri}}", fiy::host().base_uri },
-                { "{{fediy_contacts_domain}}", fiy::host().domain }
+                { "{{fiy_contacts_base_uri}}", fiy::host().base_uri },
+                { "{{fiy_contacts_domain}}", fiy::host().domain }
             }
         );
         return fiy::Body(contents);

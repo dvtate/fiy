@@ -9,7 +9,7 @@
 #include <string_view>
 #include <boost/unordered/unordered_flat_map.hpp>
 
-#include "../../../../modlib/fediymod.hpp"
+#include "../../../../modlib/fiymod.hpp"
 
 #include "LocalRepo.hpp"
 #include "../../../../util/RWMutex.hpp"

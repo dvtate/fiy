@@ -1,7 +1,7 @@
 
 import { VCProperty } from "./VCProperty";
 
-import { domain } from './api';
+import * as API from './api';
 
 export default class VC {
     public static readonly BEGIN_TOKEN = "BEGIN:VCARD";
@@ -39,19 +39,29 @@ export default class VC {
         return "Invalid: No Name";
     }
 
-    getId() {
+    getId(): string {
+        // Try card UID field
+        let p = this.properties.find(p => p.name == "UID");
+        if (p)
+            return p.value;
+
         // Looks like "SOURCE:<protocol><domain>/contacts/id/<contact id>"
-        let p = this.properties.find(p => p.name == 'SOURCE');
+        p = this.properties.find(p => p.name == 'SOURCE');
         if (!p)
             return '-1';
         return p.value.split('/').pop();
     }
 
     getFiyUser() {
-        let p = this.properties.find(p => p.name == 'UID');
-        if (!p || !p.value.includes('@'))
+        let p = this.properties.find(p => p.name == 'X-FIY-PROFILE');
+        if (!p)
             return '';
-        return p.value;
+        let ret = p.value.trim();
+        if (ret == '')
+            return '';
+        if (!p.value.includes('@'))
+            ret += '@' + API.domain;
+        return ret;
     }
 
     getProperty(property: string) {
@@ -199,8 +209,8 @@ export default class VC {
      */
     isProfileCard() {
         // For the user's profile card, the server sets a special property:
-        //      X-FEDIY-PROFILE: username
-        const p = this.properties.find(p => p.name === 'X-FEDIY-PROFILE');
+        //      X-FIY-PROFILE: username
+        const p = this.properties.find(p => p.name === 'X-FIY-PROFILE');
         if (!p)
             return false;
         return p.value;
@@ -291,7 +301,7 @@ export default class VC {
             ? (p: VCProperty, i: number) => {
                 form.insertAdjacentHTML('beforeend', `<select id="edit-vis-${i}">
                     <option value="0">Only Me</option>
-                    <option value="1">Local ${domain} users</option>
+                    <option value="1">Local ${API.domain} users</option>
                     <option value="2">Any federated user</option>
                     <option value="3">Public</option>
                 </select>`);

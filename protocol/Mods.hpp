@@ -9,7 +9,7 @@
 // TODO refactor so that it handles ids and path lookups better
 
 /**
- * Interface and cache for managing the installed fediy mods/apps
+ * Interface and cache for managing the installed FIY mods/apps
  */
 class Mods {
 protected:
@@ -42,7 +42,7 @@ public:
     void clear() {
         RWMutex::LockForWrite lock{m_mtx};
         for (auto* m : m_mods)
-#ifndef FEDIY_DEBUG
+#ifndef FIY_DEBUG
             if (m != nullptr)
 #endif
             delete m;

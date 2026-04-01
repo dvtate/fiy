@@ -9,7 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../../modlib/fediymod.hpp"
+#include "../../modlib/fiymod.hpp"
 #include "../../util/mime.hpp"
 
 /// Where to look for the files

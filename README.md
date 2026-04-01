@@ -1,4 +1,4 @@
-# Fed-IY -- Federate It Yourself
+# FIY -- Federate It Yourself
 A federation protocol and platform that makes it easy to make and host federated apps.
 
 ## Building
@@ -8,6 +8,7 @@ A federation protocol and platform that makes it easy to make and host federated
 - sqlite3
 - git
 - libgit2
+- libcurl
 
 ### Build
 Run `build.sh`.

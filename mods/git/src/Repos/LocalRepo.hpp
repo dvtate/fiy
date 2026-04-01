@@ -11,7 +11,7 @@
 #include <functional>
 #include <optional>
 
-#include "../../../../modlib/fediymod.hpp"
+#include "../../../../modlib/fiymod.hpp"
 
 #include "BasicRepo.hpp"
 #include "GitRepo.hpp"

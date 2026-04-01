@@ -58,8 +58,8 @@ Get a list of contacts matching search query.
 - user must be logged in
 - loc: locality: default=2
     *  0 - invalid
-    *  1 - contacts for fediy users on this instance
-    *  2 - contacts for fediy users on this or other instances
+    *  1 - contacts for FIY users on this instance
+    *  2 - contacts for FIY users on this or other instances
     *  3 - contacts for anyone even if not federated
 ### result
 If loc is 1 or 2 -- list of users

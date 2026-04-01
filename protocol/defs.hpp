@@ -3,16 +3,16 @@
 #include <iostream>
 
 // Version
-#define FEDIY_VERSION_MAJOR 0
-#define FEDIY_VERSION_MINOR 1
-#define FEDIY_VERSION_STRING #FEDIY_VERSION_MAJOR "." #FEDIY_VERSION_MINOR
+#define FIY_VERSION_MAJOR 0
+#define FIY_VERSION_MINOR 1
+#define FIY_VERSION_STRING #FIY_VERSION_MAJOR "." #FIY_VERSION_MINOR
 
 // TODO better logging system
 #define LOG_ERR(MSG) std::cerr << MSG <<std::endl
 #define LOG_WARN(MSG) std::cerr << MSG <<std::endl
 #define LOG(MSG) std::cout << MSG <<std::endl
 
-#ifdef FEDIY_DEBUG
+#ifdef FIY_DEBUG
 #   if defined(__GNUC__) || defined(__clang__)
 #       define DEBUG_LOG(MSG) std::cout << __PRETTY_FUNCTION__ << ": " << MSG <<std::endl
 #   else

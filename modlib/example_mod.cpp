@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include "fediymod.hpp"
+#include "fiymod.hpp"
 
 static void handle_request(fiy::fiy_request_t* _request, fiy::fiy_callback_t callback) {
     const auto* req = (fiy::Request*) _request;

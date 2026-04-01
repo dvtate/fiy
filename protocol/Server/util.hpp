@@ -2,14 +2,12 @@
 // Created by tate on 7/28/25.
 //
 
-#ifndef FEDIY_UTIL_HPP
-#define FEDIY_UTIL_HPP
-
+#pragma once
 
 #include <string>
 #include <string_view>
 
-#include "defs.hpp"
+#include "../defs.hpp"
 
 template<class BoostHttpMessage>
 inline std::string get_headers_string(const BoostHttpMessage& res) {
@@ -56,5 +54,3 @@ void response_set_headers(ResponseType& res, const char* headers_str) {
         headers.remove_prefix(end + 1);
     }
 }
-
-#endif //FEDIY_UTIL_HPP

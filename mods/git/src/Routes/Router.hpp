@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "../../../modlib/fediymod.hpp"
+#include "../../../modlib/fiymod.hpp"
 
 /**
  * Function that routes requests to correct handlers

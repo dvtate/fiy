@@ -11,7 +11,7 @@
 
 #include "Peer.hpp"
 
-#include "../modlib/fediymod.hpp"
+#include "../modlib/fiymod.hpp"
 
 
 class Peers {

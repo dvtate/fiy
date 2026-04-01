@@ -8,7 +8,7 @@
 
 #include "../../../third_party/base64.hpp"
 
-#include "../../../modlib/fediymod.hpp"
+#include "../../../modlib/fiymod.hpp"
 
 #include "DB.hpp"
 #include "Pages.hpp"

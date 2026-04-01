@@ -19,10 +19,10 @@ struct VC {
     /// Unique ID
     int64_t id{-1};
 
-    /// fediy user that owns the vcard
+    /// FIY user that owns the vcard
     std::string owner;
 
-    /// fediy user represented by the card
+    /// FIY user represented by the card
     std::string user;
 
     /// last edited timestamp

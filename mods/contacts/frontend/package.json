@@ -1,7 +1,7 @@
 {
-  "name": "fediy-contacts-frontend",
+  "name": "fiy-contacts-frontend",
   "version": "1.0.0",
-  "description": "contacts app for fediy platform",
+  "description": "contacts app for FIY platform",
   "homepage": "https://github.com/dvtate/fediy#readme",
   "bugs": {
     "url": "https://github.com/dvtate/fediy/issues"

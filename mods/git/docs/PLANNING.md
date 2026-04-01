@@ -8,7 +8,7 @@
 
 ### fiy-user vs email
 - Problem: Can't use emails like normal git because gotta be able to tie the emails back to host instance.
-- Solution?: Contributors.txt - file that contains all the fediy - email mappings
+- Solution?: Contributors.txt - file that contains all the FIY -> email mappings
 
 ## Filesystem
 This section describes how files should be stored within the mod's data dir

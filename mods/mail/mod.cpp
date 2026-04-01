@@ -2,7 +2,7 @@
 // Created by tate on 8/6/24.
 //
 
-#include "../../modlib/fediymod.hpp"
+#include "../../modlib/fiymod.hpp"
 
 #include <iostream>
 #include <cstring>

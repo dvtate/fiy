@@ -2,8 +2,8 @@
 // Created by tate on 7/5/24.
 //
 
-#ifndef FEDIY_FEDIYMOD_H
-#define FEDIY_FEDIYMOD_H
+#ifndef FIY_FIYMOD_H
+#define FIY_FIYMOD_H
 
 #ifndef __cplusplus
 #include <stdio.h>
@@ -308,4 +308,4 @@ typedef struct fiy_mod_info_t* (*fiy_mod_start_function_t)(const struct fiy_host
 
 #define FIY_EXPORT  extern "C" __attribute__((visibility("default")))
 
-#endif //FEDIY_FEDIYMOD_H
+#endif //FIY_FIYMOD_H

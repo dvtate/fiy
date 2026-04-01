@@ -2,8 +2,8 @@
 // Created by tate on 8/8/25.
 //
 
-#include "fediymod.h"
-#include "fediymod.hpp"
+#include "fiymod.h"
+#include "fiymod.hpp"
 
 namespace fiy {
 

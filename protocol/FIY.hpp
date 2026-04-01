@@ -27,7 +27,7 @@ class FIY {
 public:
     boost::asio::io_context* m_ioc{nullptr};
 
-    FediyConfig m_config;
+    FiyConfig m_config;
     Peers m_peers;
     Mods m_mods;
     std::unique_ptr<Pages> m_pages;

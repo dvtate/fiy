@@ -1,7 +1,7 @@
 import VC from "./VC";
 
-export const base_uri = "{{fediy_contacts_base_uri}}";
-export const domain = "{{fediy_contacts_domain}}";
+export const base_uri = "{{fiy_contacts_base_uri}}";
+export const domain = "{{fiy_contacts_domain}}";
 
 export async function getUserContacts() {
     // Just for now while I work on frontend

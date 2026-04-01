@@ -37,13 +37,13 @@ bool INIConfig::parse(const std::string& path) {
     return !m_error;
 }
 
-bool FediyConfig::from_file(const std::string& path) {
+bool FiyConfig::from_file(const std::string& path) {
     const bool ret = parse(path);
     set_defaults();
     return ret;
 }
 
-bool FediyConfig::from_argv(int argc, char** argv) {
+bool FiyConfig::from_argv(int argc, char** argv) {
     // TODO use a proper command line library instead
     if (argc <= 1)
         return from_file(CONFIG_FILE_PATH);
@@ -78,7 +78,7 @@ bool FediyConfig::from_argv(int argc, char** argv) {
 }
 
 
-bool FediyConfig::set_key(const char* section, const char* key, const char* value) {
+bool FiyConfig::set_key(const char* section, const char* key, const char* value) {
     // No section
     if (section[0] != '\0') {
         LOG_ERR("Config file: invalid section: " <<section);
@@ -154,7 +154,7 @@ bool FediyConfig::set_key(const char* section, const char* key, const char* valu
 }
 
 // Call after parse to fill in any missing items
-void FediyConfig::set_defaults() {
+void FiyConfig::set_defaults() {
     // Try to get keys from their default locations
     if (m_public_key.empty()) {
         const std::string path = m_data_dir + "/auth/pubkey.crt";

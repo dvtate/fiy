@@ -10,8 +10,8 @@ It should look like this.
 # Where your instance will be accessible at
 hostname=fiy.yourdomain.com
 
-# Where fediy is installed
-data_dir=/opt/fediy
+# Where FIY is installed
+data_dir=/opt/fiy
 
 # Additional entropy source
 salt=your_random_salt_here_change_this
@@ -57,14 +57,14 @@ For example, this nginx.conf should work:
 Run install.sh.
 
 ## Security
-Consider running the fediy server as a dedicated user that only has access to files in the install dir.
+Consider running the FIY server as a dedicated user that only has access to files in the install dir.
 
 ## Notes
 - Your system clock must be accurate in order to interact with other instances
 
 ## TODO: Paths
 Eventually these will be accurate, for now everything is in a provided install directory
-- `/usr/bin/fediy` - portal/protcol server
-- `/usr/share/fediy/config.ini`
-- `/usr/share/fediy/templates/*.html`
-- `/var/lib/fediy/db.db3` - database
+- `/usr/bin/fiy` - portal/protcol server
+- `/usr/share/fiy/config.ini`
+- `/usr/share/fiy/templates/*.html`
+- `/var/lib/fiy/db.db3` - database

@@ -5,7 +5,7 @@
 #include <ctime>
 #include <regex>
 
-#include "../../../modlib/fediymod.hpp"
+#include "../../../modlib/fiymod.hpp"
 
 #include "Contact.hpp"
 
@@ -50,12 +50,12 @@ std::string VC::to_vcard() const {
         ret += "\r\n";
     }
     if (!this->user.empty() && this->owner == this->user) {
-        ret += "X-FEDIY-PROFILE:";
+        ret += "X-FIY-PROFILE:";
         ret += this->user;
         ret += "\r\n";
     }
     if (!this->user.empty()) {
-        ret += "X-SOCIALPROFILE;TYPE=fediy:";
+        ret += "X-SOCIALPROFILE;TYPE=fiy:";
         ret += this->user;
         ret += "\r\n";
     }
@@ -175,7 +175,7 @@ bool VC::parse(std::string vc) {
             }
             continue;
         }
-        if (name == "X-FEDIY-PROFILE") {
+        if (name == "X-FIY-PROFILE") {
             this->user = value;
             // if (this->owner != value) {
             //     fiy::log_error("VC::parse(): User not owner of profile card? "
@@ -220,13 +220,13 @@ bool VC::parse(std::string vc) {
                     if (pend == idstr)
                         property_id = -1;
                 } else {
-                    if (p.starts_with("TYPE=fediy") && name == "X-SOCIALPROFILE") {
+                    if (p.starts_with("TYPE=fiy") && name == "X-SOCIALPROFILE") {
                         const auto [u, domain] = fiy::host().split_user_str(value);
                         if (domain.empty())
                             this->user = std::string(u) + "@" + fiy::host().domain;
                         else
                             this->user = value;
-                        goto skip_property; // alt for X-FEDIY-PROFILE
+                        goto skip_property; // alt for X-FIY-PROFILE
                     }
 
                     // TODO check if no = ?

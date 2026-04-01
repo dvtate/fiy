@@ -9,7 +9,7 @@
 
 #include "defs.hpp"
 
-#include "../modlib/fediymod.h"
+#include "../modlib/fiymod.h"
 
 class Session;
 class Mod;

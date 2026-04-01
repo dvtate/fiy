@@ -5,7 +5,7 @@
 #include <git2.h>
 #include <string_view>
 
-#include "../../../modlib/fediymod.hpp"
+#include "../../../modlib/fiymod.hpp"
 
 #include "../../../util/WebUtils.hpp"
 

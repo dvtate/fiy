@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(fediy
+project(fiy
         LANGUAGES C CXX)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -9,7 +9,7 @@ endif()
 
 # C++ Flags
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Og -DFEDIY_DEBUG=1")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Og -DFIY_DEBUG=1")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_STANDARD 20)
 
@@ -31,7 +31,7 @@ file(GLOB protocol_server_sources protocol/*.cpp)
 
 add_executable(protocol_server ${protocol_server_sources}
     third_party/inih/ini.c
-    modlib/fediymod.h
+    modlib/fiymod.h
     protocol/defs.hpp
     protocol/FIY.hpp
     protocol/FIY.cpp
@@ -67,7 +67,7 @@ add_executable(protocol_server ${protocol_server_sources}
 
 # Debug/vs release
 target_compile_definitions(protocol_server PRIVATE
-    $<$<CONFIG:Debug>:FEDIY_DEBUG=1>
+    $<$<CONFIG:Debug>:FIY_DEBUG=1>
 )
 #target_compile_options(protocol_server PRIVATE
 #    $<$<CONFIG:Debug>:-O0;-g>
@@ -93,47 +93,47 @@ target_link_libraries(protocol_server
     Boost::url
 )
 
-add_library(fediymod SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
-    modlib/fediymod.cpp
+add_library(fiymod SHARED
+    modlib/fiymod.h
+    modlib/fiymod.hpp
+    modlib/fiymod.cpp
 )
 
 
 add_library(demo_mod SHARED
     modlib/example_mod.c
-    modlib/fediymod.h
+    modlib/fiymod.h
 )
-target_link_libraries(demo_mod PRIVATE fediymod)
+target_link_libraries(demo_mod PRIVATE fiymod)
 target_compile_options(demo_mod PRIVATE
     -fvisibility=hidden
 )
 
 add_library(demo_mod_cpp SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
+    modlib/fiymod.h
+    modlib/fiymod.hpp
     modlib/example_mod.cpp
 )
-target_link_libraries(demo_mod_cpp PRIVATE fediymod)
+target_link_libraries(demo_mod_cpp PRIVATE fiymod)
 target_compile_options(demo_mod_cpp PRIVATE
     -fvisibility=hidden
 )
 
 add_library(demo_mod_mail SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
+    modlib/fiymod.h
+    modlib/fiymod.hpp
     mods/mail/MailBox.hpp
     mods/mail/mod.cpp
 )
-target_link_libraries(demo_mod_mail PRIVATE fediymod)
+target_link_libraries(demo_mod_mail PRIVATE fiymod)
 target_compile_options(demo_mod_mail PRIVATE
     -fvisibility=hidden
 )
 
 # Builtin contacts mod
 add_library(contacts_mod SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
+    modlib/fiymod.h
+    modlib/fiymod.hpp
     mods/contacts/src/mod.cpp
     mods/contacts/src/Contact.cpp
     mods/contacts/src/Contact.hpp
@@ -144,7 +144,7 @@ add_library(contacts_mod SHARED
     third_party/base64.hpp
 )
 target_link_libraries(contacts_mod
-    PRIVATE fediymod
+    PRIVATE fiymod
     PUBLIC SQLiteCpp
     PUBLIC sqlite3
     PUBLIC pthread
@@ -159,8 +159,8 @@ target_compile_options(contacts_mod PRIVATE
 
 # Builtin git builtin mod
 add_library(git_mod SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
+    modlib/fiymod.h
+    modlib/fiymod.hpp
     mods/git/src/mod.cpp
     mods/git/src/Routes/Pages.hpp
     mods/git/src/Repos/git_http_backend.cpp
@@ -192,7 +192,7 @@ add_library(git_mod SHARED
     mods/git/src/Routes/UserPageData.hpp
 )
 target_link_libraries(git_mod
-    PRIVATE fediymod
+    PRIVATE fiymod
     PUBLIC SQLiteCpp
     PUBLIC sqlite3
     PUBLIC pthread
@@ -205,53 +205,53 @@ target_compile_options(git_mod PRIVATE
 
 # Builtin http static server mod
 add_library(static_mod SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
+    modlib/fiymod.h
+    modlib/fiymod.hpp
     util/mime.hpp
     util/mime.cpp
     mods/static/mod.cpp
 )
-target_link_libraries(static_mod PRIVATE fediymod)
+target_link_libraries(static_mod PRIVATE fiymod)
 target_compile_options(static_mod PRIVATE
     -fvisibility=hidden
 )
 
 # Builtin http reverse proxy mod
 add_library(reverse_proxy_mod SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
+    modlib/fiymod.h
+    modlib/fiymod.hpp
     mods/reverse_proxy/mod.cpp
 )
-target_link_libraries(reverse_proxy_mod PRIVATE fediymod)
+target_link_libraries(reverse_proxy_mod PRIVATE fiymod)
 target_compile_options(reverse_proxy_mod PRIVATE
     -fvisibility=hidden
 )
 
 # Builtin oauth mod
 add_library(oauth_mod SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
+    modlib/fiymod.h
+    modlib/fiymod.hpp
     mods/oauth/mod.cpp
 )
-target_link_libraries(oauth_mod PRIVATE fediymod)
+target_link_libraries(oauth_mod PRIVATE fiymod)
 target_compile_options(oauth_mod PRIVATE
     -fvisibility=hidden
 )
 
 # Builtin notifications mod
 add_library(notifications_mod SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
+    modlib/fiymod.h
+    modlib/fiymod.hpp
     mods/notifications/mod.cpp
 )
-target_link_libraries(notifications_mod PRIVATE fediymod)
+target_link_libraries(notifications_mod PRIVATE fiymod)
 target_compile_options(notifications_mod PRIVATE
     -fvisibility=hidden
 )
 
 add_executable(fiy_cdn mods/storage/cdn/main.cpp)
 target_compile_definitions(fiy_cdn PRIVATE
-    $<$<CONFIG:Debug>:FEDIY_DEBUG=1>
+    $<$<CONFIG:Debug>:FIY_DEBUG=1>
 )
 #target_compile_options(fiy_cdn PRIVATE
 #    $<$<CONFIG:Debug>:-O0;-g>
@@ -276,15 +276,15 @@ target_link_libraries(fiy_cdn
 )
 
 add_library(social_mod SHARED
-    modlib/fediymod.h
-    modlib/fediymod.hpp
+    modlib/fiymod.h
+    modlib/fiymod.hpp
     mods/social/src/mod.cpp
     mods/social/src/Post.hpp
     mods/social/src/Post.cpp
     mods/social/src/Posts.hpp
     mods/social/src/Posts.hpp
 )
-target_link_libraries(social_mod PRIVATE fediymod)
+target_link_libraries(social_mod PRIVATE fiymod)
 target_compile_options(social_mod PRIVATE
     -fvisibility=hidden
 )

@@ -1,7 +1,7 @@
 #include <deque>
 #include <string>
 
-#include "../../modlib/fediymod.hpp"
+#include "../../modlib/fiymod.hpp"
 
 
 void handle_request(struct fiy_request_t* request, fiy::Callback cb) {

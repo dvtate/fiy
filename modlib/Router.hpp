@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <optional>
 
-#include "fediymod.hpp"
+#include "fiymod.hpp"
 
 namespace fiy {
     // TODO replace this with a more performant trie-based implementation

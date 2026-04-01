@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include "../../../third_party/SQLiteCpp/include/SQLiteCpp/SQLiteCpp.h"
 
 #include "Contact.hpp"

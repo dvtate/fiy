@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "fediymod.h"
+#include "fiymod.h"
 
 struct fiy_host_info_t* g_host_info;
 

@@ -7,7 +7,7 @@
 #include <unordered_set>
 
 
-#include "../../../../modlib/fediymod.hpp"
+#include "../../../../modlib/fiymod.hpp"
 #include "../Routes/RepoPageData.hpp"
 
 
@@ -277,7 +277,7 @@ GitRepo::Commit::Commit(git_commit* commit) {
 
     // Get names+emails
     // TODO should we use *_with_mailmap instead?
-    //      probably not since we only care about fediy users
+    //      probably not since we only care about FIY users
     const git_signature* sig = git_commit_author(commit);
     if (sig && sig->name)
         this->author.name = sig->name;

@@ -19,7 +19,7 @@
 #include <boost/beast/core/detail/base64.hpp>
 
 #include "../../../../util/CGI.hpp"
-#include "../../../../modlib/fediymod.hpp"
+#include "../../../../modlib/fiymod.hpp"
 
 /*
  * This file implements a wrapper around the git-http-backend CGI

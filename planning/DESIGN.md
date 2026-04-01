@@ -10,7 +10,7 @@ Eventually these will all get moved to separate repos
     - How users are able to find and pay for mods
     - Would be cool if they had a
 - Apps (mods):
-    - fediymod.h: compile a .so file for your mod using interface provided
+    - fiymod.h: compile a .so file for your mod using interface provided
 
 - Landing page/website
 
@@ -20,7 +20,7 @@ Eventually these will all get moved to separate repos
         auth/           -- keys for peer 2 peer communication
         config.ini      -- global admin settings
         db.db3          -- sqlite database for protocol server
-        libfediymod.so  -- module library
+        libfiymod.so  -- module library
         mods/           -- installed apps (mods)
             example.app.id/     -- mod folder
                 module.json     -- mod configuration     
