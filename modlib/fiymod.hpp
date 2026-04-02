@@ -377,6 +377,11 @@ namespace fiy {
 
         Request(const fiy_request_t& req): fiy_request_t(req) {}
 
+        /**
+         * Get user string for request user
+         * @param anon_name return value when anonymous user
+         * @return user string, either username for local user or username + @ + domain for federated user
+         */
         [[nodiscard]] std::string user_str(const std::string& anon_name = "") const {
             if (user == nullptr)
                 return anon_name;
@@ -384,6 +389,20 @@ namespace fiy {
                 return user;
             return std::string(user) + "@" + std::string(domain);
         }
+
+        /// User string that always includes the host, even for local users
+        /// ie - user@example.com
+        [[nodiscard]] std::string global_user_str() const {
+            if (user == nullptr)
+                return "";
+            std::string ret = user;
+            ret += '@';
+            ret += domain == nullptr
+                ? fiy::host().domain
+                : domain;
+            return ret;
+        }
+
         [[nodiscard]] const char* method_str() const {
             return fiy_http_verb_strings[method];
         }
