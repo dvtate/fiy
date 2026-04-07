@@ -143,8 +143,6 @@ bool repo_api(
                 fiy::Body(body));
             return true;
         } catch (SQLite::Exception& e) {
-            fiy::host().log_error("DB error: " + std::string(e.getErrorStr()));
-            fiy::host().log_error("DB error: " + std::string(e.what()));
             req.respond(cb, 500,
                 "Content-type: application/json",
                 fiy::Body("[]"));

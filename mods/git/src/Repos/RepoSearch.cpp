@@ -52,7 +52,7 @@ std::vector<BasicRepo> RepoSearch::search(
         } else {
             qb.part("(visibility > " + std::to_string((int)visibility) + " OR EXISTS ("
                 "SELECT 1 FROM RepoAccess WHERE userName=? AND level > 0"
-                " AND repoPath=concat(repoUser, '/', repoName)))",
+                " AND repoPath=concat(userName, '/', repoName)))",
             [user = std::move(user_str)](SQLite::Statement& q, int& index) {
                 q.bind(index++, user);
             });
@@ -72,7 +72,7 @@ std::vector<BasicRepo> RepoSearch::search(
     }
     if (min_likes > 0) {
         qb.and_cond();
-        qb.part("(SELECT COUNT(*) FROM RepoLikes WHERE repoPath=concat(repoUser, '/', repoName)) > ?",
+        qb.part("(SELECT COUNT(*) FROM RepoLikes WHERE repoPath=concat(userName, '/', repoName)) > ?",
             [this](SQLite::Statement& q, int& index) {
                 q.bind(index++, min_likes);
             } );
@@ -81,7 +81,7 @@ std::vector<BasicRepo> RepoSearch::search(
         qb.and_cond();
         if (forks == BooleanFilter::No)
             qb.part("NOT ");
-        qb.part("EXISTS (SELECT 1 FROM RepoForks WHERE toRepoPath=repoName AND user=repoUser)");
+        qb.part("EXISTS (SELECT 1 FROM RepoForks WHERE toRepoPath=repoName AND user=userName)");
     }
     if (!name_like.empty()) {
         qb.and_cond();
@@ -115,7 +115,7 @@ std::vector<BasicRepo> RepoSearch::search(
             qb.part(" repoName");
             break;
         case Sort::Likes:
-            qb.part(" (SELECT COUNT(*) FROM RepoLikes WHERE repoPath=concat(repoUser, '/', repoName))");
+            qb.part(" (SELECT COUNT(*) FROM RepoLikes WHERE repoPath=concat(userName, '/', repoName))");
             break;
         default:
             fiy::host().log_warning("WTF? Invalid RepoSearch::sort: " + std::to_string(sort));
@@ -131,15 +131,21 @@ std::vector<BasicRepo> RepoSearch::search(
             q.bind(index++, page * limit);
         });
 
-    auto q = qb.build(DB::connection());
+    try {
+        auto q = qb.build(DB::connection());
 
-    std::vector<BasicRepo> ret;
-    if (page != 0 || limit < 25)
-        ret.reserve(limit);
-    while (q.executeStep())
-        ret.emplace_back(
-            q.getColumn(0).getString(),
-            q.getColumn(1).getString()
-        );
-    return ret;
+        std::vector<BasicRepo> ret;
+        if (page != 0 || limit < 25)
+            ret.reserve(limit);
+        while (q.executeStep())
+            ret.emplace_back(
+                q.getColumn(0).getString(),
+                q.getColumn(1).getString()
+            );
+        return ret;
+    } catch (SQLite::Exception& e) {
+        fiy::host().log_error("DB Error: " + std::string(e.what()) + ": " + e.getErrorStr() );
+        fiy::host().log_error("DB Error: Statement: " + qb.m_stmt);
+        throw e;
+    }
 }

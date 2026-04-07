@@ -54,12 +54,15 @@
             document.getElementById("user-dn").innerText = data.name;
             document.getElementById("user-fiy").innerText = user;
             document.getElementById("user-bio").innerText = data.bio;
-            if (data.socials instanceof Array) {
-                const sec = document.getElementById("user-basic-info");
-                sec.insertAdjacentHTML('beforeend', data.socials.map(s =>
-                    `&#x1F517;<a href="${s}" target="_blank" rel="nofollow me">${s}</a><br/>`
-                    ).join(''));
-            }
+            const links = [];
+            if (data.websites instanceof Array)
+                links.push(...data.websites);
+            if (data.socials instanceof Array)
+                links.push(...data.socials);
+            const sec = document.getElementById("user-basic-info");
+            sec.insertAdjacentHTML('beforeend', links.map(s =>
+                `&#x1F517;<a href="${s}" target="_blank" rel="nofollow me">${s}</a><br/>`
+                ).join(''));
         }
 
         function repoCard(repo) {
