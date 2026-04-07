@@ -549,7 +549,6 @@ export class CustomImageInput extends CustomInput {
     }
 }
 
-// TODO add TZ database entries
 export class CustomTimezoneInput extends CustomInput {
     static tzDbOptions: string = null;
 

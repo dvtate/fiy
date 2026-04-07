@@ -111,7 +111,7 @@ void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
 
 
 
-bool repo_request_router(
+bool repo_router(
     std::string_view path,
     fiy::Callback cb,
     fiy::Request& req

@@ -24,10 +24,10 @@
 
     <!-- this should get ssr'd -->
     <div id="user-basic-info">
-        <img src="//{{fiy_domain}}/mods/contacts/pfp/{{fiy_user}}"  alt="profile image" />
-        <h2>{{fiy_display_name}}</h2>
-        <h4>{{fiy_user}}</h4>
-        <p>{{fiy_user_bio}}</p>
+        <img id="user-pfp" src="//{{fiy_domain}}/mods/contacts/pfp/{{fiy_user}}"  alt="profile image" />
+        <h2 id="user-dn">{{fiy_display_name}}</h2>
+        <h4 id="user-fiy">{{fiy_user}}</h4>
+        <p id="user-bio">{{fiy_user_bio}}</p>
         <!-- no followers/following for now -->
         <!-- todo get more info from contacts mod -->
     </div>
@@ -50,25 +50,51 @@
 
         const tabView = document.getElementById('tab-view');
 
+        async function getUserInfo() {
+            const url = "//{{fiy_domain}}/mods/contacts/profile/" + user;
+            const r = await fetch(url, {
+                headers: {
+                    "Accept": "application/json",
+                },
+            });
+            const data = await r.json();
+            document.getElementById("user-pfp").src = "//{{fiy_domain}}/mods/contacts/pfp/" + user;
+            document.getElementById("user-dn").innerText = data.name;
+            document.getElementById("user-fiy").innerText = user;
+            document.getElementById("user-bio").innerText = data.bio;
+            if (data.socials instanceof Array) {
+                const sec = document.getElementById("user-basic-info");
+                sec.insertAdjacentHTML('beforeend', data.socials.map(s =>
+                    `&#x1F517;<a href="${s}" target="_blank" rel="nofollow me">${s}</a><br/>`
+                    ).join(''));
+            }
+        }
 
         function repoCard(repo) {
             let displayPath = repo.path;
             const [owner, repoName] = displayPath.split('/');
-            if (owner === user)
+            if (user === owner || user === owner + '@' + domain)
                 displayPath = repoName;
             return `<div class="repo-card">
                     <span class="repo-card-path">
                         <a href="${baseUrl}/${repo.path}">${displayPath}</a>
                     </span>
-                    <p class="repo-card-description">${repo.description}</p>
+                    <p class="repo-card-description">${repo.description || ""}</p>
                 </div>`;
         }
 
         const View = {
             async repos() {
-                const r = await fetch(baseUrl + '/api/repos/' + user);
-                const o = await r.json();
-                tabView.innerHTML = o.map(repoCard).join('');
+                const r = await fetch(baseUrl + '/api/repo/search?owner=' + user);
+                const repos = await r.json();
+                tabView.innerHTML = '<h3>Repositories</h3>'
+                    + repos.map(path => repoCard({ path })).join('');
+            },
+            async likes() {
+                const rs = [
+                    fetch(baseUrl + '/api/user/' + user + '/likes_count'),
+                    fetch(baseUrl + '/api/user/' + user + '/likes')
+                ]
             },
         };
 
@@ -81,11 +107,13 @@
                 userHost = domain;
             user = userName + '@' + userHost; // Canonical
 
+            getUserInfo();
             let tab = url.searchParams.get("tab");
             if (!View[tab])
                 tab = 'repos';
             View[tab]();
         }
+        renderPage();
 
     </script>
 </body>

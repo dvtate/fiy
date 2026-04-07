@@ -14,6 +14,7 @@
 #include "Routes/Pages.hpp"
 #include "Routes/AssetRouter.hpp"
 #include "Routes/RepoRouter.hpp"
+#include "Routes/UserRouter.hpp"
 
 /// User is unauthenticated, send them to login page
 void unauthenticated(const fiy::Request& req, const fiy::Callback cb) {
@@ -38,16 +39,26 @@ void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
 
     if (path == "/") {
         static constexpr char file_path[] = "/landing.html";
+        auto body = Pages::mustache(
+                Pages::file_contents<file_path>(),
+                Pages::ReplacementMap({
+                { "profile_url", req.user == nullptr
+                    ? std::string("//") + fiy::host().domain + "/portal"
+                    : std::string(fiy::host().base_uri) + '/' + req.user,
+                }
+            }));
         req.respond(cb, 200,
             "Content-Type: text/html; charset=utf-8\nCache-Control: max-age=604800",
-            Pages::file_body<file_path>()
+            fiy::Body(body)
         );
         return;
     }
 
-    if (api_router(path, cb, req)
-        || repo_request_router(path, cb, req)
-        || static_asset_router(path, cb, req))
+    if ( static_asset_router(path, cb, req)
+        || user_router(path, cb, req)
+        || api_router(path, cb, req)
+        || repo_router(path, cb, req)
+    )
         return;
 
     // No router

@@ -24,7 +24,7 @@ std::vector<BasicRepo> RepoSearch::search(
     //  we can't use pre-compiled queries :(
     DB::QueryBuilder qb;
 
-    qb.part("SELECT userName, repoName");
+    qb.part("SELECT userName, repoName FROM Repos");
 
     // Add where clauses
     //
@@ -60,7 +60,7 @@ std::vector<BasicRepo> RepoSearch::search(
     }
     if (!owner.empty()) {
         qb.and_cond();
-        qb.part("owner=? ", [this](SQLite::Statement& q, int& index) {
+        qb.part("userName=? ", [this](SQLite::Statement& q, int& index) {
             q.bind(index++, owner);
         });
     }
@@ -85,13 +85,13 @@ std::vector<BasicRepo> RepoSearch::search(
     }
     if (!name_like.empty()) {
         qb.and_cond();
-        qb.part("repoName LIKE ? ", [this](SQLite::Statement& q, int& index) {
+        qb.part("repoName LIKE ?", [this](SQLite::Statement& q, int& index) {
             q.bind(index++, name_like);
         });
     }
     if (!description_like.empty()) {
         qb.and_cond();
-        qb.part("description LIKE ? ", [this](SQLite::Statement& q, int& index) {
+        qb.part("description LIKE ?", [this](SQLite::Statement& q, int& index) {
             q.bind(index++, description_like);
         });
     }
@@ -104,26 +104,26 @@ std::vector<BasicRepo> RepoSearch::search(
     }
 
     // Order, limit, offset, etc.
-    qb.part(" ORDER BY ");
+    qb.part(" ORDER BY");
     switch (sort) {
         case Sort::EditDate:
             [[fallthrough]]; // TODO no way to determine this yet
         case Sort::Age:
-            qb.part(" createTs ");
+            qb.part(" createTs");
             break;
         case Sort::Name:
-            qb.part(" repoName ");
+            qb.part(" repoName");
             break;
         case Sort::Likes:
-            qb.part(" (SELECT COUNT(*) FROM RepoLikes WHERE repoPath=concat(repoUser, '/', repoName)) ");
+            qb.part(" (SELECT COUNT(*) FROM RepoLikes WHERE repoPath=concat(repoUser, '/', repoName))");
             break;
         default:
             fiy::host().log_warning("WTF? Invalid RepoSearch::sort: " + std::to_string(sort));
-            qb.part(" repoName ");
+            qb.part(" repoName");
     }
-    qb.part(order_desc ? " DESC " : " ASC ");
+    qb.part(order_desc ? " DESC" : " ASC");
 
-    qb.part(" LIMIT ? ", [this](SQLite::Statement& q, int& index) {
+    qb.part(" LIMIT ?", [this](SQLite::Statement& q, int& index) {
         q.bind(index++, limit);
     });
     if (page != 0)
@@ -141,4 +141,5 @@ std::vector<BasicRepo> RepoSearch::search(
             q.getColumn(0).getString(),
             q.getColumn(1).getString()
         );
+    return ret;
 }

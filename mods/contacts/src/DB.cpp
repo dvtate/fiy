@@ -431,9 +431,9 @@ namespace DB {
             while (query.executeStep()) {
                 ret.props.emplace_back(VC::Prop{
                     .id=query.getColumn(0).getInt64(),
-                    .name=query.getColumn(1).getOriginName(),
-                    .params=query.getColumn(2).getOriginName(),
-                    .value=query.getColumn(3).getOriginName()
+                    .name=query.getColumn(1).getString(),
+                    .params=query.getColumn(2).getString(),
+                    .value=query.getColumn(3).getString()
                 });
             }
         } else {
@@ -450,9 +450,9 @@ namespace DB {
             while (query.executeStep()) {
                 ret.props.emplace_back(VC::Prop{
                     .id=query.getColumn(0).getInt64(),
-                    .name=query.getColumn(1).getOriginName(),
-                    .params=query.getColumn(2).getOriginName(),
-                    .value=query.getColumn(3).getOriginName()
+                    .name=query.getColumn(1).getString(),
+                    .params=query.getColumn(2).getString(),
+                    .value=query.getColumn(3).getString()
                 });
             }
             query.reset();
@@ -568,7 +568,6 @@ namespace DB {
         query_profiles.reset();
         return "";
     }
-
 
     Result get_contact(VC& card) {
         // Get card by id

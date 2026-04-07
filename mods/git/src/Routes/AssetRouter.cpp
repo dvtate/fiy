@@ -4,6 +4,8 @@
 
 #include "AssetRouter.hpp"
 
+#include "Pages.hpp"
+
 /**
  * Respond to requests for static assets
  * @param path url subpath
@@ -16,6 +18,68 @@ bool static_asset_router(
     fiy::Callback cb,
     fiy::Request &req
 ) {
+    // stylesheet
+    if (path == "/main.css") {
+        static constexpr char file_path[] = "/main.css";
+        req.respond(cb, 200,
+            "Content-Type: text/css\nCache-Control: max-age=604800",
+            Pages::file_body<file_path>()
+        );
+        return true;
+    }
+
+    // Fontawesome fonts
+    if (path == "/fa/fa.css") {
+        static constexpr char file_path[] = "font-awesome.css";
+        req.respond(cb, 200,
+            "Content-Type: text/css\nCache-Control: max-age=604800",
+            Pages::file_body<file_path>()
+        );
+        return true;
+    }
+    if (path.starts_with("/fonts/fontawesome-webfont.")) {
+        path.remove_prefix(27);
+        if (path.starts_with("eot")) {
+            static constexpr char file_path[] = "fontawesome-webfont.eot";
+            req.respond(cb, 200,
+                "Content-Type: application/vnd.ms-fontobject\nCache-Control: max-age=604800",
+                Pages::file_body<file_path>()
+            );
+            return true;
+        }
+        if (path.starts_with("woff2")) {
+            static constexpr char file_path[] = "fontawesome-webfont.woff2";
+            req.respond(cb, 200,
+                "Content-Type: font/woff2\nCache-Control: max-age=604800",
+                Pages::file_body<file_path>()
+            );
+            return true;
+        }
+        if (path.starts_with("woff")) {
+            static constexpr char file_path[] = "fontawesome-webfont.woff";
+            req.respond(cb, 200,
+                "Content-Type: font/woff\nCache-Control: max-age=604800",
+                Pages::file_body<file_path>()
+            );
+            return true;
+        }
+        if (path.starts_with("ttf")) {
+            static constexpr char file_path[] = "fontawesome-webfont.ttf";
+            req.respond(cb, 200,
+                "Content-Type: font/ttf\nCache-Control: max-age=604800",
+                Pages::file_body<file_path>()
+            );
+            return true;
+        }
+        if (path.starts_with("svg")) {
+            static constexpr char file_path[] = "fontawesome-webfont.svg";
+            req.respond(cb, 200,
+                "Cache-Control: max-age=604800",
+                Pages::file_body<file_path>()
+            );
+            return true;
+        }
+    }
 
     return false;
 }

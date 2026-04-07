@@ -54,11 +54,15 @@ std::string VC::to_vcard() const {
     if (!this->user.empty() && this->owner == this->user) {
         ret += "X-FIY-PROFILE:";
         ret += this->user;
+        ret += '@';
+        ret += fiy::host().domain;
         ret += "\r\n";
     }
     if (!this->user.empty()) {
         ret += "X-SOCIALPROFILE;TYPE=fiy:";
         ret += this->user;
+        ret += '@';
+        ret += fiy::host().domain;
         ret += "\r\n";
     }
     if (this->update_ts) {
@@ -120,7 +124,7 @@ std::vector<std::string> resplit(const std::string &s, const std::regex &sep_reg
 }
 
 
-
+// TODO accept string_view
 bool VC::parse(std::string vc) {
     // Trim string
     vc.erase(0, vc.find_first_not_of(" \t\n\r"));
@@ -178,7 +182,11 @@ bool VC::parse(std::string vc) {
             continue;
         }
         if (name == "X-FIY-PROFILE") {
-            this->user = value;
+            const auto [u, domain] = fiy::host().split_user_str(value);
+            if (domain.empty())
+                this->user = u;
+            else
+                this->user = value;
             // if (this->owner != value) {
             //     fiy::log_error("VC::parse(): User not owner of profile card? "
             //         + this->user + " != " + this->owner);
@@ -225,7 +233,7 @@ bool VC::parse(std::string vc) {
                     if (p.starts_with("TYPE=fiy") && name == "X-SOCIALPROFILE") {
                         const auto [u, domain] = fiy::host().split_user_str(value);
                         if (domain.empty())
-                            this->user = std::string(u) + "@" + fiy::host().domain;
+                            this->user = u;
                         else
                             this->user = value;
                         goto skip_property; // alt for X-FIY-PROFILE
@@ -263,7 +271,7 @@ VC VC::basic_profile(const std::string& user) {
     return ret;
 }
 
-static inline std::string convert_structured_name(const std::string_view value) {
+static std::string convert_structured_name(const std::string_view value) {
     /* js
     const [
         surnames,
@@ -360,22 +368,22 @@ static inline std::string convert_structured_name(const std::string_view value) 
     return ret;
 }
 
+/**
+ * JSON representation of the card
+ * @return JSON of form: {
+ *    name: User display name (FN/N),
+ *    nick: Nickname (NICK),
+ *    email: user email,
+ *    bio: NOTES,
+ *    socials: list of X-SOCIAL-PROFILE values,
+ *    websites: list of WEBSITE values,
+ * }
+ */
 std::string VC::to_internal_json() const {
-    /* Fields
-     * dn: display name
-     * fn: full name
-     * nick: nickname
-     * websites: array of websites
-     * socials: array of social media links
-     * email: contact email address
-     * bio: content of NOTE field
-     */
-
     std::string name, nickname, email, bio;
     std::vector<std::string> websites;
     std::vector<std::string> socials;
 
-    bool has_N_field = false;
     auto n_field = static_cast<size_t>(-1);
     for (size_t i = 0; i < this->props.size(); i++) {
         const auto& p = this->props[i];
@@ -388,15 +396,16 @@ std::string VC::to_internal_json() const {
         } else if (p.name == "NICKNAME") {
             if (nickname.empty())
                 nickname = p.value;
-        } else if (p.name == "NOTES") {
+        } else if (p.name == "NOTE") {
             if (bio.empty())
                 bio = p.value;
-        } else if (p.name == "WEBSITE")
+        } else if (p.name == "URL")
             websites.emplace_back(p.value);
-        else if (p.name == "X-SOCIAL-PROFILE")
+        else if (p.name == "X-SOCIALPROFILE")
             socials.emplace_back(p.value);
         else if (p.name == "N")
-            n_field = i;
+            if (n_field == static_cast<size_t>(-1))
+                n_field = i;
     }
 
     // If no FN field, look for N field
@@ -413,7 +422,7 @@ std::string VC::to_internal_json() const {
     ret["nick"] = std::move(nickname);
     ret["email"] = std::move(email);
     ret["bio"] = std::move(bio);
-    ret["social"] = std::move(socials);
+    ret["socials"] = std::move(socials);
     ret["websites"] = std::move(websites);
     return ret.dump();
 }

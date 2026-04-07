@@ -22,10 +22,9 @@
 struct ModDllConnectorRequest : public fiy::fiy_request_t {
     std::shared_ptr<Session> m_conn;
 
-    explicit ModDllConnectorRequest(std::shared_ptr<Session> conn) {
-        const auto user = conn->find_user();
-        ModDllConnectorRequest(std::move(conn), user);
-    }
+    explicit ModDllConnectorRequest(std::shared_ptr<Session> conn):
+        ModDllConnectorRequest(std::move(conn), conn->find_user())
+    {}
 
     explicit ModDllConnectorRequest(
         std::shared_ptr<Session> conn,
@@ -55,7 +54,7 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
     }
 
     void remove_from_task_queue() {
-        // might be nice to have a list of active tasks
+        // TODO task queue + thread pool to prevent blocking io threads
         delete this;
     }
 
@@ -167,7 +166,7 @@ struct ModDLLHostInfo : fiy::fiy_host_info_t {
             strchr(g_fiy->m_config.m_hostname, ':') == nullptr ? "https://" : "http://"
             ) + g_fiy->m_config.m_hostname + '/' + mod->m_path;
 
-        this->base_uri = m_base_uri.c_str();
+        this->base_uri = m_base_uri.c_str(); // host info shouldn't be moved either
         this->request = ModDLLHostInfo::request_impl;
         this->domain = g_fiy->m_config.m_hostname;
         this->app_id = mod->m_id.c_str(); // safe assuming the mod isn't moved
@@ -317,7 +316,7 @@ void ModDLLConnector::delete_user(const char* user) {
     m_mod_info->delete_user(user);
 }
 
-void ModDLLConnector::handle_request(const std::shared_ptr<Session> conn) {
+void ModDLLConnector::handle_request(std::shared_ptr<Session> conn) {
     // Check access restrictions
     const auto user = conn->find_user();
     const char* username = user.user.empty() ? nullptr : user.user.c_str();

@@ -262,7 +262,7 @@ ssize_t GitRepo::commits_count(const std::string& branch) {
     return commits_count(&target);
 }
 
-GitRepo::Commit::Commit(git_commit* commit) {
+GitRepo::Commit::Commit(git_commit* commit, git_mailmap* mailmap) {
     // Invalid
     if (commit == nullptr) {
         this->ts = 0;
@@ -276,25 +276,54 @@ GitRepo::Commit::Commit(git_commit* commit) {
     this->ts = git_commit_time(commit);
 
     // Get names+emails
-    // TODO should we use *_with_mailmap instead?
-    //      probably not since we only care about FIY users
-    const git_signature* sig = git_commit_author(commit);
-    if (sig && sig->name)
-        this->author.name = sig->name;
-    if (sig && sig->email)
-        this->author.email = sig->email;
-    sig = git_commit_committer(commit);
-    if (sig && sig->name)
-        this->committer.name = sig->name;
-    if (sig && sig->email)
-        this->committer.email = sig->email;
+    //  The mailmap can provide emails -> FIY user mapping
+    git_signature* mm_sig = nullptr;
+    if (    mailmap != nullptr
+        &&  ok(git_commit_author_with_mailmap(&mm_sig, commit, mailmap))
+        &&  mm_sig != nullptr
+    ) {
+        if (mm_sig->name)
+            this->author.name = mm_sig->name;
+        if (mm_sig->email)
+            this->author.email = mm_sig->email;
+        git_signature_free(mm_sig);
+    } else {
+        // Failed to get mailmap signature, get it from commit instead
+        const git_signature* sig = git_commit_author(commit);
+        if (sig != nullptr) {
+            if (sig->name != nullptr)
+                this->author.name = sig->name;
+            if (sig->email != nullptr)
+                this->author.email = sig->email;
+        }
+    }
+    mm_sig = nullptr;
+
+    if (mailmap != nullptr
+        && ok(git_commit_committer_with_mailmap(&mm_sig, commit, mailmap))
+        && mm_sig != nullptr
+    ) {
+        if (mm_sig->name)
+            this->committer.name = mm_sig->name;
+        if (mm_sig->email)
+            this->committer.email = mm_sig->email;
+        git_signature_free(mm_sig);
+    } else {
+        const git_signature* sig = git_commit_committer(commit);
+        if (sig != nullptr) {
+            if (sig->name != nullptr)
+                this->committer.name = sig->name;
+            if (sig->email != nullptr)
+                this->committer.email = sig->email;
+        }
+    }
 
     // Get fiy user from the commit notes
     git_note* note = nullptr;
     ok(git_note_commit_read(&note, git_commit_owner(commit), commit, oid));
     if (note != nullptr) {
         std::string_view notes = git_note_message(note);
-        constexpr auto author_key = "Federated-author: ";
+        constexpr auto author_key = "FIY-author: ";
         auto start = notes.find(author_key);
         if (start != std::string_view::npos) {
             const auto end = notes.find('\n', start + strlen(author_key));
@@ -304,17 +333,50 @@ GitRepo::Commit::Commit(git_commit* commit) {
                 this->author.fiy_user = notes.substr(start);
         }
 
-        constexpr auto committer_key = "Federated-committer: ";
+        constexpr auto committer_key = "FIY-committer: ";
         start = notes.find(committer_key);
         if (start != std::string_view::npos) {
             const auto end = notes.find('\n', start + strlen(committer_key));
             if (end != std::string_view::npos)
-                this->author.fiy_user = notes.substr(start, end - start);
+                this->committer.fiy_user = notes.substr(start, end - start);
             else
-                this->author.fiy_user = notes.substr(start);
+                this->committer.fiy_user = notes.substr(start);
         }
         git_note_free(note);
     }
+
+    // Default to using email
+    if (this->author.fiy_user.empty())
+        this->author.fiy_user = this->author.email;
+    if (this->committer.fiy_user.empty())
+        this->committer.fiy_user = this->committer.email;
+
+    // Remove local domain
+    if (!this->author.fiy_user.empty()) {
+        auto i = this->author.fiy_user.find('@', 1);
+        if (i != std::string_view::npos) {
+            auto dom = this->author.fiy_user.substr(i + 1);
+            if (dom == fiy::host().domain)
+                this->author.fiy_user = this->author.fiy_user.substr(0,i);
+        }
+    }
+    if (!this->committer.fiy_user.empty()) {
+        auto i = this->committer.fiy_user.find('@', 1);
+        if (i != std::string_view::npos) {
+            auto dom = this->committer.fiy_user.substr(i + 1);
+            if (dom == fiy::host().domain)
+                this->committer.fiy_user = this->committer.fiy_user.substr(0,i);
+        }
+    }
+}
+
+GitRepo::Commit::Commit(git_commit* commit) {
+    git_mailmap* mailmap = nullptr;
+    if (commit != nullptr)
+        if (!ok(git_mailmap_from_repository(&mailmap, git_commit_owner(commit))))
+            mailmap = nullptr;
+    *this = Commit(commit, mailmap);
+    git_mailmap_free(mailmap);
 }
 
 /**
@@ -354,7 +416,8 @@ GitRepo::Commit GitRepo::last_commit(const std::string& branch) {
  */
 GitRepo::Commit GitRepo::last_commit(
     const git_oid* start_oid,
-    const std::string& path
+    const std::string& path,
+    git_mailmap* mailmap
 ) {
     git_revwalk* walk = walker();
     git_revwalk_sorting(walk, GIT_SORT_TIME);
@@ -368,7 +431,7 @@ GitRepo::Commit GitRepo::last_commit(
 
         // Root commit (ie - "git init")
         if (git_commit_parentcount(commit) == 0) {
-            Commit ret{commit};
+            Commit ret{commit, mailmap};
             git_commit_free(commit);
             git_revwalk_reset(walk);
             return ret;
@@ -390,7 +453,7 @@ GitRepo::Commit GitRepo::last_commit(
         git_diff_tree_to_tree(&diff, m_repo, ptree, ctree, &opts);
 
         if (git_diff_num_deltas(diff) > 0) {
-            Commit ret{commit};
+            Commit ret{commit, mailmap};
 
             git_diff_free(diff);
             git_tree_free(ctree);
@@ -479,9 +542,12 @@ int GitRepo::entries(
 
     // Get entry last commits
     // TODO would be better to do only one revwalk and update files all at once
+    git_mailmap* mailmap;
+    (void)ok(git_mailmap_from_repository(&mailmap, m_repo));
     for (auto& e : ret)
-        e.last_commit = last_commit(target, e.path);
+        e.last_commit = last_commit(target, e.path, mailmap);
 
+    git_mailmap_free(mailmap);
     git_tree_free(tree);
     git_commit_free(commit);
     return 0;

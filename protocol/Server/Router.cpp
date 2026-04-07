@@ -26,8 +26,10 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
         Mod* mod = g_fiy->m_mods.get_mod_by_id(
             path.substr(0, mod_end));
         std::string subpath = conn->req()["Fiy-Path"];
-        if (subpath.empty() && mod_end != std::string_view::npos) {}
+        if (subpath.empty() && mod_end != std::string_view::npos)
             subpath = path.substr(mod_end);
+        if (subpath.empty())
+            subpath = "/";
         return { mod, subpath };
     }
 

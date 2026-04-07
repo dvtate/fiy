@@ -13,13 +13,13 @@ These are just some ideas
 - Admin CLI
 
 ## Easy Changes
-- fix include order 
-- replace std::unordered_map with boost::unordered_flat_map where possible
 - Replace SQLiteCpp
-  - the library is badly designed
+  - The library is badly designed
+  - Maybe I should make my own sqlite wrapper or find a generic SQL library
+- Replace std::stoll, atoi, etc. with std::from_chars
+  - especially w/ std::string_view's
 
 ## Portal+Protocol Server Features
-- Use local copies of CSS+JS Libraries
 - [minify](https://www.npmjs.com/package/minify) html+css+js?
 - encrypt peer handshake
 - DLL Mods: shared request task queue + thread pool

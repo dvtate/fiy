@@ -97,7 +97,7 @@ bool repo_api(
                     n = 3; // invalid -> public
                 search.set_visibility_filter(static_cast<fiy::Locality>(n));
             } else if (key == "owner") {
-                search.owner = value;
+                search.set_owner(value);
             } else if (key == "sort") {
                 if (value == "age")
                     search.sort = RepoSearch::Sort::Age;
@@ -127,7 +127,13 @@ bool repo_api(
 
         // TODO maybe they want more info (description, likes, etc.)
         try {
-            auto repos = search.search(req.user, req.domain);
+            std::string user;
+            if (req.user)
+                user = req.user;
+            std::string domain;
+            if (req.domain)
+                domain = req.domain;
+            auto repos = search.search(user, domain);
             auto ret = nlohmann::json::array();
             for (auto& r : repos)
                 ret.emplace_back(r.path());
@@ -137,6 +143,8 @@ bool repo_api(
                 fiy::Body(body));
             return true;
         } catch (SQLite::Exception& e) {
+            fiy::host().log_error("DB error: " + std::string(e.getErrorStr()));
+            fiy::host().log_error("DB error: " + std::string(e.what()));
             req.respond(cb, 500,
                 "Content-type: application/json",
                 fiy::Body("[]"));
@@ -160,9 +168,12 @@ bool user_api(
         return true;
     }
     auto user_str = path.substr(0, user_end);
+    if (user_str[0] == '@')
+        user_str.remove_prefix(1);
+
+    // fiy::host().log_info("User API: user = " + std::string(user_str));
     auto dom_sep = user_str.find('@');
     if (dom_sep != std::string_view::npos) {
-
         // Remote user - proxy request
         auto domain = user_str.substr(dom_sep + 1);
         if (domain != fiy::host().domain) {
@@ -186,6 +197,7 @@ bool user_api(
         user_str = user_str.substr(0, dom_sep);
     }
 
+    path.remove_prefix(user_end);
 
     if (path.starts_with("/likes_count")) {
         thread_local auto q = "SELECT COUNT(*) FROM RepoLikes WHERE user=?"_sql;
@@ -318,8 +330,8 @@ bool api_router(
     }
 
     // User API endpoints
-    if (path.starts_with("/user")) {
-        path.remove_prefix(5);
+    if (path.starts_with("/user/")) {
+        path.remove_prefix(6);
         if (!user_api(path, cb, req))
             req.respond(cb, 404, "", "Not Found");
         return true;

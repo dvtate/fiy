@@ -106,4 +106,20 @@ struct Pages : FileCache<get_frontend_dir> {
         );
         // TODO future: contributors, languages, readme viewer,
     }
+
+    static std::string user_page(const std::string& user, const char* request_user = nullptr) {
+        static constexpr char user_page[] = "/user.html";
+
+        return FileCache::mustache(
+            Pages::file_contents<user_page>(),
+            ReplacementMap({
+                { "fiy_user", user },
+                { "fiy_domain", fiy::host().domain },
+                { "request_user", request_user == nullptr ? "" : request_user },
+                { "mod_baseurl", fiy::host().base_uri },
+                { "fiy_display_name", user },
+                { "fiy_user_bio", "" }
+            })
+        );
+    }
 };

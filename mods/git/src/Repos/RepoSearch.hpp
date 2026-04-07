@@ -70,8 +70,14 @@ struct RepoSearch {
     void set_sort(const Sort new_sort) {
         this->sort = new_sort;
     }
-    void set_owner(const std::string& new_owner) {
-        this->owner = new_owner;
+    void set_owner(const std::string_view new_owner) {
+        if (auto at = new_owner.find_first_of("@%");
+            at != std::string_view::npos
+            && new_owner.substr(at + 1) == fiy::host().domain
+        )
+            this->owner = new_owner.substr(0, at);
+        else
+            this->owner = new_owner;
     }
     void include_forks(const BooleanFilter forks_filter) {
         this->forks = forks_filter;
@@ -92,7 +98,10 @@ struct RepoSearch {
         this->description_like = "%" + description + '%';
     }
 
-    std::vector<BasicRepo> search(const std::string& requesting_user = "", const std::string& requesting_user_instance = "");
+    std::vector<BasicRepo> search(
+        const std::string& requesting_user = "",
+        const std::string& requesting_user_instance = ""
+    );
 
     // TODO need a way to specify what to include in search results (ie - description, likes, etc.)
 };

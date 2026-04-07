@@ -53,6 +53,7 @@ public:
         User committer;
 
         explicit Commit(git_commit* commit);
+        Commit(git_commit* commit, git_mailmap* mailmap);
         Commit() = default;
 
         [[nodiscard]] bool valid() const {
@@ -114,7 +115,7 @@ protected:
     ssize_t commits_count(const git_oid* start_oid);
     Commit last_commit(const git_oid* start_oid);
     int entries(std::vector<Entry>& ret, const git_oid* target, const std::string& path = "");
-    Commit last_commit(const git_oid* start_oid, const std::string& path);
+    Commit last_commit(const git_oid* start_oid, const std::string& path, git_mailmap* mailmap);
 
     bool get_repo_page_data(const std::string& branch, RepoPageData& data);
 

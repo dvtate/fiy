@@ -28,11 +28,24 @@ static void get_profile(const std::string_view user_str, fiy::Request& req, fiy:
 
     // Handle local user
     if (dom.empty()) {
-        const auto card = DB::get_profile(std::string(user), req.user, req.domain).to_vcard();
-        if (card.empty())
+        // Check database
+        const VC vc = DB::get_profile(
+            std::string(dom.empty() ? user : user_str),
+            req.user,
+            req.domain);
+        if (vc.invalid()) {
             req.respond(cb, 404, "", fiy::Body("Not found"));
-        else
-            req.respond(cb, 200, "Content-Type:text/vcard", fiy::Body(card));
+            return;
+        }
+
+        // Respond with card
+        if (req.find_header("Accept") == "application/json") {
+            const auto body = vc.to_internal_json();
+            req.respond(cb, 200, "Content-Type: application/json", fiy::Body(body));
+        } else {
+            const auto body = vc.to_vcard();
+            req.respond(cb, 200, "Content-Type:text/vcard", fiy::Body(body));
+        }
         return;
     }
 
@@ -199,18 +212,6 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
     if (path.starts_with("/pfp/")) {
         path.remove_prefix(5);
         get_pfp(path, req, cb);
-        return;
-    }
-
-    if (path == "/tzdb") {
-        // TODO 30 mins cache
-        static const std::string tzdb_json = get_timezones_json();
-        static const fiy::fiy_response_t tzdb_json_resp{
-            .status = 200,
-            .headers = "Content-Type: application/json\nCache-Control: max-age=604800",
-            .body = fiy::Body(tzdb_json)
-        };
-        req.respond(cb, tzdb_json_resp);
         return;
     }
 
@@ -386,8 +387,8 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
         return;
     }
 
-    if (path.starts_with("/delete/")
-        && req.method == (uint8_t) fiy::Request::DELETE
+    if (req.method == (uint8_t) fiy::Request::DELETE
+        && path.starts_with("/delete/")
     ) {
         path.remove_prefix(7);
         uint64_t id;
@@ -401,6 +402,18 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
 
         // TODO
         req.respond(cb, 500, "", fiy::Body("TODO"));
+        return;
+    }
+
+    if (path == "/tzdb") {
+        // TODO 30 mins cache
+        static const std::string tzdb_json = get_timezones_json();
+        static const fiy::fiy_response_t tzdb_json_resp{
+            .status = 200,
+            .headers = "Content-Type: application/json\nCache-Control: max-age=604800",
+            .body = fiy::Body(tzdb_json)
+        };
+        req.respond(cb, tzdb_json_resp);
         return;
     }
 

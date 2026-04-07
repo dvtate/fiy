@@ -192,6 +192,8 @@ add_library(git_mod SHARED
     mods/git/src/Routes/UserPageData.hpp
     mods/git/src/Repos/RepoSearch.hpp
     mods/git/src/Repos/RepoSearch.cpp
+    mods/git/src/Routes/UserRouter.cpp
+    mods/git/src/Routes/UserRouter.hpp
 )
 target_link_libraries(git_mod
     PRIVATE fiymod
