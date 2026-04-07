@@ -5,6 +5,8 @@
 #include <ctime>
 #include <regex>
 
+#include <nlohmann/json.hpp>
+
 #include "../../../modlib/fiymod.hpp"
 
 #include "Contact.hpp"
@@ -261,6 +263,103 @@ VC VC::basic_profile(const std::string& user) {
     return ret;
 }
 
+static inline std::string convert_structured_name(const std::string_view value) {
+    /* js
+    const [
+        surnames,
+        givenNames,
+        additionalNames,
+        prefixes,
+        suffixes
+    ] = this.value
+        .split(';')
+        .map(n => n.split(','));
+    return [(prefixes?.join(' ') || ''),
+        (givenNames?.join(' ') || ''),
+        (additionalNames?.join(' ') || ''),
+        (surnames?.join(' ') || ''),
+        (suffixes?.join(' ') || '')
+    ].filter(n => !!n).join(' ');
+    */
+
+    std::string_view::size_type i = 0;
+
+    // Pull off a semicolon delineated part of the input string_view
+    auto get_part = [&]() {
+        if (i >= value.size())
+            return std::string_view{};
+        const auto end = value.find(';', i);
+        const auto ret = value.substr(i, end);
+        i = end;
+        if (i != std::string_view::npos)
+            ++i;
+        return ret;
+    };
+
+    std::string_view surnames = get_part();
+    std::string_view given_names = get_part();
+    std::string_view additional_names = get_part();
+    std::string_view prefixes = get_part();
+    std::string_view suffixes = get_part();
+
+    std::string ret;
+
+    // Calculate size of return string
+    size_t total_size = 0;
+    uint8_t count = 0;
+    if (surnames.size()) {
+        total_size += surnames.size();
+        count++;
+    }
+    if (given_names.size()) {
+        total_size += given_names.size();
+        count++;
+    }
+    if (additional_names.size()) {
+        total_size += additional_names.size();
+        count++;
+    }
+    if (prefixes.size()) {
+        total_size += prefixes.size();
+        count++;
+    }
+    if (suffixes.size()) {
+        total_size += suffixes.size();
+        count++;
+    }
+    // spaces between name parts
+    if (count > 1)
+        total_size += count - 1;
+    ret.reserve(total_size);
+
+    // Convert commas into spaces
+    bool needs_space = false;
+    auto append_part = [&](const std::string_view value) {
+        if (value.empty())
+            return;
+
+        if (needs_space) {
+            ret += ' ';
+            // needs_space = false;
+        } else {
+            needs_space = true;
+        }
+
+        for (const char c : value)
+            if (c == ',')
+                ret += ' ';
+            else
+                ret += c;
+    };
+
+    append_part(prefixes);
+    append_part(given_names);
+    append_part(additional_names);
+    append_part(surnames);
+    append_part(suffixes);
+    return ret;
+}
+
 std::string VC::to_internal_json() const {
     /* Fields
      * dn: display name
@@ -271,6 +370,50 @@ std::string VC::to_internal_json() const {
      * email: contact email address
      * bio: content of NOTE field
      */
-    // TODO
-    return "";
+
+    std::string name, nickname, email, bio;
+    std::vector<std::string> websites;
+    std::vector<std::string> socials;
+
+    bool has_N_field = false;
+    auto n_field = static_cast<size_t>(-1);
+    for (size_t i = 0; i < this->props.size(); i++) {
+        const auto& p = this->props[i];
+        if (p.name == "FN") {
+            if (name.empty())
+                name = p.value;
+        } else if (p.name == "EMAIL") {
+            if (email.empty())
+                email = p.value;
+        } else if (p.name == "NICKNAME") {
+            if (nickname.empty())
+                nickname = p.value;
+        } else if (p.name == "NOTES") {
+            if (bio.empty())
+                bio = p.value;
+        } else if (p.name == "WEBSITE")
+            websites.emplace_back(p.value);
+        else if (p.name == "X-SOCIAL-PROFILE")
+            socials.emplace_back(p.value);
+        else if (p.name == "N")
+            n_field = i;
+    }
+
+    // If no FN field, look for N field
+    if (n_field != static_cast<size_t>(-1) && name.empty())
+        for (const Prop& p : this->props)
+            if (p.name == "N") {
+                name = convert_structured_name(p.value);
+                break;
+            }
+
+    // Convert to JSON
+    auto ret = nlohmann::json::object();
+    ret["name"] = std::move(name);
+    ret["nick"] = std::move(nickname);
+    ret["email"] = std::move(email);
+    ret["bio"] = std::move(bio);
+    ret["social"] = std::move(socials);
+    ret["websites"] = std::move(websites);
+    return ret.dump();
 }

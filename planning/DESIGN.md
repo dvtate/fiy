@@ -20,7 +20,7 @@ Eventually these will all get moved to separate repos
         auth/           -- keys for peer 2 peer communication
         config.ini      -- global admin settings
         db.db3          -- sqlite database for protocol server
-        libfiymod.so  -- module library
+        libfiymod.so    -- module library
         mods/           -- installed apps (mods)
             example.app.id/     -- mod folder
                 module.json     -- mod configuration     

@@ -32,6 +32,13 @@ struct BasicRepo {
     /// Repo name
     std::string name;
 
+    BasicRepo() = default;
+    BasicRepo(std::string owner, std::string name, std::string instance = ""):
+        instance(std::move(instance)),
+        owner(std::move(owner)),
+        name(std::move(name))
+    {}
+
     /// Owner username
     [[nodiscard]] std::string owner_user() const {
         std::string ret = this->owner;

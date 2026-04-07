@@ -16,8 +16,12 @@ using DB::operator ""_sql;
 LocalRepo::LocalRepo(const BasicRepo& repo):
     BasicRepo(repo), GitRepo(repo)
 {
-    thread_local auto q = "SELECT description, visibility, createTs, id FROM Repos"
-        "    WHERE userName=? AND repoName=?"_sql;
+#ifdef FIY_DEBUG
+    assert(repo.is_local());
+#endif
+
+    thread_local auto q = "SELECT description, visibility, createTs, id"
+        " FROM Repos WHERE userName=? AND repoName=?"_sql;
     q.bindNoCopy(1, repo.owner);
     q.bindNoCopy(2, repo.name);
     if (!q.executeStep()) {
@@ -59,7 +63,9 @@ bool LocalRepo::can_access(
             case fiy::Locality::INSTANCE:
                 return user != nullptr && domain == nullptr;
             case fiy::Locality::USER:
-                return false;
+                if (domain == nullptr && user != nullptr && this->owner == user)
+                    return true;
+                break;
             default:
                 fiy::host().log_warning("Invalid visibility value"
                     + std::to_string(static_cast<int>(visibility)));
@@ -147,8 +153,16 @@ ssize_t LocalRepo::forks_count() const {
 }
 
 ssize_t LocalRepo::likes_count() {
-    // TODO no database table yet
-    return -1;
+    thread_local auto q = "SELECT COUNT(*) FROM RepoLikes WHERE repoPath = ?"_sql;
+    q.bind(1, this->path());
+    if (!q.executeStep()) {
+        fiy::log_error("Could not select COUNT of repo likes");
+        q.reset();
+        return -1;
+    }
+    auto ret = q.getColumn(0).getUInt();
+    q.reset();
+    return ret;
 }
 
 ssize_t LocalRepo::tickets_count() {
@@ -179,4 +193,110 @@ bool LocalRepo::get_repo_page_data(const std::string& branch, RepoPageData& data
     data.forks_count = this->forks_count();
     data.tickets_count = this->tickets_count();
     return true;
+}
+
+static size_t get_repos_cache_size() {
+    auto env = std::getenv("FIY_GIT_REPO_CACHE_SIZE");
+    size_t cache_size = 0;
+    if (env != nullptr)
+        cache_size = atoi(env);
+    if (cache_size == 0)
+        cache_size = 30;
+    return cache_size;
+}
+
+size_t LocalRepo::m_lru_max_size = get_repos_cache_size();
+std::vector<std::shared_ptr<LocalRepo>> LocalRepo::m_cache_lru;
+boost::unordered_flat_map<std::string, std::weak_ptr<LocalRepo>> LocalRepo::m_cache;
+RWMutex LocalRepo::m_cache_mtx;
+std::mutex LocalRepo::m_cache_lru_mutex;
+
+/**
+ * Track repo usage in LRU cache
+ */
+void LocalRepo::cache_lru_push(const std::shared_ptr<LocalRepo>& repo) {
+    if (m_lru_max_size == 0)
+        return;
+
+    // LRU not full
+    std::lock_guard lock{m_cache_lru_mutex};
+    if (m_cache_lru.size() < m_lru_max_size) {
+        m_cache_lru.emplace_back(repo);
+        return;
+    }
+
+    // Purge cache
+    m_cache_lru.clear();
+    if (m_lru_max_size >= 1)
+        m_cache_lru.emplace_back(repo);
+}
+
+std::shared_ptr<LocalRepo> LocalRepo::get_repo(const BasicRepo& repo) {
+    // Look for it in the cache
+    auto rp = repo.path();
+    m_cache_mtx.read_lock();
+    auto it = m_cache.find(rp);
+    if (it != m_cache.end()) {
+        auto ret = it->second.lock();
+        if (ret != nullptr) {
+            m_cache_mtx.read_unlock();
+            cache_lru_push(ret);
+            return ret;
+        }
+    }
+
+    // Add it to the cache
+    auto ret = std::shared_ptr<LocalRepo>(
+        static_cast<LocalRepo*>(malloc(sizeof(LocalRepo))),
+        [](LocalRepo* ptr) {
+            LocalRepo::m_cache_mtx.write_lock();
+            LocalRepo::m_cache.erase(ptr->path());
+            LocalRepo::m_cache_mtx.write_unlock();
+            ptr->~LocalRepo();
+            free(ptr);
+        }
+    );
+    m_cache_mtx.read_to_write();
+    m_cache.emplace(rp, ret);
+    m_cache_mtx.write_unlock();
+
+    // Do the actual construction outside the mutex
+    ::new(&*ret) LocalRepo(repo);
+
+    return ret;
+}
+
+std::vector<std::shared_ptr<LocalRepo>> LocalRepo::get_repos(const std::vector<BasicRepo>& repos) {
+    std::vector<std::shared_ptr<LocalRepo>> ret;
+    ret.reserve(repos.size());
+
+    RWMutex::LockForWrite lock{m_cache_mtx};
+    for (const auto& repo : repos) {
+        auto rp = repo.path();
+        auto r = m_cache.find(rp);
+        if (r != m_cache.end()) {
+            auto sp = r->second.lock();
+            if (sp != nullptr) {
+                ret.emplace_back(sp);
+                continue;
+            }
+        }
+        // else: either not in cache or invalid
+
+        auto new_repo = std::shared_ptr<LocalRepo>(
+            new LocalRepo(repo),
+            [](const LocalRepo* ptr) {
+                LocalRepo::m_cache_mtx.write_lock();
+                LocalRepo::m_cache.erase(ptr->path());
+                LocalRepo::m_cache_mtx.write_unlock();
+                delete ptr;
+            }
+        );
+        m_cache.emplace(rp, new_repo);
+        ret.emplace_back(std::move(new_repo));
+    }
+
+    // We could add them to the LRU cache but probably not worth it
+    // Mostly due to them being used for different things
+    return ret;
 }

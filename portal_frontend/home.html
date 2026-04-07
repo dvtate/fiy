@@ -6,14 +6,16 @@
     <title>FIY - Home</title>
     <meta name="description" content="Your home for federated apps" />
 
-    <!-- TODO host local copies instead -->
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" />
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/minstyle.io@2.0.2/dist/css/minstyle.io.min.css" />
+    <link rel="stylesheet" type="text/css" href="/portal/main.css">
+    <script src="/portal/theme.js" defer></script>
 
     <style>
         /* div {
             border: 1px solid green;
         } */
+        #theme-toggle {
+            /*font-weight: bolder;*/
+        }
     </style>
 </head>
 <body>
@@ -21,12 +23,11 @@
     <div class="ms-menu-logo">FIY</div>
     <nav class="ms-menu-link">
         <input type="checkbox" id="ms-menu-toggle" />
-        <label for="ms-menu-toggle" class="ms-menu-icon"><i class="fa fa-bars"></i></label>
+        <label for="ms-menu-toggle" class="ms-menu-icon">&#9776;</label>
         <ul>
-            <li><a href="#">Apps</a></li>
             <li><a href="#">Settings</a></li>
             <li><a href="#">Store</a></li>
-            <li><a onclick="return false"><i class="fas fa-sun" id="theme-toggle"></i></a></li>
+            <li><a href="#" onclick="return false"><button id="theme-toggle" class="ms-outline">&9790;</button></a></li>
         </ul>
     </nav>
 </div>
@@ -38,8 +39,6 @@
     <!-- list of installed apps -->
     <span id="installed-apps-list"></span>
 </div>
-
-<script src="/portal/main.js"></script>
 
 <script>
     // From server
@@ -65,7 +64,6 @@
                         </div>
                         <div class="col-md-2 app-actions">
                             <a class="ms-btn ms-fullwidth ms-outline ms-primary" href="/${path}">Launch</a>
-                            <button class="ms-btn ms-fullwidth ms-outline ms-primary" onclick="checkStoreApp('${id}')">About</button>
                             ${ (canUpdate && user.isAdmin) ? `<button class="ms-btn ms-fullwidth ms-outline ms-primary" onclick="updateApp('${appId}')">Update</button>` : '' }
                             ${ user.isAdmin ? `<button class="ms-btn ms-fullwidth ms-outline ms-primary" onclick="uninstallApp('${appId}')">Uninstall</button>` : ''}
                         </div>
@@ -89,8 +87,6 @@
             ...installedApps.filter(e => !matchingTitle.has(e) && e.description.includes(text))
         ]);
     }
-
-    // TODO if the user types name of mod
 
     // App actions
     function launchApp(appId) {

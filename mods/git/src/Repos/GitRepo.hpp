@@ -8,6 +8,7 @@
 #include <vector>
 #include <git2.h>
 #include <utility>
+#include <boost/unordered/unordered_flat_map.hpp>
 
 #include "BasicRepo.hpp"
 
@@ -18,6 +19,8 @@ struct RepoFileBrowserPageData;
  * C++ wrapper for libgit2 operations on git repositories
  *
  * @remark for now this is only for local repos
+ * @remark this class should only ever be instantiated by LocalRepo
+ *  as duplicate instances for the same repo could be really bad
  */
 class GitRepo {
 
@@ -114,8 +117,7 @@ protected:
     Commit last_commit(const git_oid* start_oid, const std::string& path);
 
     bool get_repo_page_data(const std::string& branch, RepoPageData& data);
-    bool get_repo_page_data(const std::string& branch, const std::string& path, RepoFileBrowserPageData& data);
-private:
 
+private:
     static bool ok(int status, const std::string& message= "");
 };

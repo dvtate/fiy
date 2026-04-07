@@ -2,7 +2,7 @@
   "id": "mail",
   "version": "0.0",
   "name": "Mail",
-  "description": "Demo to send and receive mail (lots of bugs)",
+  "description": "Barebones federated mail client similar to email",
   "icon": "icon.png",
   "enabled": true,
   "connector":"shared_object",

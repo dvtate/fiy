@@ -4,7 +4,6 @@ Manage contacts for federated users.
 ## Implementation details
 - All cards are converted into vcard 4.0 format
 
-
 ## Features Planning
 ### DONE
 - [x] Add contact
@@ -31,3 +30,5 @@ Manage contacts for federated users.
 - [ ] View (but not edit) contacts of other users
 - [ ] Accept/merge received contacts
 - [ ] i18n
+- [ ] optimizations and caching? this mod is gonna get used a lot
+  - might even make sense to use something other than vcard internally

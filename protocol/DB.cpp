@@ -15,20 +15,20 @@ namespace DB {
 
     SQLite::Database& connection() {
         // By the time the db gets used the config should already be initialized
-        static thread_local SQLite::Database db{
+        thread_local SQLite::Database db{
             g_fiy->m_config.m_data_dir + "/db.db3",
             SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE
         };
         return db;
     }
+    inline SQLite::Statement operator ""_sql(const char* str, std::size_t) {
+        return SQLite::Statement{ connection(), str };
+    }
 
     static SQLite::Statement& get_user_by_username_query() {
-        static thread_local SQLite::Statement query{
-            connection(),
-            "SELECT username, isAdmin, name, hashedPassword, email, locale, joinTs "
-            "FROM Users WHERE username = ?"
-        };
-        return query;
+        thread_local auto q = "SELECT username, isAdmin, name, hashedPassword, email, locale, joinTs "
+            "FROM Users WHERE username = ?"_sql;
+        return q;
     }
 
     std::shared_ptr<LocalUser> get_user(const std::string& username, std::string password) {
@@ -99,11 +99,9 @@ namespace DB {
     }
 
     bool add_user(const LocalUser& user, std::string password) {
-        static thread_local SQLite::Statement q{
-            connection(),
-            "INSERT INTO Users (username, isAdmin, name, hashedPassword, email, locale, joinTs) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)"
-        };
+        thread_local auto q = "INSERT INTO Users"
+            " (username, isAdmin, name, hashedPassword, email, locale, joinTs) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)"_sql;
 
         // Hash provided password
         unsigned char hashed_password[SHA512_DIGEST_LENGTH];
@@ -125,7 +123,8 @@ namespace DB {
     }
 
     std::shared_ptr<Peer> get_peer(const std::string_view domain) {
-        static thread_local SQLite::Statement query{connection(), "SELECT symKey, giveToken, takeToken, tokenExpireTs FROM Peers WHERE domain = ?"};
+        thread_local auto query = "SELECT symKey, giveToken, takeToken, tokenExpireTs"
+            " FROM Peers WHERE domain = ?"_sql;
         CleanupRoutine cleanup{[&](){
             query.clearBindings();
             query.reset();
@@ -148,6 +147,5 @@ namespace DB {
 
     // TODO add_peer
     // INSERT INTO Peers (domain, connectTs, bearerToken, symKey, pubkey, tokenExpireTs) VALUES (?, ?, ?, ?, ?, ?)
-
 
 } // namespace DB

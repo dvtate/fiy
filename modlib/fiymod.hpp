@@ -520,8 +520,9 @@ next_field:
          * Parse the headers into a map where all the keys are lower-case
          * @return headers lookup map
          */
-        [[nodiscard]] std::map<std::string, std::string_view> headers_map() const {
-            std::map<std::string, std::string_view> ret;
+        template <class MapT = std::map<std::string, std::string_view>>
+        [[nodiscard]] MapT headers_map() const {
+            MapT ret;
 
             if (this->headers == nullptr)
                 return ret;
@@ -561,7 +562,92 @@ next_field:
 
             return ret;
         }
+
+        /**
+         * Get a map of the query parameters
+         * @return
+         */
+        template <class MapT = std::map<std::string_view, std::string_view>>
+        [[nodiscard]] MapT query_params() const {
+            // Find query string
+            MapT ret;
+            const char* qs = strchr(path, '?');
+            if (qs == nullptr)
+                return ret;
+
+            // Parse query string
+            std::string_view q = qs;
+            while (!q.empty()) {
+                if (q[0] == '&' || q[0] == '?') {
+                    q.remove_prefix(1);
+                }
+
+                // Parse query param key + value
+                auto eq = q.find_first_of("=&");
+                std::string_view key;
+                std::string_view value;
+                if (eq == std::string::npos) {
+                    key = q;
+                    value = "";
+                    q = "";
+                } else if (q[eq] == '=') {
+                    key = q.substr(0, eq);
+                    auto end = q.find('&', eq);
+                    value = q.substr(eq + 1, end == std::string::npos
+                        ? end : (end - eq - 1));
+                    q.remove_prefix(end);
+                } else if (q[eq] == '&') {
+                    key = q.substr(0, eq);
+                    value = "";
+                    q.remove_prefix(eq);
+                }
+                ret.emplace(key, value);
+            }
+            return ret;
+        }
+
     };
+
+    template <>
+    [[nodiscard]] inline std::vector<std::pair<std::string_view, std::string_view>>
+    Request::query_params() const {
+
+        // Find query string
+        std::vector<std::pair<std::string_view, std::string_view>> ret;
+        const char* qs = strchr(path, '?');
+        if (qs == nullptr)
+            return ret;
+
+        // Parse query string
+        std::string_view q = qs;
+        while (!q.empty()) {
+            if (q[0] == '&' || q[0] == '?') {
+                q.remove_prefix(1);
+            }
+
+            // Parse query param key + value
+            auto eq = q.find_first_of("=&");
+            std::string_view key;
+            std::string_view value;
+            if (eq == std::string::npos) {
+                key = q;
+                value = "";
+                q = "";
+            } else if (q[eq] == '=') {
+                key = q.substr(0, eq);
+                auto end = q.find('&', eq);
+                value = q.substr(eq + 1, end == std::string::npos
+                    ? end : (end - eq - 1));
+                q.remove_prefix(end);
+            } else if (q[eq] == '&') {
+                key = q.substr(0, eq);
+                value = "";
+                q.remove_prefix(eq);
+            }
+            ret.emplace_back(key, value);
+        }
+        return ret;
+    }
 
     /**
      * Wrapper for FIY users

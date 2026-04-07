@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+</head>
+<body>
+
+<nav>
+    <a href="//{{fiy_domain}}">Portal</a>
+    | <a href="{{mod_baseurl}}">Git-IY</a>
+    | <a href="{{mod_baseurl}}/{{request_user}}">Profile</a>
+    <hr/>
+</nav>
+
+<div class="container">
+    <noscript>
+        <h1>This page requires JavaScript. :(</h1>
+    </noscript>
+    <div class="profile-tabs">
+        <a href="?tab=repos">Repositories</a>
+        | <a href="?tab=activity">Activity</a>
+        | <a href="?tab=likes">Likes</a>
+    </div>
+
+    <!-- this should get ssr'd -->
+    <div id="user-basic-info">
+        <img src="//{{fiy_domain}}/mods/contacts/pfp/{{fiy_user}}"  alt="profile image" />
+        <h2>{{fiy_display_name}}</h2>
+        <h4>{{fiy_user}}</h4>
+        <p>{{fiy_user_bio}}</p>
+        <!-- no followers/following for now -->
+        <!-- todo get more info from contacts mod -->
+    </div>
+
+    <div id="tab-view">
+        <h3>Repos</h3>
+        <div class="repo-card">
+            <span class="repo-card-repo">dvtt/postfix-haskell</span>
+            <p class="repo-card-description">A low-level, postfix, functional programming language that compiles to WebAssembly</p>
+            <span class="repo-card-tag">
+                <i class="fa fa-heart"></i> 22
+            </span>
+        </div>
+    </div>
+</div>
+    <script>
+        const domain = "{{fiy_domain}}";
+        const baseUrl = "{{mod_baseurl}}";
+        let user;
+
+        const tabView = document.getElementById('tab-view');
+
+
+        function repoCard(repo) {
+            let displayPath = repo.path;
+            const [owner, repoName] = displayPath.split('/');
+            if (owner === user)
+                displayPath = repoName;
+            return `<div class="repo-card">
+                    <span class="repo-card-path">
+                        <a href="${baseUrl}/${repo.path}">${displayPath}</a>
+                    </span>
+                    <p class="repo-card-description">${repo.description}</p>
+                </div>`;
+        }
+
+        const View = {
+            async repos() {
+                const r = await fetch(baseUrl + '/api/repos/' + user);
+                const o = await r.json();
+                tabView.innerHTML = o.map(repoCard).join('');
+            },
+        };
+
+        function renderPage() {
+            // Get username in canonical form
+            let url = new URL(document.location.toString());
+            user = url.pathname.split('/').filter(e => !!e).pop();
+            let [ userName, userHost ] = user.split('@').filter(e => !!e);
+            if (!userHost)
+                userHost = domain;
+            user = userName + '@' + userHost; // Canonical
+
+            let tab = url.searchParams.get("tab");
+            if (!View[tab])
+                tab = 'repos';
+            View[tab]();
+        }
+
+    </script>
+</body>
+</html>

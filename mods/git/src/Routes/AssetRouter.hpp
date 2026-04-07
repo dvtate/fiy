@@ -9,5 +9,5 @@
 bool static_asset_router(
     std::string_view path,
     fiy::Callback cb,
-    fiy::Request &req
+    fiy::Request& req
 );

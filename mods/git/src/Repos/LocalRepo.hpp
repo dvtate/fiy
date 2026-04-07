@@ -9,7 +9,10 @@
 #include <string>
 #include <string_view>
 #include <functional>
+#include <list>
 #include <optional>
+
+#include "../../../../util/RWMutex.hpp"
 
 #include "../../../../modlib/fiymod.hpp"
 
@@ -21,6 +24,9 @@ struct RepoFileBrowserPageData;
 
 class LocalRepo : public BasicRepo, public GitRepo {
 public:
+    /// Used to create new repo
+    LocalRepo() = default;
+
     /// Short description for the repo
     std::string description{};
 
@@ -39,9 +45,6 @@ public:
     [[nodiscard]] bool valid() const {
         return create_ts != -1;
     }
-
-    LocalRepo() = default;
-    explicit LocalRepo(const BasicRepo& repo);
 
     std::string to_json();
     bool from_json(const std::string& json);
@@ -63,4 +66,21 @@ public:
     bool get_repo_page_data(const std::string& branch, RepoPageData& data);
     bool get_repo_page_data(const std::string& branch, const std::string& path, RepoFileBrowserPageData& data);
 
+protected:
+    // Can only have GitRepo instance per repository
+    explicit LocalRepo(const BasicRepo& repo);
+
+    // TODO probably should make this static instance of generic class
+    // TODO this should be in GitRepo, not here
+    static RWMutex m_cache_mtx;
+    static boost::unordered_flat_map<std::string, std::weak_ptr<LocalRepo>> m_cache;
+    static std::vector<std::shared_ptr<LocalRepo>> m_cache_lru;
+    static size_t m_lru_max_size;
+    static std::mutex m_cache_lru_mutex;
+
+    static void cache_lru_push(const std::shared_ptr<LocalRepo>& repo);
+
+public:
+    static std::shared_ptr<LocalRepo> get_repo(const BasicRepo& repo);
+    static std::vector<std::shared_ptr<LocalRepo>> get_repos(const std::vector<BasicRepo>& repos);
 };

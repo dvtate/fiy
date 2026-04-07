@@ -117,3 +117,10 @@ CREATE TABLE UserEmails (
     email TEXT UNIQUE NOT NULL,
     user TEXT
 );
+
+CREATE TABLE RepoLikes (
+    user TEXT, -- user that created the like
+    repoPath TEXT,
+    ts INTEGER NOT NULL,
+    UNIQUE(user, user, repoPath)
+);

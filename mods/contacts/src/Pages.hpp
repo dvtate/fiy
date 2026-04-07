@@ -20,7 +20,7 @@ namespace Pages {
         return std::string(fiy::host().data_dir) + "/assets/" + subpath;
     }
 
-    //////
+    /////
     // Simple Templating engine
     /////
 

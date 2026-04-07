@@ -1,0 +1,16 @@
+*.tsbuildinfo
+.npm
+.node_repl_history
+.eslintcache
+*.code-workspace
+
+*.wasm
+*.asm.js
+
+# dotenv environment variables file
+.env
+.env.test
+
+node_modules/
+dist/
+

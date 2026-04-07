@@ -16,20 +16,18 @@ These are just some ideas
 - fix include order 
 - replace std::unordered_map with boost::unordered_flat_map where possible
 - Replace SQLiteCpp
+  - the library is badly designed
 
 ## Portal+Protocol Server Features
 - Use local copies of CSS+JS Libraries
-- Specify paths for apps
-- Change app settings
 - [minify](https://www.npmjs.com/package/minify) html+css+js?
-- Mod icons
+- encrypt peer handshake
+- DLL Mods: shared request task queue + thread pool
+  - if task queue gets big, warn user
 
 ## Shared library mod to server mod wrapper
 Currently developing all mods as .so's as this would give best performance on low-traffic systems.
 This wrapper would enable some degree of horizontal scaling without having to rewrite the mods. 
-
-## Handshake protocol still not done
-- should encrypt body
 
 ## Logging system
 - Log files
@@ -37,8 +35,6 @@ This wrapper would enable some degree of horizontal scaling without having to re
 - Maybe write logs in a different format?
 - Maybe good for new users
 
-## More than just SQLite
-SQLite prevents horizontal scaling.
 
 ## Much later
 - How to handle websockets/webrtc/ssh?

@@ -28,7 +28,8 @@ public:
 
     ModConnector(Mod* mod, std::string path): m_mod(mod), m_uri(std::move(path)) {}
 
-    virtual ~ModConnector() = default; // owning mod should call stop before destructor
+    // owning mod should call stop before destructor
+    virtual ~ModConnector() = default;
 
     /// Initialize the app
     virtual bool start() = 0;

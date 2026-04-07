@@ -17,5 +17,5 @@
 using RequestRouter = bool (*)(
     std::string_view path,
     fiy::Callback cb,
-    fiy::Request &req
+    fiy::Request& req
 );

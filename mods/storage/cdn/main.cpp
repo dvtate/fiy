@@ -126,11 +126,11 @@ namespace Config {
     }
 
     bool prep_data_dir() {
-        std::string_view digits = HEX_DIGITS;
+        static constexpr std::string_view digits = HEX_DIGITS;
         std::string dir = data_dir + "/XX";
 
-        for (const char c1 : std::string_view(HEX_DIGITS))
-            for (const char c2 : std::string_view(HEX_DIGITS)) {
+        for (const char c1 : digits)
+            for (const char c2 : digits) {
                 dir[dir.size() - 1] = c1;
                 dir[dir.size() - 2] = c2;
                 if (std::filesystem::exists(dir))

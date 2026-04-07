@@ -165,21 +165,10 @@ static Session::StringResponse login_page(unsigned status = 200, const std::stri
     return res;
 }
 
-/**
- * Checks if the proposed username string is allowable
- * @param str proposed username
- * @return true if valid, false otherwise
- */
-static bool is_valid_username(const std::string& str) {
-    for (const auto& c : str)
-        if (! (isalnum(c) || c == '_' || c == '.'))
-            return false;
-    return true;
-}
-
 static void signup_post(std::shared_ptr<Session>&& conn) {
     static const auto resp_bad_username = signup_page(400, "Username should contain only alphanumeric characters");
     static const auto resp_username_taken = signup_page(400, "Username is taken, try a different one");
+    static const auto resp_username_reserved = signup_page(400, "Username is reserved, try a different one");
     static const auto resp_bad_form = signup_page(400, "Form Error");
     static const auto resp_long_username = signup_page(400, "Username must be less than " + std::to_string(LocalUser::USERNAME_MAX_LENGTH) +  " characters");
     static const auto resp_long_name = signup_page(400, "Name must be less than " + std::to_string(LocalUser::NAME_MAX_LENGTH) +  " characters");
@@ -209,18 +198,28 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
     LOG("Creating local user: " << username <<"  | " << contact);
 
     // Validate username
-    if (!is_valid_username(username)) {
-        conn->respond(conn->prep(resp_bad_username));
+    for (const auto& c : username)
+        if (! (isalnum(c) || c == '_' || c == '.')) {
+            conn->respond(conn->prep(resp_bad_username));
+            return;
+        }
+    if (username.size() > LocalUser::USERNAME_MAX_LENGTH || username.empty()) {
+        conn->respond(conn->prep(resp_long_username));
         return;
     }
-    if (username.size() > LocalUser::USERNAME_MAX_LENGTH) {
-        conn->respond(conn->prep(resp_long_username));
+    static const std::unordered_set<std::string_view> reserved_usernames = {
+        "api", "portal", "mod", "app", "help", "home", "index", "new",
+    };
+    if (reserved_usernames.contains(username) || username.ends_with("settings")) {
+        conn->respond(conn->prep(resp_username_reserved));
         return;
     }
     if (g_fiy->m_users.get_username(username) != nullptr) {
         conn->respond(conn->prep(resp_username_taken));
         return;
     }
+
+    // Validate name
     if (name.size() > LocalUser::NAME_MAX_LENGTH) {
         conn->respond(conn->prep(resp_long_name));
         return;
@@ -567,15 +566,26 @@ void route_request(std::shared_ptr<Session> conn) {
                 } else if (path.starts_with("/signup")) {
                     conn->respond(conn->prep(signup_page()));
                     return;
-                } else if (path.starts_with("/main.js")) {
+                } else if (path.starts_with("/theme.js")) {
                     // Send cached file contents
-                    static const char subpath[] = "/main.js";
+                    static const char subpath[] = "/theme.js";
                     Session::StringResponse res{
                         http::status::ok,
                         conn->req().version(),
-                        g_fiy->m_pages->file_contents<subpath>()
+                        Pages::file_contents<subpath>()
                     };
                     res.set(http::field::content_type, "text/javascript");
+                    conn->respond(conn->prep(std::move(res)));
+                    return;
+                } else if (path.starts_with("/main.css")) {
+                    // Send cached file contents
+                    static const char subpath[] = "/assets/minstyle.io.min.css";
+                    Session::StringResponse res{
+                        http::status::ok,
+                        conn->req().version(),
+                        Pages::file_contents<subpath>()
+                    };
+                    res.set(http::field::content_type, "text/css");
                     conn->respond(conn->prep(std::move(res)));
                     return;
                 } else if (path.starts_with("/redirect")) {

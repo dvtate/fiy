@@ -21,7 +21,6 @@ namespace DB {
     bool add_user(const LocalUser& user, std::string password);
     std::shared_ptr<Peer> get_peer(const std::string_view domain);
 
-};
+}
 
-
-// TODO db cron that prunes users+servers with expired authentication
+// TODO db cron that prunes expired authentication tokens

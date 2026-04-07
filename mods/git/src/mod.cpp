@@ -10,6 +10,7 @@
 #include "../../../util/WebUtils.hpp"
 
 #include "Repos/git_http_backend.hpp"
+#include "Routes/ApiRouter.hpp"
 #include "Routes/Pages.hpp"
 #include "Routes/AssetRouter.hpp"
 #include "Routes/RepoRouter.hpp"
@@ -44,7 +45,8 @@ void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
         return;
     }
 
-    if (repo_request_router(path, cb, req)
+    if (api_router(path, cb, req)
+        || repo_request_router(path, cb, req)
         || static_asset_router(path, cb, req))
         return;
 

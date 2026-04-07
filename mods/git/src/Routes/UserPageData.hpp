@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <deque>
 #include <string>
 #include <vector>
 
@@ -39,6 +40,7 @@ struct UserBasicRepo {
     std::string description;
     int likes_count{-1};
     // TODO forks_count, license, language, tags, etc.
+
 };
 
 struct UserBasicContribution {
@@ -56,7 +58,9 @@ struct UserBasicContribution {
     }
 };
 struct UserBasicContributions {
+    std::deque<UserBasicContribution> contributions;
 
+    std::string to_json();
 };
 
 struct UserOverview {

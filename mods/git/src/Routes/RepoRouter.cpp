@@ -67,7 +67,7 @@ void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
         return;
     }
 
-    /// Construct repo from form data
+    // Construct repo from form data
     LocalRepo repo;
     for (const auto& [k, v]: form) {
         if (k == "repo-owner") {
@@ -181,20 +181,20 @@ bool repo_request_router(
     }
 
     // Handle local repo
-    LocalRepo& repo = *Repos::cache.local_repo(basic_repo);
-    if (!repo.valid())
+    const auto repo = LocalRepo::get_repo(basic_repo);
+    if (!repo->valid())
         return false;
 
     // Repo page
     auto access = LocalRepo::Access::Read;
     if (subpath.empty() || subpath[0] == '?' || subpath[0] == '#') {
-        if (!repo.can_access(access, req.user, req.domain)) {
+        if (!repo->can_access(access, req.user, req.domain)) {
             unauthenticated(req, cb);
             return true;
         }
 
         RepoPageData data;
-        repo.get_repo_page_data(repo.default_branch(), data);
+        repo->get_repo_page_data(repo->default_branch(), data);
         const auto body = Pages::repo_page(data, req.domain == nullptr ? req.user : nullptr);
         req.respond(cb,
             200,
@@ -230,7 +230,7 @@ bool repo_request_router(
     // Else, we don't know the path, send it to the cgi
     if (std::string_view(req.path).find("git-receive-pack") != std::string_view::npos)
         access = LocalRepo::Access::Write;
-    if (!repo.can_access(access, req.user, req.domain)) {
+    if (!repo->can_access(access, req.user, req.domain)) {
 
         // Need to send special header to git client
         if (req.find_header("User-Agent").starts_with("git/")) {
@@ -248,7 +248,7 @@ bool repo_request_router(
     // /user/repo/settings      -- settings page (must check permissions)
 
     // we don't know what to do, pass it on to the cgi
-    repo.http_cgi(req, cb);
+    repo->http_cgi(req, cb);
 
     return true; // we have to be called last
 }

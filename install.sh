@@ -165,7 +165,7 @@ mkdir "$INSTALL_PATH/mods/git/repos"
 mkdir "$INSTALL_PATH/mods/git/static"
 cp $CP_INSTALL_FLAG "$(realpath ./mods/git/module.json)" "$INSTALL_PATH/mods/git/."
 cp $CP_INSTALL_FLAG "$(realpath ./build/libgit_mod.so)" "$INSTALL_PATH/mods/git/module.so"
-cp $CP_INSTALL_FLAG "$(realpath ./mods/git/frontend)"/* "$INSTALL_PATH/mods/git/static"
+cp $CP_INSTALL_FLAG "$(realpath ./mods/git/frontend/static)"/* "$INSTALL_PATH/mods/git/static"
 sqlite3 "$INSTALL_PATH/mods/git/db.db3" < ./mods/git/db.sql
 echo "Installed Git mod."
 
