@@ -13,8 +13,8 @@
 #include <concepts>
 #include <deque>
 
-#include <stdio.h>
-#include <errno.h>
+#include <cstdio>
+#include <cerrno>
 #include <fstream>
 #include <unistd.h>
 
@@ -161,6 +161,7 @@ namespace Config {
             assetId INTEGER REFERENCES Assets,
             expireTs INTEGER DEFAULT -1,
         ))"_sql.exec();
+        return true;
     }
 
     void check_storage() {
@@ -616,7 +617,7 @@ handle_request(
                 expire_seconds,
                 req[http::field::cache_control]
             );
-            if (asset_id == (uint32_t) -1)
+            if (asset_id == static_cast<uint32_t>(-1))
                 return e500("db error");
 
             const auto fs_path = get_asset_path(bucket, asset_id);
@@ -854,7 +855,7 @@ int main(int argc, char* argv[]) {
     // Run the I/O service on the requested number of threads
     std::vector<std::thread> v;
     v.reserve(threads - 1);
-    for(auto i = threads - 1; i > 0; --i)
+    for (auto i = threads - 1; i > 0; --i)
         v.emplace_back(
         [&ioc]
         {

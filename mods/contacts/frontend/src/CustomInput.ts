@@ -576,7 +576,7 @@ export class CustomTimezoneInput extends CustomInput {
                 tzdb.links.map(([name, target]) =>
                     [name, name + (target ? ` (${target})` : '')]
                 )
-            ).sort((a, b) => b[0].localeCompare(a[0]));
+            ).sort((a, b) => a[0].localeCompare(b[0]));
         return CustomTimezoneInput.tzDbOptions = options.map(([value, text]) =>
             `<option value="${value}">${text}</option>`).join('');
     }

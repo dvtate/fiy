@@ -261,6 +261,7 @@ bool user_api(
         repos.reserve(std::min((size_t)limit, 200ul));
         while (q.executeStep())
             repos.emplace_back(q.getColumn(0).getString());
+        q.reset();
 
         if (repos.empty()) {
             req.respond(cb, 200, "Content-type: application/json", fiy::Body("[]"));
