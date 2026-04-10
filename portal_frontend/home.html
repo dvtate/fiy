@@ -3,7 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>FIY - Home</title>
+    <title>FIY/{{domain}} - Home</title>
     <meta name="description" content="Your home for federated apps" />
 
     <link rel="stylesheet" type="text/css" href="/portal/main.css">
@@ -20,7 +20,7 @@
 </head>
 <body>
 <div class="ms-menu">
-    <div class="ms-menu-logo">FIY</div>
+    <div class="ms-menu-logo">FIY/{{domain}}</div>
     <nav class="ms-menu-link">
         <input type="checkbox" id="ms-menu-toggle" />
         <label for="ms-menu-toggle" class="ms-menu-icon">&#9776;</label>
@@ -42,8 +42,8 @@
 
 <script>
     // From server
-    const user = {{{user_data}}};
-    const installedApps = {{{installed_apps}}};
+    const user = {{user_data}};
+    const installedApps = {{installed_apps}};
     installedApps.sort((a,b) => a.name.localeCompare(b.name));
 
     // id, path, version, name, description, icon, status, loaded, enabled, running, error

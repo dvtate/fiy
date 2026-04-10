@@ -55,8 +55,6 @@ bool FIY::start() {
         // return false;
     }
 
-    m_pages = std::make_unique<Pages>();
-
     // Make Boost IO context
     m_ioc = new boost::asio::io_context{m_config.m_concurrency};
 
@@ -74,14 +72,8 @@ bool FIY::start() {
     return true;
 }
 
-static std::string get_base_uri(const char* hostname) {
-    const bool is_https = strchr(hostname, ':') == nullptr;
-    std::string ret = (is_https ? "https://" : "http://");
-    ret += hostname;
-    return ret;
-}
-
 const std::string& FIY::base_uri() const {
-    static const std::string ret = get_base_uri(m_config.m_hostname);
+    static const std::string ret = std::string(m_config.m_protocol)
+        + m_config.m_hostname;
     return ret;
 }

@@ -11,6 +11,7 @@
 
 #include "Session.hpp"
 #include "Router.hpp"
+#include "Pages.hpp"
 
 namespace http = boost::beast::http;
 
@@ -64,8 +65,7 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
         }
     }
 
-    // TODO
-    // We want to support root mods (ie - mod w/ path '')
+    // NOTE: weird feature: Root Mods (ie - mod w/ path '')
     // this means that any time the mod path doesn't match
     // we need to assume it's a request for the root mod
     // so for example a request to /index.html would first check
@@ -125,7 +125,7 @@ static void mod_send_msg(std::shared_ptr<Session> conn) {
             Session::StringResponse res{
                 http::status::ok,
                 conn->req().version(),
-                g_fiy->m_pages->file_contents<subpath>()
+                Pages::file_contents<subpath>()
             };
             res.set(http::field::content_type, "text/html");
             conn->respond(conn->prep(std::move(res)));
@@ -151,31 +151,24 @@ static void mod_send_msg(std::shared_ptr<Session> conn) {
 }
 
 // TODO ?redirect=/mod/that/requires/auth query parameter
-static Session::StringResponse signup_page(unsigned status = 200, const std::string& err = "") {
-    // Cache-able
-    Session::StringResponse res;
-    res.result(status);
-    res.set(http::field::content_type, "text/html");
-    res.body() = g_fiy->m_pages->signup_page(err);
-    return res;
-}
-static Session::StringResponse login_page(unsigned status = 200, const std::string& err = "") {
-    Session::StringResponse res;
-    res.result(status);
-    res.set(http::field::content_type, "text/html");
-    res.body() = g_fiy->m_pages->login_page(err);
-    return res;
-}
-
 static void signup_post(std::shared_ptr<Session>&& conn) {
-    static const auto resp_bad_username = signup_page(400, "Username should contain only alphanumeric characters");
-    static const auto resp_username_taken = signup_page(400, "Username is taken, try a different one");
-    static const auto resp_username_reserved = signup_page(400, "Username is reserved, try a different one");
-    static const auto resp_bad_form = signup_page(400, "Form Error");
-    static const auto resp_long_username = signup_page(400, "Username must be less than " + std::to_string(LocalUser::USERNAME_MAX_LENGTH) +  " characters");
-    static const auto resp_long_name = signup_page(400, "Name must be less than " + std::to_string(LocalUser::NAME_MAX_LENGTH) +  " characters");
-    static const auto resp_long_contact = signup_page(400, "Contact info must be less than " + std::to_string(LocalUser::EMAIL_MAX_LENGTH) + " characters");
-    static const auto resp_server_error = signup_page(500, "Failed to create account, try again later");
+    // Cache prepared responses
+    static const auto resp_bad_username
+        = Pages::signup_page(400, "Username should contain only alphanumeric characters");
+    static const auto resp_username_taken
+        = Pages::signup_page(400, "Username is taken, try a different one");
+    static const auto resp_username_reserved
+        = Pages::signup_page(400, "Username is reserved, try a different one");
+    static const auto resp_bad_form
+        = Pages::signup_page(400, "Form Error");
+    static const auto resp_long_username
+        = Pages::signup_page(400, "Username must be less than " + std::to_string(LocalUser::USERNAME_MAX_LENGTH) +  " characters");
+    static const auto resp_long_name
+        = Pages::signup_page(400, "Name must be less than " + std::to_string(LocalUser::NAME_MAX_LENGTH) +  " characters");
+    static const auto resp_long_contact
+        = Pages::signup_page(400, "Contact info must be less than " + std::to_string(LocalUser::EMAIL_MAX_LENGTH) + " characters");
+    static const auto resp_server_error
+        = Pages::signup_page(500, "Failed to create account, try again later");
 
     // Parse form body
     std::deque<std::pair<std::string, std::string>> form;
@@ -275,8 +268,8 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
 
 static void login_post(std::shared_ptr<Session>&& conn) {
     // Pre-allocated responses
-    static const auto resp_bad_form = login_page(400, "Form Error");
-    static const auto resp_bad_creds = login_page(401, "Incorrect username/password");
+    static const auto resp_bad_form = Pages::login_page(400, "Form Error");
+    static const auto resp_bad_creds = Pages::login_page(401, "Incorrect username/password");
 
     // Get username and password from body
     std::deque<std::pair<std::string, std::string>> form;
@@ -563,10 +556,10 @@ void route_request(std::shared_ptr<Session> conn) {
             if (path.starts_with("/portal")) {
                 path.remove_prefix(7);
                 if (path.starts_with("/login")) {
-                    conn->respond(conn->prep(login_page()));
+                    conn->respond(conn->prep(Pages::login_page()));
                     return;
                 } else if (path.starts_with("/signup")) {
-                    conn->respond(conn->prep(signup_page()));
+                    conn->respond(conn->prep(Pages::signup_page()));
                     return;
                 } else if (path.starts_with("/theme.js")) {
                     // Send cached file contents
@@ -631,11 +624,7 @@ void route_request(std::shared_ptr<Session> conn) {
                     }
 
                     // Send them to portal home
-                    Session::StringResponse res;
-                    res.result(200);
-                    res.body() = g_fiy->m_pages->portal_apps(*user);
-                    res.set(http::field::content_type, "text/html");
-                    conn->respond(conn->prep(std::move(res)));
+                    conn->respond(conn->prep(Pages::portal_apps(*user)));
                     return;
                 } else {
                     std::cerr <<"404 -- GET /portal : " <<path <<std::endl;
@@ -658,7 +647,7 @@ void route_request(std::shared_ptr<Session> conn) {
                 Session::StringResponse res;
                 res.result(200);
                 static constexpr char robots_txt[] = "/robots.txt";
-                res.body() = g_fiy->m_pages->file_contents<robots_txt>();
+                res.body() = Pages::file_contents<robots_txt>();
                 res.set(http::field::content_type, "text/plain");
                 res.set("Cache-control", "max-age=60000");
                 conn->respond(conn->prep(std::move(res)));
@@ -672,9 +661,11 @@ void route_request(std::shared_ptr<Session> conn) {
             if (path.starts_with("/portal")) {
                 path.remove_prefix(7);
                 if (path.starts_with("/login")) {
+                    // TODO ?redirect=/mod/that/requires/auth query parameter
                     login_post(std::move(conn));
                     return;
                 } else if (path.starts_with("/signup")) {
+                    // TODO ?redirect=/mod/that/requires/auth query parameter
                     signup_post(std::move(conn));
                     return;
                 } else {

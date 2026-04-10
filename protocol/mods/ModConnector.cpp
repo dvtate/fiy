@@ -12,11 +12,11 @@
 #include <nlohmann/json.hpp>
 
 
-#include "Server/Session.hpp"
-#include "LocalUser.hpp"
-#include "FIY.hpp"
-#include "../modlib/fiymod.hpp"
-#include "Server/util.hpp"
+#include "../Server/Session.hpp"
+#include "../LocalUser.hpp"
+#include "../FIY.hpp"
+#include "../../modlib/fiymod.hpp"
+#include "../Server/util.hpp"
 
 /// Message passed to shared library
 struct ModDllConnectorRequest : public fiy::fiy_request_t {
@@ -162,9 +162,10 @@ struct ModDLLHostInfo : fiy::fiy_host_info_t {
         };
         this->now = []() { return g_fiy->now(); };
 
-        m_base_uri = std::string(
-            strchr(g_fiy->m_config.m_hostname, ':') == nullptr ? "https://" : "http://"
-            ) + g_fiy->m_config.m_hostname + '/' + mod->m_path;
+        m_base_uri =  g_fiy->m_config.m_protocol;
+        m_base_uri += g_fiy->m_config.m_hostname;
+        m_base_uri += '/';
+        m_base_uri += mod->m_path;
 
         this->base_uri = m_base_uri.c_str(); // host info shouldn't be moved either
         this->request = ModDLLHostInfo::request_impl;
@@ -323,10 +324,10 @@ void ModDLLConnector::handle_request(std::shared_ptr<Session> conn) {
     if (m_mod->m_can_access == nullptr
         || !m_mod->m_can_access(username, user.domain)
     ) {
+        static const auto body_str = "<h1>401 - Unauthorized</h1><hr/><a href='"
+            + g_fiy->base_uri() + "/portal'>Go to portal</a>";
         Session::StringResponse res;
         res.result(401);
-        static const auto body_str = "<h1>401 - Unauthorized</h1><hr/><a href='" +
-            g_fiy->base_uri() + "'>Go to portal</a>";
         res.body() = body_str;
         conn->respond(conn->prep(res));
         return;

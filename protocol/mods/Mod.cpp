@@ -9,7 +9,9 @@
 
 #include "nlohmann/json.hpp"
 
-#include "FIY.hpp"
+#include "../../util/FileCache.hpp"
+
+#include "../FIY.hpp"
 
 [[nodiscard]] inline std::filesystem::path Mod::dir() const {
     return g_fiy->m_config.m_data_dir + "/mods/" + m_data_dir;
@@ -347,7 +349,7 @@ nlohmann::json Mod::parse_file() {
     }
 
     // Load config
-    m_config = Pages::load_file_as_string(mp / "module.json");
+    m_config = load_file_as_string(mp / "module.json");
     auto ret = nlohmann::json::parse( m_config.begin(), m_config.end() );
     if (!ret.is_object()) {
         load_error("module.json: should be an object");

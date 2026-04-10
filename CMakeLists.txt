@@ -35,15 +35,13 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/defs.hpp
     protocol/FIY.hpp
     protocol/FIY.cpp
-    protocol/Mod.cpp
-    protocol/Mod.hpp
-    protocol/Mods.cpp
-    protocol/Mods.hpp
-    protocol/ModConnector.cpp
-    protocol/ModConnector.hpp
+    protocol/mods/Mod.cpp
+    protocol/mods/Mod.hpp
+    protocol/mods/Mods.cpp
+    protocol/mods/Mods.hpp
+    protocol/mods/ModConnector.cpp
+    protocol/mods/ModConnector.hpp
     protocol/LocalUser.cpp
-    protocol/Pages.cpp
-    protocol/Pages.hpp
     protocol/Server/Server.cpp
     protocol/Server/Server.hpp
     protocol/Server/Router.hpp
@@ -63,6 +61,7 @@ add_executable(protocol_server ${protocol_server_sources}
     util/Crypto.cpp
     util/Crypto.hpp
     protocol/Peer.cpp
+    protocol/Server/Pages.hpp
 )
 
 # Debug/vs release

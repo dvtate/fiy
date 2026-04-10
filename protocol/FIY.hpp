@@ -7,8 +7,7 @@
 #include "Peers.hpp"
 #include "DB.hpp"
 #include "Config.hpp"
-#include "Mods.hpp"
-#include "Pages.hpp"
+#include "mods/Mods.hpp"
 #include "LocalUsers.hpp"
 #include "HttpClient.hpp"
 #include "HttpsClient.hpp"
@@ -30,7 +29,6 @@ public:
     FiyConfig m_config;
     Peers m_peers;
     Mods m_mods;
-    std::unique_ptr<Pages> m_pages;
     LocalUsers m_users;
     HttpClient m_http;
     HttpsClient m_https;

@@ -7,9 +7,9 @@
 #include <string>
 #include <memory>
 
-#include "defs.hpp"
+#include "../defs.hpp"
 
-#include "../modlib/fiymod.h"
+#include "../../modlib/fiymod.h"
 
 class Session;
 class Mod;

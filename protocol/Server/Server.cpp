@@ -94,35 +94,9 @@ private:
 
 } // namespace {}
 
-static std::string listen_address() {
-    // Check config
-    if (!g_fiy->m_config.m_listen_addr.empty())
-        return g_fiy->m_config.m_listen_addr;
-
-    // Check env
-    const char* env_addr = std::getenv("FIY_LISTEN_ADDR");
-    if (env_addr != nullptr)
-        return env_addr;
-
-    // Do something reasonable
-    std::string_view hn = g_fiy->m_config.m_hostname;
-
-    // No port: assume it's routed through a reverse proxy?
-    if (hn.find(':') == std::string_view::npos)
-        return "127.0.0.1";
-
-    // Specific port ( eg. mywebsite.tld:8080 )
-
-    // localhost : port -- testing
-    if (hn.starts_with("127.0.0.1") || hn.starts_with("localhost"))
-        return "127.0.0.1";
-
-    // hostname : port -- non-port-80 deployment
-    return "0.0.0.0";
-}
 
 void Server::start() {
-    auto const address = net::ip::make_address(listen_address());
+    auto const address = net::ip::make_address(g_fiy->m_config.m_listen_addr);
     auto const port = static_cast<unsigned short>(g_fiy->m_config.m_port);
 
     // Start listening

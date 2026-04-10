@@ -1,6 +1,6 @@
 #include <filesystem>
 
-#include "FIY.hpp"
+#include "../FIY.hpp"
 
 #include "Mods.hpp"
 

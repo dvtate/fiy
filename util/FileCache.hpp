@@ -15,6 +15,40 @@
 #include <stdexcept>
 #endif
 
+/// Load entire file contents into a string
+/// returns "" if file could not be opened
+static std::string load_file_as_string(const std::string& file_path) {
+    // Open file
+    std::ifstream in(file_path, std::ios::in | std::ios::binary);
+    if (!in) [[unlikely]] {
+        std::string msg = "Error: Could not open file ";
+        msg += file_path;
+#ifdef LOG_ERR
+        LOG_ERR(msg);
+#else
+        throw new std::runtime_error(msg);
+#endif
+
+        return ""; // Return an empty string on failure
+    }
+
+    // Prepare buffer to store file contents
+    std::string contents;
+    in.seekg(0, std::ios::end);
+    contents.resize(in.tellg());
+
+    // Read file
+    in.seekg(0, std::ios::beg);
+    in.read(&contents[0], contents.size());
+    in.close();
+    return contents;
+}
+
+/*
+ * Cache frequently used file contents into static memory.
+ *
+ * Includes a rudimentary template engine.
+ */
 
 template <auto(*GetBaseDirFunctor)(void)>
 struct FileCache {
@@ -22,33 +56,8 @@ struct FileCache {
     // TODO should use map/unordered_map instead
     using ReplacementMap = std::vector<std::pair<std::string, std::string>>;
 
-    /// Load entire file contents into a string
-    /// returns "" if file could not be opened
     static std::string load_file_as_string(const std::string& file_path) {
-        // Open file
-        std::ifstream in(file_path, std::ios::in | std::ios::binary);
-        if (!in) [[unlikely]] {
-            std::string msg = "Error: Could not open file ";
-            msg += file_path;
-#ifdef LOG_ERR
-            LOG_ERR(msg);
-#else
-            throw new std::runtime_error(msg);
-#endif
-
-            return ""; // Return an empty string on failure
-        }
-
-        // Prepare buffer to store file contents
-        std::string contents;
-        in.seekg(0, std::ios::end);
-        contents.resize(in.tellg());
-
-        // Read file
-        in.seekg(0, std::ios::beg);
-        in.read(&contents[0], contents.size());
-        in.close();
-        return contents;
+        return ::load_file_as_string(file_path);
     }
 
     /// Getter
