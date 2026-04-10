@@ -17,7 +17,6 @@ class Mod;
 /**
  * Abstract class that handles communication between the protocol host and mods
  */
-// TODO we should track requests, if 500+ requests awaiting response, we should maybe warn the user
 class ModConnector {
 public:
     /// Owner
@@ -37,8 +36,19 @@ public:
     /// Cleanly shut the app down
     virtual bool stop() = 0;
 
-    /// Handle user request
+    /**
+     * Handle request from the network
+     * @param conn connection object
+     * @remark this should return quickly so that we don't hang up event loop
+     */
     virtual void handle_request(std::shared_ptr<Session> conn) = 0;
+
+    /**
+     * Handle a request from a local mod
+     * @param req request object
+     * @param context context to pass to callback
+     * @param callback callback to return control back to local mod
+     */
     virtual void handle_request(
         const fiy::fiy_request_t* req,
         void* context,
@@ -48,60 +58,5 @@ public:
     /// Handle user data deletion request
     virtual void delete_user(const char* user) = 0;
 
-    /// IPC interface
-    enum class Type {
-        SHARED_LIBRARY,     // .so file
-        NETWORK,            // HTTP/HTTPS
-        // CGI,                // TODO common gateway interface
-    };
-
-    [[nodiscard]] virtual Type type() = 0;
 };
 
-struct ModDLLHostInfo;
-
-/// Communicates with the module by dynamically linking
-class ModDLLConnector : public ModConnector {
-    void* m_dl_handle{nullptr};
-    fiy::fiy_mod_info_t* m_mod_info{nullptr};
-    ModDLLHostInfo* m_host_info{nullptr};
-
-public:
-    ModDLLConnector(Mod* mod, std::string path): ModConnector(mod, std::move(path)) {}
-
-    Type type() override { return Type::SHARED_LIBRARY; }
-    bool stop() override;
-    bool start() override;
-    void delete_user(const char* user) override;
-    void handle_request(std::shared_ptr<Session> conn) override;
-    void handle_request(
-        const fiy::fiy_request_t* req,
-        void* context,
-        void (*callback)(const fiy::fiy_response_t*, void*)
-    ) override;
-};
-
-// IPC over the network
-class ModNetConnector : public ModConnector {
-    std::string m_bearer_send;
-    std::string m_bearer_accept;
-    bool m_https;
-
-public:
-    // TODO uri could have a subpath component that needs to be separated
-    ModNetConnector(Mod* mod, std::string path, const bool is_https = false):
-        ModConnector(mod, std::move(path)),
-        m_https(is_https)
-    {}
-
-    Type type() final { return Type::NETWORK; }
-    bool start() override;
-    bool stop() override;
-    void delete_user(const char* user) override;
-    void handle_request(std::shared_ptr<Session>) override;
-    void handle_request(
-        const fiy::fiy_request_t* req,
-        void* context,
-        void (*callback)(const fiy::fiy_response_t*, void*)
-    ) override;
-};

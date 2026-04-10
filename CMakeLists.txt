@@ -39,7 +39,6 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/mods/Mod.hpp
     protocol/mods/Mods.cpp
     protocol/mods/Mods.hpp
-    protocol/mods/ModConnector.cpp
     protocol/mods/ModConnector.hpp
     protocol/LocalUser.cpp
     protocol/Server/Server.cpp
@@ -60,8 +59,13 @@ add_executable(protocol_server ${protocol_server_sources}
     util/FileCache.hpp
     util/Crypto.cpp
     util/Crypto.hpp
+    util/ThreadPool.hpp
     protocol/Peer.cpp
     protocol/Server/Pages.hpp
+    protocol/mods/ModConnectorDll.cpp
+    protocol/mods/ModConnectorDll.hpp
+    protocol/mods/ModConnectorNet.cpp
+    protocol/mods/ModConnectorNet.hpp
 )
 
 # Debug/vs release

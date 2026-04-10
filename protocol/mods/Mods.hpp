@@ -1,10 +1,13 @@
 #pragma once
 
-#include "Mod.hpp"
 
 #include <boost/unordered/unordered_flat_map.hpp>
 
 #include <unordered_map>
+
+#include "Mod.hpp"
+#include "ModConnectorNet.hpp"
+
 
 // TODO refactor so that it handles ids and path lookups better
 
@@ -26,7 +29,7 @@ protected:
 
     // TODO instead just look up by id (must include in requests)
     //  and then dynamic cast into modnetconnector
-    std::unordered_map<std::string, ModNetConnector*> m_net_connectors; // mod http bearer tokens
+    std::unordered_map<std::string, ModConnectorNet*> m_net_connectors; // mod http bearer tokens
 
 public:
 
@@ -104,14 +107,14 @@ public:
         return m->stop();
     }
 
-    bool add_net_connector(const std::string& token, ModNetConnector* connector) {
+    bool add_net_connector(const std::string& token, ModConnectorNet* connector) {
         RWMutex::LockForWrite lock{m_mtx};
         if (m_net_connectors.contains(token))
             return false;
         m_net_connectors[token] = connector;
         return true;
     }
-    ModNetConnector*& get_net_connector(const std::string& token) {
+    ModConnectorNet*& get_net_connector(const std::string& token) {
         RWMutex::LockForRead lock{m_mtx};
         return m_net_connectors[token];
     }
@@ -123,4 +126,10 @@ public:
         RWMutex::LockForWrite lock{m_mtx};
         m_net_connectors.erase(token);
     }
+
+    void handle_request(
+        std::shared_ptr<Session> conn,
+        Mod* mod,
+        const std::string& path
+    );
 };

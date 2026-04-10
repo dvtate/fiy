@@ -119,6 +119,7 @@ public:
         return Status::FAILED;
     }
 
+    // Probably shouldn't let the user edit module.json like this
     std::string json();
     std::string user_json();
     nlohmann::json parse_file();

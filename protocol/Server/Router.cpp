@@ -115,7 +115,7 @@ static void mod_send_msg(std::shared_ptr<Session> conn) {
     // Get app
     auto [ m, uri ] = parse_mod_request_get(conn);
 
-    // Forward to mods
+    // No mod
     if (m == nullptr) {
         // No '' mod, use default index.html
         if (conn->req().target() == "/"

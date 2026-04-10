@@ -13,6 +13,9 @@
 
 #include "../FIY.hpp"
 
+#include "ModConnectorDll.hpp"
+#include "ModConnectorNet.hpp"
+
 [[nodiscard]] inline std::filesystem::path Mod::dir() const {
     return g_fiy->m_config.m_data_dir + "/mods/" + m_data_dir;
 }
@@ -71,13 +74,13 @@ std::string Mod::json() {
     json["enabled"] = m_enabled;
 
     // How does this mod connect to the protocol server
-    json["connector"] = m_ipc->type() == ModConnector::Type::NETWORK
-                ? m_ipc->m_uri.starts_with("https")
-                    ? "https"
-                    : "http"
-                : m_ipc->type() == ModConnector::Type::SHARED_LIBRARY
-                    ? "shared_object"
-                    : "socket";
+    // json["connector"] = m_ipc->type() == ModConnector::Type::NETWORK
+    //             ? m_ipc->m_uri.starts_with("https")
+    //                 ? "https"
+    //                 : "http"
+    //             : m_ipc->type() == ModConnector::Type::SHARED_LIBRARY
+    //                 ? "shared_object"
+    //                 : "socket";
 
     json["connector_uri"] = m_ipc->m_uri;
     return json.dump();
@@ -264,12 +267,12 @@ void Mod::load() {
             if (connector_uri.empty()) {
                 load_error("module.json: \"connector_uri\" must be defined when \"ipc\" is set to \"" + ts + "\"");
             } else {
-                m_ipc = std::make_unique<ModNetConnector>(this, connector_uri, ts == "https");
+                m_ipc = std::make_unique<ModConnectorNet>(this, connector_uri, ts == "https");
             }
         } else if (ts == "shared_object") {
             if (connector_uri.empty())
                 connector_uri = dir() / "module.so";
-            m_ipc = std::make_unique<ModDLLConnector>(this, connector_uri);
+            m_ipc = std::make_unique<ModConnectorDll>(this, connector_uri);
         } else if (ts == "socket") {
             if (connector_uri.empty())
                 connector_uri = dir() / "ipc.sock";
