@@ -456,6 +456,7 @@ export class CustomGeoInput extends CustomUriInput {
 export class CustomImageInput extends CustomInput {
 
     // Android limit: 256x256
+    // TODO 400x400 would be better for web
     static readonly MAX_DIM_PIXELS = 256;
 
     override validate(): string | null {
@@ -528,12 +529,12 @@ export class CustomImageInput extends CustomInput {
                 ctx.drawImage(img, 0, 0, iw, ih);
 
                 // Extract dataurl from canvas
-                let ret = canvas.toDataURL('image/png', 1);
+                let ret = canvas.toDataURL('image/jpeg', 1);
                 if (ret.length > 200_000)
-                    ret = canvas.toDataURL('image/png', 0.7);
+                    ret = canvas.toDataURL('image/jpeg', 0.7);
                 if (ret.length > 200_000) {
                     console.warn("Scaled image still too big, reducing quality");
-                    ret = canvas.toDataURL('image/png', 0.5);
+                    ret = canvas.toDataURL('image/jpeg', 0.5);
                 }
                 resolve(ret);
             };
