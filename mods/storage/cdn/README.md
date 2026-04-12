@@ -26,3 +26,28 @@ When an asset has no associated access tokens, it is deleted.
   - 
 - `/:auth_token/:asset_id`
   - Get requested file
+
+
+## New API ?
+- `/api`:
+  - all endpoints must be authenticated with bearer token
+  - **POST** `/api/token`
+    - create a new access token
+  - **DELETE** `/api/token`
+    - delete an access token (ie - revoke access)
+  - **POST** `/api/asset`
+    - create a new asset that will be deleted in 10 mins if no access token is assigned
+  - **POST** `/api/token/:asset_id`
+    - create a new token with access to asset
+  - **POST** `/api/token/:asset_id/:token`
+    - grant existing token access to asset
+
+## New DB ?
+```sqlite
+CREATE TABLE Assets (
+    
+);
+CREATE TABLE Tokens (
+    
+);
+```

@@ -6,8 +6,6 @@
 
 #include "LocalUsers.hpp"
 
-
-
 LocalUsers::LocalUsers() {
     m_cron = std::thread([this]() {
         while (true) {

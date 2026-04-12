@@ -20,7 +20,7 @@ Page has a form which sends username and password via post.
   - where token is a random string that can be used with the /exchange endpoint
 
 ### **GET** `/exchange?token={token}`
-- Gives the user name associated with the given token
+- Gives the username associated with the given token
 - If invalid token gives 401 - authenticated
 
 ### Implementation ideas
@@ -36,7 +36,7 @@ Page has a form which sends username and password via post.
 - the mailmod is a good example of a working mod that you can use as a reference
 
 ## Phase 2
-We eventually we will also want to allow apps using oauth to make requests on behalf of the user.
+We eventually will also want to allow apps using oauth to make requests on behalf of the user.
 
 This could be accomplished by adding a new endpoint
 - **GET** `/authorize?callback={callback uri}&reason={reason message}&scope={relevant app ids}`
