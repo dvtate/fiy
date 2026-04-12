@@ -133,15 +133,20 @@ struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
 struct ModDllConnectorRequest : public fiy::fiy_request_t {
     std::shared_ptr<Session> m_conn;
 
-    explicit ModDllConnectorRequest(std::shared_ptr<Session> conn):
-        ModDllConnectorRequest(std::move(conn), conn->find_user())
+    using RequestHandler = void (*)(struct fiy_request_t*, fiy::fiy_callback_t);
+    RequestHandler on_request;
+
+    explicit ModDllConnectorRequest(std::shared_ptr<Session> conn, RequestHandler on_request):
+        ModDllConnectorRequest(std::move(conn), conn->find_user(), on_request)
     {}
 
     explicit ModDllConnectorRequest(
         std::shared_ptr<Session> conn,
-        const Session::User& user
+        const Session::User& user,
+        RequestHandler handle_request
     ):
-        m_conn(std::move(conn))
+        m_conn(std::move(conn)),
+        on_request(handle_request)
     {
         auto& r = m_conn->req();
 
@@ -162,11 +167,6 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
         delete[] this->path;
         delete[] this->user;
         delete[] this->headers;
-    }
-
-    void remove_from_task_queue() {
-        // TODO task queue + thread pool to prevent blocking io threads
-        delete this;
     }
 
     void callback(const fiy::fiy_response_t* r) {
@@ -219,7 +219,6 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
                 break;
             }
         }
-        this->remove_from_task_queue();
     }
 
     static char* new_cstr_from_string(const std::string_view s) {
@@ -344,18 +343,25 @@ void ModConnectorDll::handle_request(std::shared_ptr<Session> conn) {
         return;
     }
 
-    // Send it to the mod
-    fiy::fiy_request_t* r = new ModDllConnectorRequest(std::move(conn), user);
-    m_mod_info->on_request(
-        r,
-        [](
-            const fiy::fiy_request_t* req,
-            const fiy::fiy_response_t* resp
-        ){
-            const auto r = (ModDllConnectorRequest*) req;
-            r->callback(resp); // this deletion of r
-        }
-    );
+    // Call mods in separate threadpool so that they don't block asio threads
+    static ThreadPool<std::unique_ptr<ModDllConnectorRequest>> request_handler{
+        [](std::unique_ptr<ModDllConnectorRequest> r) {
+            r->on_request(
+                &*r,
+                [](
+                    const fiy::fiy_request_t* req,
+                    const fiy::fiy_response_t* resp
+                ){
+                    const auto r = (ModDllConnectorRequest*) req;
+                    r->callback(resp); // this deletion of r
+                }
+            );
+        },
+        g_fiy->m_config.m_concurrency
+    };
+
+    // Send it to the thread pool
+    request_handler.emplace(new ModDllConnectorRequest(std::move(conn), user, m_mod_info->on_request));
 }
 
 void ModConnectorDll::handle_request(
@@ -383,22 +389,15 @@ void ModConnectorDll::handle_request(
         void* m_context;
     };
 
-    // Call mods in separate threadpool so that they don't block asio threads
-    static ThreadPool<std::unique_ptr<ModDllConnectorRequestWrapper>> request_handler{
-        [this](std::unique_ptr<ModDllConnectorRequestWrapper> r) {
-            m_mod_info->on_request(
-                &*r,
-                [](
-                    const fiy::fiy_request_t* req,
-                    const fiy::fiy_response_t* resp
-                ){
-                    ((ModDllConnectorRequestWrapper*) req)->callback(resp);
-                }
-            );
-        },
-        g_fiy->m_config.m_concurrency
-    };
-
-    // Send it to the thread pool
-    request_handler.emplace(new ModDllConnectorRequestWrapper(*req, callback, context));
+    // Send request to mod
+    fiy_request_t* r = new ModDllConnectorRequestWrapper(*req, callback, context);
+    m_mod_info->on_request(
+        r,
+        [](
+            const fiy::fiy_request_t* req,
+            const fiy::fiy_response_t* resp
+        ){
+            ((ModDllConnectorRequestWrapper*) req)->callback(resp);
+        }
+    );
 }
