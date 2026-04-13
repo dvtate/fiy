@@ -96,7 +96,10 @@ std::string Mod::user_json() {
         { "version", m_version.str() },
         { "name", m_name },
         { "description", m_description },
-        { "icon","/mods/" + m_id + "/" + m_icon },
+        { "icon", m_icon.empty()
+            ? "/portal/app.svg"             // default app icon
+            : "/mods/" + m_id + "/" + m_icon
+        },
         { "status", status() }, // TODO give string instead
         { "loaded", m_loaded },
         { "enabled", m_enabled },
@@ -297,6 +300,9 @@ void Mod::load() {
         auto icon = conf.at("icon");
         if (icon.is_string()) {
             m_icon = icon.get<std::string>();
+        } else if (icon.is_null()) {
+            // Use default icon
+            m_icon = "";
         } else {
             load_error("module.json: \"icon\" should be a string containing"
                 " a path to request the module to get the icon");
@@ -353,12 +359,17 @@ nlohmann::json Mod::parse_file() {
 
     // Load config
     m_config = load_file_as_string(mp / "module.json");
-    auto ret = nlohmann::json::parse( m_config.begin(), m_config.end() );
-    if (!ret.is_object()) {
-        load_error("module.json: should be an object");
-        return{};
+    try {
+        auto ret = nlohmann::json::parse(m_config.begin(), m_config.end());
+        if (!ret.is_object()) {
+            load_error("module.json: should be an object");
+            return{};
+        }
+        return ret;
+    } catch (const nlohmann::json::parse_error& e) {
+        load_error(dir().string() + "/module.json: invalid JSON: " + e.what());
+        return {};
     }
-    return ret;
 }
 
 void Mod::set_enabled(const bool enabled) {

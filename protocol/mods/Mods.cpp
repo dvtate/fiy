@@ -9,10 +9,15 @@ void Mods::find_modules() {
     const auto mods_dir = g_fiy->m_config.m_data_dir + "/mods";
     for (auto& p : std::filesystem::directory_iterator(mods_dir))
         if (p.is_directory()) {
-            auto* m = new Mod(p.path().filename().string());
+            const auto dir = p.path().filename().string();
+            auto* m = new Mod(dir);
             if (!m->m_enabled) {
-                LOG_WARN("Mod '" <<m->m_id <<"' is disabled.");
+                LOG_WARN("Mod '" <<dir <<"' is disabled.");
                 delete m;
+                continue;
+            }
+            if (!m->m_loaded) {
+                LOG_WARN("Mod '" <<dir <<"' failed to load.");
                 continue;
             }
             m_mods.emplace_back(m);
@@ -50,8 +55,6 @@ bool Mods::start_all() const {
     bool ret = true;
 
     for (Mod* mod: m_mods) {
-        if (!mod->m_loaded)
-            continue;
         DEBUG_LOG("Starting module: " + mod->m_id + "...");
         if (!mod->start()) {
             LOG("Failed to start module " + mod->m_id <<".");

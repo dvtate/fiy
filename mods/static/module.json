@@ -2,7 +2,7 @@
   "name":"Static Website",
   "description": "Demo for hosting a static website",
   "enabled": true,
-  "icon": "icon.png",
+  "icon": "",
   "connector": "shared_object",
   "path": "www",
   "id": "static.www",

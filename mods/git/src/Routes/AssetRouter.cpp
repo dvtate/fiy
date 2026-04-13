@@ -27,6 +27,20 @@ bool static_asset_router(
         );
         return true;
     }
+    if (path == "/logo.svg") {
+        static constexpr char file_path[] = "/logo.svg";
+        req.respond(cb, 200,
+            "Content-type: image/svg+xml\nCache-Control: max-age=604800",
+            Pages::file_body<file_path>());
+        return true;
+    }
+    if (path == "/favicon.ico") {
+        static constexpr char file_path[] = "/favicon.ico";
+        req.respond(cb, 200,
+            "Content-type: image/x-icon\nCache-Control: max-age=604800",
+            Pages::file_body<file_path>());
+        return true;
+    }
 
     // Fontawesome fonts
     if (path == "/fa/fa.css") {

@@ -581,6 +581,18 @@ void route_request(std::shared_ptr<Session> conn) {
                         Pages::file_contents<subpath>()
                     };
                     res.set(http::field::content_type, "text/css");
+                    res.set(http::field::cache_control, "max-age=604800");
+                    conn->respond(conn->prep(std::move(res)));
+                    return;
+                } else if (path.starts_with("/app.svg")) {
+                    static const char subpath[] = "/assets/app.svg";
+                    Session::StringResponse res{
+                        http::status::ok,
+                        conn->req().version(),
+                        Pages::file_contents<subpath>()
+                    };
+                    res.set(http::field::content_type, "image/svg+xml");
+                    res.set(http::field::cache_control, "max-age=604800");
                     conn->respond(conn->prep(std::move(res)));
                     return;
                 } else if (path.starts_with("/redirect")) {

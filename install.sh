@@ -213,7 +213,7 @@ if [ "$INSTALL_SYSTEMD_UNIT" -eq 1 ]; then
     mv "$INSTALL_PATH/fiy.service" "$INSTALL_PATH/fiy.service.sample"
     cp "$INSTALL_PATH/fiy.service.sample" /etc/systemd/system/fiy.service
     echo
-    echo "To enable and start the fiy systemd daemon run"
+    echo "To enable and start the FIY systemd daemon run"
     echo "sudo systemctl daemon-reload"
     echo "sudo systemctl edit fiy.service"
     echo "sudo systemctl enable --now fiy.service"

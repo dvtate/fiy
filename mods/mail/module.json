@@ -3,7 +3,7 @@
   "version": "0.0",
   "name": "Mail",
   "description": "Barebones federated mail client similar to email",
-  "icon": "icon.png",
+  "icon": null,
   "enabled": true,
   "connector":"shared_object",
   "path":"mail"

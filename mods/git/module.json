@@ -2,7 +2,7 @@
   "name":"Git-IY",
   "description": "Federated Git Hosting and Collaboration",
   "enabled": true,
-  "icon": "git.png",
+  "icon": "logo.svg",
   "connector": "shared_object",
   "path": "git"
 }
