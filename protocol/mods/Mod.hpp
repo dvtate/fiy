@@ -38,30 +38,32 @@ public:
     using AccessChecker = std::function<bool(const char* user, const char* domain)>;
 
     // Metadata
-    std::string m_config;
-    std::string m_data_dir;
-    std::string m_id;
-    std::string m_path;
-    std::string m_name;
-    std::string m_description;
-    std::string m_icon;
-    std::string m_user_data_dir;
-    std::filesystem::file_time_type m_install_ts;
-    Version m_version{0, 0};
-    AccessChecker m_can_access{[](const char*, const char*){ return true; }};
+    std::string config;
+    std::string data_dir;
+    std::string id;
+    std::string path;
+    std::string name;
+    std::string description;
+    std::string icon;
+    std::string user_data_dir;
+    std::filesystem::file_time_type install_ts;
+    Version version{0, 0};
+    AccessChecker can_access{nullptr};
 
     // Communicate with mod
-    std::unique_ptr<ModConnector> m_ipc{nullptr};
+    std::unique_ptr<ModConnector> ipc{nullptr};
 
     Mod() = default;
-    explicit Mod(std::string data_dir);
+    explicit Mod(const std::string& dir);
     ~Mod();
 
     bool start();
     bool stop();
 
     void set_enabled(bool enabled);
-    void set_path(const std::string& path);
+    bool is_enabled() const { return m_enabled; }
+    bool is_loaded() const { return m_loaded; }
+    void set_path(const std::string& new_path);
 
 
     [[nodiscard]] Status status() const {
@@ -89,8 +91,6 @@ public:
     }
 
     inline std::filesystem::path dir() const;
-
-    friend class Mods;
 
 protected:
     void load_error(const std::string& message);

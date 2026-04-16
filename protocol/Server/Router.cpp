@@ -25,7 +25,7 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
     if (path.starts_with("/mods/")) {
         path.remove_prefix(6);
         auto mod_end = path.find_first_of("/?#");
-        Mod* mod = g_fiy->m_mods.get_mod_by_id(
+        Mod* mod = g_fiy->mods.get_mod_by_id(
             path.substr(0, mod_end));
         std::string subpath = conn->req()["Fiy-Path"];
         if (subpath.empty() && mod_end != std::string_view::npos)
@@ -38,11 +38,11 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
     // Subdomains
     const auto hostname = conn->req()["Host"];
     if (!hostname.empty()) {
-        const std::string_view hhn = g_fiy->m_config.m_hostname;
+        const std::string_view hhn = g_fiy->config.hostname;
         // Subdomain mod  mod.example.com/uri/path
         if (hostname.ends_with(hhn) && hhn.size() != hostname.size()) {
             const auto mod_name = hostname.substr(0, hostname.size() - hhn.size() - 1);
-            Mod* mod = g_fiy->m_mods.get_mod(mod_name);
+            Mod* mod = g_fiy->mods.get_mod(mod_name);
             return { mod, path };
         }
 
@@ -81,8 +81,8 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
         const auto qs_idx = path.find('?', 1);
         if (qs_idx == std::string_view::npos) {
             Mod* mod = path.empty()
-                ? g_fiy->m_mods.get_mod("")
-                : g_fiy->m_mods.get_mod(path.substr(1));
+                ? g_fiy->mods.get_mod("")
+                : g_fiy->mods.get_mod(path.substr(1));
             return { mod, "/" };
         }
 
@@ -91,8 +91,8 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
         std::string sub_path = "/";
         sub_path += path.substr(qs_idx);
         Mod* mod = path.empty()
-            ? g_fiy->m_mods.get_mod("")
-            : g_fiy->m_mods.get_mod(path.substr(1, qs_idx - 1));
+            ? g_fiy->mods.get_mod("")
+            : g_fiy->mods.get_mod(path.substr(1, qs_idx - 1));
         return { mod, sub_path };
     }
 
@@ -103,7 +103,7 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
     // case: /mod/uri/path?param
     // case: /mod/uri/path/?param
     return {
-        g_fiy->m_mods.get_mod(path.substr(1, slash_idx - 1)),
+        g_fiy->mods.get_mod(path.substr(1, slash_idx - 1)),
         path.substr(slash_idx)
     };
 }
@@ -120,7 +120,7 @@ static void mod_send_msg(std::shared_ptr<Session> conn) {
     if (m == nullptr) {
         // No '' mod, use default index.html
         if (conn->req().target() == "/"
-            && conn->req()["host"] == g_fiy->m_config.m_hostname
+            && conn->req()["host"] == g_fiy->config.hostname
         ) {
             static const char subpath[] = "/index.html";
             Session::StringResponse res{
@@ -145,10 +145,10 @@ static void mod_send_msg(std::shared_ptr<Session> conn) {
         DEBUG_LOG("Invalid mod: " <<conn->req().target() <<" : " <<uri);
         return;
     }
-    DEBUG_LOG("Calling App " <<m->m_id <<" : " << uri);
+    DEBUG_LOG("Calling App " <<m->id <<" : " << uri);
 
     conn->req().target(uri);
-    m->m_ipc->handle_request(std::move(conn));
+    m->ipc->handle_request(std::move(conn));
 }
 
 // TODO ?redirect=/mod/that/requires/auth query parameter
@@ -210,7 +210,7 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
         conn->respond(conn->prep(resp_username_reserved));
         return;
     }
-    if (g_fiy->m_users.get_user(username) != nullptr) {
+    if (g_fiy->users.get_user(username) != nullptr) {
         conn->respond(conn->prep(resp_username_taken));
         return;
     }
@@ -230,7 +230,7 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
     // Create user
     LocalUser user{username, false, contact, g_fiy->now()};
     try {
-        if (!g_fiy->m_users.add_user(user, password)) {
+        if (!g_fiy->users.add_user(user, password)) {
             LOG_ERR("Failed to create user?");
             conn->respond(conn->prep(resp_server_error));
             return;
@@ -241,7 +241,7 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
         return;
     }
 
-    auto auth_token = g_fiy->m_users.login_user(username, password);
+    auto auth_token = g_fiy->users.login_user(username, password);
 
     // Find redirect query parameter
     Session::EmptyResponse res;
@@ -305,7 +305,7 @@ static void login_post(std::shared_ptr<Session>&& conn) {
 //    }
 
     // Get auth token for user
-    const auto auth_token = g_fiy->m_users.login_user(username, std::move(password));
+    const auto auth_token = g_fiy->users.login_user(username, std::move(password));
     if (auth_token.m_user == nullptr) {
         conn->respond(conn->prep(resp_bad_creds));
         DEBUG_LOG("wrong username/password for user " <<username);
@@ -408,7 +408,7 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
     }
 
     // TODO is there a reason/process for re-authentication
-    if (g_fiy->m_peers.get_peer_for_domain(domain) != nullptr) {
+    if (g_fiy->peers.get_peer_for_domain(domain) != nullptr) {
         Session::StringResponse res;
         res.result(400);
         res.body() = "Already peers";
@@ -458,9 +458,9 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
         );
 
         int max_tries = 10;
-        while (!g_fiy->m_peers.add_peer(domain, peer) && max_tries-- > 0) {
+        while (!g_fiy->peers.add_peer(domain, peer) && max_tries-- > 0) {
             // Maybe another thread already completed the handshake?
-            if (g_fiy->m_peers.get_peer_for_domain(domain) != nullptr) {
+            if (g_fiy->peers.get_peer_for_domain(domain) != nullptr) {
                 Session::StringResponse ret;
                 ret.result(400);
                 ret.body() = "Already peers";
@@ -469,16 +469,16 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
             }
 
             // Update token and try again
-            peer->m_auth.m_bearer_token_we_accept = PeerAuth::get_token_string();
+            peer->auth.bearer_token_we_accept = PeerAuth::get_token_string();
         }
 
         // Respond with
         //  - bearer token
         //  - our part of the secret
         //  - signature
-        std::string response = peer->m_auth.m_bearer_token_we_accept
+        std::string response = peer->auth.bearer_token_we_accept
             + '\n' + our_secret;
-        auto sig = Crypto::SSL::sign(g_fiy->m_config.m_private_key, response);
+        auto sig = Crypto::SSL::sign(g_fiy->config.private_key, response);
         response += '\n' + sig;
 
         Session::StringResponse ret;
@@ -503,14 +503,14 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
     // key_req.keep_alive(false);
 
     if (domain.find(':') == std::string_view::npos) {
-        g_fiy->m_https.request(
+        g_fiy->https.request(
             domain,
             std::move(key_req),
             std::move(with_pubkey_cb),
             std::move(err_key_cb)
         );
     } else {
-        g_fiy->m_http.request(
+        g_fiy->http.request(
             domain,
             std::move(key_req),
             std::move(with_pubkey_cb),
@@ -525,7 +525,7 @@ void login_user_internal(const std::shared_ptr<Session>& conn) {
     const auto username = conn->req()["fiy-user"];
     const auto password = conn->req()["fiy-pass"];
 
-    if (! g_fiy->m_mods.has_net_connector(token)) {
+    if (! g_fiy->mods.has_net_connector(token)) {
         http::response<http::empty_body> res;
         res.result(401);
         conn->respond(conn->prep(std::move(res)));
@@ -648,7 +648,7 @@ void route_request(std::shared_ptr<Session> conn) {
                 Session::StringResponse res;
                 res.result(200);
                 res.set("Fiy-Now", std::to_string(g_fiy->now()));
-                res.body() = g_fiy->m_config.m_public_key;
+                res.body() = g_fiy->config.public_key;
                 conn->respond(conn->prep(std::move(res)));
                 return;
             } else if (path == "/robots.txt") {

@@ -17,12 +17,12 @@
 bool INIConfig::parse(const std::string& path) {
     if (!std::filesystem::exists(path)) {
         LOG("Config file " << path << " does not exist!");
-        m_error = true;
+        error = true;
         return false;
     }
 
     LOG("Loading Config file: " << path);
-    m_error = ini_parse(
+    error = ini_parse(
         path.c_str(),
         [](void* cfg, auto section, auto key, auto value){
             int ret = ((INIConfig*) cfg)->set_key(section, key, value);
@@ -33,7 +33,7 @@ bool INIConfig::parse(const std::string& path) {
         },
         this
     );
-    return !m_error;
+    return !error;
 }
 
 bool FiyConfig::from_file(const std::string& path) {
@@ -64,11 +64,11 @@ bool FiyConfig::from_argv(int argc, char** argv) {
 
         if (i + 1 >= argc) {
             LOG_ERR("Option '" << p << "': missing value");
-            m_error = true;
+            error = true;
             return false;
         }
         if (!set_key("", p, argv[i])) {
-            m_error = true;
+            error = true;
             return false;
         }
     }
@@ -93,7 +93,7 @@ bool FiyConfig::set_key(const char* section, const char* key, const char* value)
         if (ec.value() != 0) {
             LOG_ERR("filesystem::is_directory failed: " << ec.message());
         }
-        m_data_dir = value;
+        data_dir = value;
     } else if (strcmp(key, "hostname") == 0) {
         // Validate
         // TODO better regex that includes localhost
@@ -104,16 +104,16 @@ bool FiyConfig::set_key(const char* section, const char* key, const char* value)
         }
 
         // Apply
-        m_hostname = (char*) malloc(strlen(value) + 1);
-        strcpy(m_hostname, value);
+        hostname = (char*) malloc(strlen(value) + 1);
+        strcpy(hostname, value);
     } else if (strcmp(key, "salt") == 0) {
-        m_salt = value;
+        salt = value;
     } else if (strcmp(key, "port") == 0) {
         int port = strtol(value, nullptr, 10);
         if (port == 0 || port < 0 || port >= 65536) {
             LOG_ERR("Config file: port should be a valid port number, not " << value);
         } else {
-            m_port = port;
+            port = port;
         }
     } else if (strcmp(key, "concurrency") == 0) {
         char* pend = nullptr;
@@ -123,42 +123,42 @@ bool FiyConfig::set_key(const char* section, const char* key, const char* value)
             threads = 0;
         }
         if (threads <= 0) {
-            m_concurrency = std::thread::hardware_concurrency();
-            if (-threads >= m_concurrency)
-                m_concurrency = 1;
+            concurrency = std::thread::hardware_concurrency();
+            if (-threads >= concurrency)
+                concurrency = 1;
             else
-                m_concurrency += threads;
+                concurrency += threads;
         } else {
-            m_concurrency = threads;
+            concurrency = threads;
         }
     } else if (strcmp(key, "public_key") == 0) {
-        m_public_key = load_file_as_string(value);
-        if (m_public_key.empty()) {
+        public_key = load_file_as_string(value);
+        if (public_key.empty()) {
             LOG_ERR("Config file: public_key: could not read file: " << value);
         }
     } else if (strcmp(key, "private_key") == 0) {
-        m_private_key = Crypto::SSL::load_private_key_from_pem(
+        private_key = Crypto::SSL::load_private_key_from_pem(
             load_file_as_string(value)
         );
-        if (m_private_key == nullptr) {
+        if (private_key == nullptr) {
             LOG_ERR("Config file: private_key: could not load file: " << value);
         }
     } else if (strcmp(key, "address") == 0) {
-        m_listen_addr = value;
+        listen_addr = value;
     } else if (strcmp(key, "protocol") == 0) {
         if (strcmp(value, "https") == 0 || strcmp(value, "https://") == 0)
-            m_protocol = PROTOCOL_HTTPS;
+            protocol = PROTOCOL_HTTPS;
         else if (strcmp(value, "http") == 0 || strcmp(value, "http://") == 0)
-            m_protocol = PROTOCOL_HTTP;
+            protocol = PROTOCOL_HTTP;
         else if (strlen(value) == 0 || strcmp(value, "default") == 0)
-            m_protocol = nullptr;
+            protocol = nullptr;
         else {
             LOG_ERR("Config file: 'protocol' should be one of:"
                     "\n\t- 'http' for internal testing"
                     "\n\t- 'https' for federation"
                     "\n\t- 'default' to let the server decide"
                 " invalid value: " << value);
-            m_protocol = nullptr;
+            protocol = nullptr;
         }
     } else {
         LOG_ERR("Invalid key: " <<key);
@@ -170,44 +170,44 @@ bool FiyConfig::set_key(const char* section, const char* key, const char* value)
 // Call after parse to fill in any missing items
 void FiyConfig::set_defaults() {
     // Try to get keys from their default locations
-    if (m_public_key.empty()) {
-        const std::string path = m_data_dir + "/auth/pubkey.crt";
-        m_public_key = load_file_as_string(path);
-        if (m_public_key.empty()) {
+    if (public_key.empty()) {
+        const std::string path = data_dir + "/auth/pubkey.crt";
+        public_key = load_file_as_string(path);
+        if (public_key.empty()) {
             LOG_ERR("Config file: public_key: could not read file: " << path);
         }
     }
-    if (m_private_key == nullptr) {
-        const std::string path = m_data_dir + "/auth/privkey.pem";
-        m_private_key = Crypto::SSL::load_private_key_from_pem(
+    if (private_key == nullptr) {
+        const std::string path = data_dir + "/auth/privkey.pem";
+        private_key = Crypto::SSL::load_private_key_from_pem(
             load_file_as_string(path)
         );
-        if (m_private_key == nullptr) {
+        if (private_key == nullptr) {
             LOG_ERR("Config file: private_key: could not load file: " << path);
         }
     }
 
     // Determine listen address if not set
-    if (m_listen_addr.empty()) {
+    if (listen_addr.empty()) {
         const char* env_addr = std::getenv("FIY_LISTEN_ADDR");
         if (env_addr != nullptr) {
-            this->m_listen_addr = env_addr;
+            this->listen_addr = env_addr;
         } else {
-            const std::string_view hn = this->m_hostname;
+            const std::string_view hn = this->hostname;
             const bool no_port = hn.find(':') == std::string_view::npos;
             const bool localhost = hn.starts_with("127.0.0.1") || hn.starts_with("localhost");
-            this->m_listen_addr = (no_port || localhost)
+            this->listen_addr = (no_port || localhost)
                 ? "127.0.0.1"
                 : "0.0.0.0";
         }
     }
 
     // Determine protocol
-    if (m_protocol == nullptr) {
-        m_protocol = (
-            strchr(m_hostname, ':') != nullptr
-            || strcmp(m_hostname, "localhost") == 0
-            || strcmp(m_hostname, "127.0.0.1") == 0
+    if (protocol == nullptr) {
+        protocol = (
+            strchr(hostname, ':') != nullptr
+            || strcmp(hostname, "localhost") == 0
+            || strcmp(hostname, "127.0.0.1") == 0
         ) ? PROTOCOL_HTTP : PROTOCOL_HTTPS;
     }
 }

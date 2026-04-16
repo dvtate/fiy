@@ -54,9 +54,11 @@ namespace DB {
     /// Used to make statements that with too many possibilities to be precompiled
     struct QueryBuilder {
         using BindFunction = std::function<void(SQLite::Statement&, int&)>;
-        std::string m_stmt;
 
+    protected:
+        std::string m_stmt;
         std::vector<BindFunction> m_bind_params;
+    public:
 
         // Add a part and a function that gets called when binding params
         void part(const std::string_view part, BindFunction func) {
@@ -92,6 +94,10 @@ namespace DB {
             for (auto& f : m_bind_params)
                 f(ret, index);
             return ret;
+        }
+
+        std::string& raw_statement() {
+            return m_stmt;
         }
     };
 

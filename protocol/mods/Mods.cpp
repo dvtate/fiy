@@ -6,17 +6,17 @@
 
 void Mods::find_modules() {
     // Load mods from mods directory
-    const auto mods_dir = g_fiy->m_config.m_data_dir + "/mods";
+    const auto mods_dir = g_fiy->config.data_dir + "/mods";
     for (auto& p : std::filesystem::directory_iterator(mods_dir))
         if (p.is_directory()) {
             const auto dir = p.path().filename().string();
             auto* m = new Mod(dir);
-            if (!m->m_enabled) {
+            if (!m->is_enabled()) {
                 LOG_WARN("Mod '" <<dir <<"' is disabled.");
                 delete m;
                 continue;
             }
-            if (!m->m_loaded) {
+            if (!m->is_loaded()) {
                 LOG_WARN("Mod '" <<dir <<"' failed to load.");
                 continue;
             }
@@ -25,7 +25,7 @@ void Mods::find_modules() {
 
     // Sort alphabetically by id
     std::ranges::sort(m_mods, [](const Mod* m1, const Mod* m2) {
-        return m1->m_id < m2->m_id;
+        return m1->id < m2->id;
     });
 
     // m_mtx should be locked for write
@@ -35,16 +35,16 @@ void Mods::find_modules() {
 
     // Add lookup by id
     for (size_t i = 0; i < mod_count; i++)
-        m_mods_by_id[m_mods[i]->m_id] = m_mods[i];
+        m_mods_by_id[m_mods[i]->id] = m_mods[i];
 
     // Add lookup by path (prevent overlap)
     for (size_t i = 0; i < mod_count; i++) {
-        if (m_mods_lookup.contains(m_mods[i]->m_path)) {
-            LOG("Duplicate module path " << m_mods[i]->m_path <<" for module " <<m_mods[i]->m_id << " ignored");
-            const Mod* m = m_mods_lookup[m_mods[i]->m_path];
-            LOG("Module path " << m_mods[i]->m_path <<" already used by module " <<m->m_id);
+        if (m_mods_lookup.contains(m_mods[i]->path)) {
+            LOG("Duplicate module path " << m_mods[i]->path <<" for module " <<m_mods[i]->id << " ignored");
+            const Mod* m = m_mods_lookup[m_mods[i]->path];
+            LOG("Module path " << m_mods[i]->path <<" already used by module " <<m->id);
         } else {
-            m_mods_lookup[m_mods[i]->m_path] = m_mods[i];
+            m_mods_lookup[m_mods[i]->path] = m_mods[i];
         }
     }
 
@@ -55,12 +55,12 @@ bool Mods::start_all() const {
     bool ret = true;
 
     for (Mod* mod: m_mods) {
-        DEBUG_LOG("Starting module: " + mod->m_id + "...");
+        DEBUG_LOG("Starting module: " + mod->id + "...");
         if (!mod->start()) {
-            LOG("Failed to start module " + mod->m_id <<".");
+            LOG("Failed to start module " + mod->id <<".");
             ret = false;
         } else {
-            LOG("Successfully started module " + mod->m_id <<".");
+            LOG("Successfully started module " + mod->id <<".");
         }
     }
     return ret;

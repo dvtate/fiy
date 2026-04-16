@@ -8,10 +8,10 @@
 
 std::string LocalUser::json() const {
     nlohmann::json ret = {
-        { "username", m_username },
-        { "isAdmin", m_is_admin },
-        { "email", m_email },
-        { "joinTs", m_joined_ts }
+        { "username", username },
+        { "isAdmin", is_admin },
+        { "email", email },
+        { "joinTs", joined_ts }
     };
     return ret.dump();
 }
@@ -30,7 +30,7 @@ unsigned char* LocalUser::hash_password(
     // Hash provided password
     // TODO switch to argon2 or something better
     static_assert(PASSWORD_HASH_SIZE == SHA512_DIGEST_LENGTH);
-    password += g_fiy->m_config.m_salt;
+    password += g_fiy->config.salt;
     return SHA512(reinterpret_cast<unsigned char*>(password.data()), password.size(), buff);
 }
 

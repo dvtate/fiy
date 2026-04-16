@@ -95,13 +95,13 @@ private:
 } // namespace {}
 
 
-void Server::start() {
-    auto const address = net::ip::make_address(g_fiy->m_config.m_listen_addr);
-    auto const port = static_cast<unsigned short>(g_fiy->m_config.m_port);
+void Server::start(boost::asio::io_context* ioc) {
+    auto const address = net::ip::make_address(g_fiy->config.listen_addr);
+    auto const port = static_cast<unsigned short>(g_fiy->config.port);
 
     // Start listening
     std::make_shared<Listener>(
-        *g_fiy->m_ioc,
+        *ioc,
         tcp::endpoint{address, port}
     )->run();
 

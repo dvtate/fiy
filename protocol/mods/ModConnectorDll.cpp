@@ -22,8 +22,10 @@
 
 
 struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
+private:
     // TODO these should probably be unique_ptr's ?
     std::string m_base_uri;
+public:
 
     explicit ModDLLHostInfo(const Mod* mod) {
         this->log = [](const int n, const char* s){
@@ -40,19 +42,19 @@ struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
         };
         this->now = []() { return g_fiy->now(); };
 
-        m_base_uri =  g_fiy->m_config.m_protocol;
-        m_base_uri += g_fiy->m_config.m_hostname;
+        m_base_uri =  g_fiy->config.protocol;
+        m_base_uri += g_fiy->config.hostname;
         m_base_uri += '/';
-        m_base_uri += mod->m_path;
+        m_base_uri += mod->path;
 
         this->base_uri = m_base_uri.c_str(); // host info shouldn't be moved either
         this->request = ModDLLHostInfo::request_impl;
-        this->domain = g_fiy->m_config.m_hostname;
-        this->app_id = mod->m_id.c_str(); // safe assuming the mod isn't moved
+        this->domain = g_fiy->config.hostname;
+        this->app_id = mod->id.c_str(); // safe assuming the mod isn't moved
         this->local_login = ModDLLHostInfo::local_login_impl;
         this->user_info = ModDLLHostInfo::user_info_impl;
-        this->data_dir = mod->m_user_data_dir.c_str();
-        this->mod_config = mod->m_config.c_str();
+        this->data_dir = mod->user_data_dir.c_str();
+        this->mod_config = mod->config.c_str();
     }
 
     /**
@@ -77,7 +79,7 @@ struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
         void (*callback)(const struct fiy::fiy_response_t*, void*)
     ) {
         // Send request to peer
-        g_fiy->m_peers.request_peer(request->domain, app_id, request, context, callback);
+        g_fiy->peers.request_peer(request->domain, app_id, request, context, callback);
     }
 
     /**
@@ -104,14 +106,14 @@ struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
      */
     static int user_info_impl(const char* local_user_name, fiy::fiy_local_user_info_t* ret) {
         try {
-            const auto u = g_fiy->m_users.get_user(local_user_name);
+            const auto u = g_fiy->users.get_user(local_user_name);
             if (u == nullptr)
                 return 1;
             if (ret == nullptr)
                 return 0;
 
-            ret->admin = u->m_is_admin;
-            ret->join_ts = u->m_joined_ts;
+            ret->admin = u->is_admin;
+            ret->join_ts = u->joined_ts;
             return 0;
         } catch (const DB::Exception& e) {
             LOG_ERR("Database Error: " <<e.what());
@@ -124,11 +126,17 @@ struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
 };
 
 /// Message passed to shared library
-struct ModDllConnectorRequest : public fiy::fiy_request_t {
+class ModDllConnectorRequest : public fiy::fiy_request_t {
     std::shared_ptr<Session> m_conn;
+    std::string m_str_path;
+    std::string m_str_user;
+    std::string m_str_headers;
+
+public:
 
     using RequestHandler = void (*)(struct fiy_request_t*, fiy::fiy_callback_t);
     RequestHandler on_request;
+
 
     explicit ModDllConnectorRequest(std::shared_ptr<Session> conn, RequestHandler on_request):
         ModDllConnectorRequest(std::move(conn), conn->find_user(), on_request)
@@ -140,30 +148,31 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
         RequestHandler handle_request
     ):
         m_conn(std::move(conn)),
-        on_request(handle_request)
-    {
+        on_request(handle_request) {
         auto& r = m_conn->req();
 
         // Initialize fiy_request_t
         this->method = static_cast<uint8_t>(r.method());
-        // TODO should use string_view equivalent to avoid copies
-        this->path = new_cstr_from_string(r.target());
-        this->body = r.body().data(); // this should be safe bc we have shared
+
+        this->m_str_path = r.target();
+        this->path = this->m_str_path.c_str();
+
+        this->body = r.body().data(); // this should be safe bc we have shared_ptr reference
         this->body_len = r.body().size();
+
         this->domain = user.domain;
-        this->user = (user.user.empty() || user.user == " ")
-                     ? nullptr
-                     : new_cstr_from_string(user.user);
+
+        if (user.user.empty() || user.user == " ") {
+            this->user = nullptr;
+        } else {
+            this->m_str_user = user.user;
+            this->user = this->m_str_user.c_str();
+        }
+
         set_this_headers(m_conn->req().base());
     }
 
-    virtual ~ModDllConnectorRequest() {
-        delete[] this->path;
-        delete[] this->user;
-        delete[] this->headers;
-    }
-
-    void callback(const fiy::fiy_response_t* r) {
+    void callback(const fiy::fiy_response_t* r) const {
         switch (r->body.type) {
             case fiy::BodyType::FIY_BODY_NONE: {
                 Session::EmptyResponse res;
@@ -216,35 +225,32 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
         delete this;
     }
 
-    static char* new_cstr_from_string(const std::string_view s) {
-        const auto l = s.size();
-        char* ret = new char[l + 1];
-        if (!s.empty())
-            memcpy(ret, s.data(), l);
-        ret[l] = '\0';
-        return ret;
-    }
+    // static char* new_cstr_from_string(const std::string_view s) {
+    //     const auto l = s.size();
+    //     char* ret = new char[l + 1];
+    //     if (!s.empty())
+    //         memcpy(ret, s.data(), l);
+    //     ret[l] = '\0';
+    //     return ret;
+    // }
 
     void set_this_headers(const boost::beast::http::fields& f) {
         if (f.cbegin() == f.cend()) {
             this->headers = nullptr;
             return;
         }
-        std::string ret;
-        for (const auto& h : f) {
-            // TODO maybe some headers we should skip?
-            ret += h.name_string();
-            ret += ": ";
-            ret += h.value();
-            ret += "\r\n";
+        m_str_headers = "";
+        auto it = f.cbegin();
+        m_str_headers += it->name_string();
+        m_str_headers += ": ";
+        m_str_headers += it->value();
+        for (; it != f.cend(); ++it) {
+            m_str_headers += "\r\n";
+            m_str_headers += it->name_string();
+            m_str_headers += ": ";
+            m_str_headers += it->value();
         }
-
-        // Copy but skip trailing \r\n
-        const size_t len = ret.size() - 1;
-        char* p = new char[len];
-        memset(p, 0, len);
-        strncpy(p, ret.data(), len - 1);
-        this->headers = p;
+        this->headers = m_str_headers.c_str();
     }
 };
 
@@ -282,27 +288,27 @@ bool ModConnectorDll::start() {
     }
     m_dl_handle = dlopen(m_uri.c_str(), RTLD_LAZY | RTLD_LOCAL);
     if (m_dl_handle == nullptr) {
-        DEBUG_LOG(this->m_mod->m_name <<": dlopen failed: " <<dlerror());
+        DEBUG_LOG(this->m_mod->name <<": dlopen failed: " <<dlerror());
         return false;
     }
 
     // Start mod
     const auto start_fn = (fiy::StartFunction) dlsym(m_dl_handle, "start");
     if (start_fn == nullptr) {
-        DEBUG_LOG(this->m_mod->m_name <<": could not find start function -- " <<dlerror());
+        DEBUG_LOG(this->m_mod->name <<": could not find start function -- " <<dlerror());
         return false;
     }
     m_mod_info = start_fn(m_host_info);
     if (m_mod_info == nullptr) {
-        DEBUG_LOG(this->m_mod->m_name <<": start() returned null");
+        DEBUG_LOG(this->m_mod->name <<": start() returned null");
         return false;
     }
 
     // Update fields
     if (m_mod_info->version != nullptr /* && !m_mod->m_version.initialized() */)
-        m_mod->m_version = Version(m_mod_info->version);
-    if (m_mod_info->id != nullptr && m_mod->m_id.empty())
-        m_mod->m_id = m_mod_info->id;
+        m_mod->version = Version(m_mod_info->version);
+    if (m_mod_info->id != nullptr && m_mod->id.empty())
+        m_mod->id = m_mod_info->id;
     return true;
 }
 
@@ -316,8 +322,8 @@ void ModConnectorDll::handle_request(std::shared_ptr<Session> conn) {
     // Check access restrictions
     const auto user = conn->find_user();
     const char* username = user.user.empty() ? nullptr : user.user.c_str();
-    if (m_mod->m_can_access == nullptr
-        || !m_mod->m_can_access(username, user.domain)
+    if (m_mod->can_access == nullptr
+        || !m_mod->can_access(username, user.domain)
     ) {
         static const auto body_str = "<h1>401 - Unauthorized</h1><hr/><a href='"
             + g_fiy->base_uri() + "/portal'>Go to portal</a>";
@@ -334,15 +340,14 @@ void ModConnectorDll::handle_request(std::shared_ptr<Session> conn) {
         res.result(500);
         res.body() = "Module not initialized";
         conn->respond(conn->prep(std::move(res)));
-        DEBUG_LOG("Mod " <<m_mod->m_id <<": called before start()");
+        DEBUG_LOG("Mod " <<m_mod->id <<": called before start()");
         return;
     }
 
     // Call mods in separate threadpool so that they don't block asio threads
     static ThreadPool<ModDllConnectorRequest*> request_handler{
         [](ModDllConnectorRequest* r) {
-            r->on_request(
-                &*r,
+            r->on_request(r,
                 [](
                     const fiy::fiy_request_t* req,
                     const fiy::fiy_response_t* resp
@@ -352,7 +357,7 @@ void ModConnectorDll::handle_request(std::shared_ptr<Session> conn) {
                 }
             );
         },
-        g_fiy->m_config.m_concurrency
+        g_fiy->config.concurrency
     };
 
     // Send it to the thread pool

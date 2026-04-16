@@ -19,7 +19,7 @@ class INIConfig {
 public:
     virtual ~INIConfig() = default;
 
-    bool m_error{false};
+    bool error{false};
 
     bool parse(const std::string& path);
 
@@ -57,36 +57,36 @@ public:
     }
 
     /// Where files are stored
-    std::string m_data_dir{"/opt/fiy"};
+    std::string data_dir{"/opt/fiy"};
 
     /// Domain where we're hosting the service
-    char* m_hostname{nullptr};
+    char* hostname{nullptr};
 
     /// Password salt that should not be changed
     // if we have a store with purchases we can give the user a key that only works with their salt
     // if they try to change their salt to that of another user they'll get locked out
     // install package generates admin account
-    std::string m_salt;
+    std::string salt;
 
     /// TCP port number to bind to
-    int m_port{8848};
+    int port{8848};
 
     /// Hint for the number of threads to use
-    int m_concurrency{4};
+    int concurrency{4};
 
     /// Server public key
-    std::string m_public_key;
+    std::string public_key;
 
     /// Server private key
-    EVP_PKEY* m_private_key{nullptr};
+    EVP_PKEY* private_key{nullptr};
 
     /// Listen address
-    std::string m_listen_addr;
+    std::string listen_addr;
 
-    const char* m_protocol{nullptr};
+    const char* protocol{nullptr};
 
     [[nodiscard]] bool https() const {
-        return m_protocol == PROTOCOL_HTTPS;
+        return protocol == PROTOCOL_HTTPS;
     }
 
     // TODO request timeouts?

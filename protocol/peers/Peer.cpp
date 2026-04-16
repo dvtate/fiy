@@ -5,8 +5,17 @@
 
 #include "Peer.hpp"
 
-PeerAuth::PeerAuth(std::string sym_key, std::string peer_provided_token, std::string our_generated_token):
-    PeerAuth(std::move(sym_key), std::move(peer_provided_token), std::move(our_generated_token), g_fiy->now())
+PeerAuth::PeerAuth(
+    std::string sym_key,
+    std::string peer_provided_token,
+    std::string our_generated_token
+):
+    PeerAuth(
+        std::move(sym_key),
+        std::move(peer_provided_token),
+        std::move(our_generated_token),
+        g_fiy->now()
+    )
 {}
 
 bool PeerAuth::is_expired() const {
@@ -20,7 +29,7 @@ std::string Peer::sig(
     const std::size_t body_len,
     const std::string& ts_str = std::to_string(g_fiy->now())
 ) const {
-    return Crypto::hmac(m_auth.m_sym_key,
+    return Crypto::hmac(auth.sym_key,
         std::string("FIY")
         + appid
         + path

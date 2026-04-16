@@ -17,10 +17,10 @@
  */
 class LocalUser {
 public:
-    const std::string m_username;
-    bool m_is_admin{false};
-    std::string m_email;
-    time_t m_joined_ts{0};
+    const std::string username;
+    bool is_admin{false};
+    std::string email;
+    time_t joined_ts{0};
 
     static constexpr size_t USERNAME_MAX_LENGTH = 32;
     static constexpr size_t NAME_MAX_LENGTH = 128;
@@ -28,8 +28,8 @@ public:
     static constexpr size_t EMAIL_MAX_LENGTH = 255;
 
     LocalUser(std::string username, const bool is_admin):
-        m_username(std::move(username)),
-        m_is_admin(is_admin)
+        username(std::move(username)),
+        is_admin(is_admin)
     {}
 
     LocalUser(
@@ -38,14 +38,14 @@ public:
         std::string email,
         const time_t joined_ts
     ):
-        m_username(std::move(username)),
-        m_is_admin(is_admin),
-        m_email(std::move(email)),
-        m_joined_ts(joined_ts)
+        username(std::move(username)),
+        is_admin(is_admin),
+        email(std::move(email)),
+        joined_ts(joined_ts)
     {}
 
     [[nodiscard]] const std::string& get_username() const {
-        return m_username;
+        return username;
     }
     [[nodiscard]] std::string json() const;
 

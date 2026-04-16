@@ -21,13 +21,13 @@ bool ModConnectorNet::start() {
     // JSON payload containing fields: bearer token, mod id, base_uri, now
     do {
         m_bearer_accept = PeerAuth::get_token_string();
-    } while (!g_fiy->m_mods.add_net_connector(m_bearer_accept, this));
+    } while (!g_fiy->mods.add_net_connector(m_bearer_accept, this));
     const std::string payload = "{\"bearer\":\"" + m_bearer_accept
-        + "\",\"id\":\""+ m_mod->m_id
+        + "\",\"id\":\""+ m_mod->id
         + "\",\"base_uri\":\""
-        + g_fiy->m_config.m_protocol
-        + g_fiy->m_config.m_hostname
-        + '/' + m_mod->m_path
+        + g_fiy->config.protocol
+        + g_fiy->config.hostname
+        + '/' + m_mod->path
         + "\",\"now\":" + std::to_string(g_fiy->now()) + "}";
 
     // Generate request
@@ -36,7 +36,7 @@ bool ModConnectorNet::start() {
     req.method(http::verb::post);
     req.target("/start");
     req.body() = payload;
-    req.set("Fiy-Signature", Crypto::SSL::sign(g_fiy->m_config.m_private_key, payload));
+    req.set("Fiy-Signature", Crypto::SSL::sign(g_fiy->config.private_key, payload));
     req.keep_alive(false);
     req.prepare_payload();
 
@@ -55,28 +55,28 @@ bool ModConnectorNet::start() {
             m_bearer_send = j["accept"].get<std::string>();
         }
         if (j.contains("id")
-            && m_mod->m_id.empty()
+            && m_mod->id.empty()
             && j["id"].is_string()
         ) {
-            m_mod->m_id = j["id"].get<std::string>();
+            m_mod->id = j["id"].get<std::string>();
         }
         if (j.contains("version")
             // && !m_mod->m_version.initialized()
             && j["version"].is_string()
         ) {
-            m_mod->m_version = Version(j["version"].get<std::string>());
+            m_mod->version = Version(j["version"].get<std::string>());
         }
     };
     auto err_cb = [this](const std::string& err) {
-        std::cerr << "Mod " << m_mod->m_id <<": Failed to connect to " <<m_uri <<std::endl;
+        std::cerr << "Mod " << m_mod->id <<": Failed to connect to " <<m_uri <<std::endl;
         m_mod->error(err);
     };
 
     // Make request
     if (m_https)
-        g_fiy->m_https.request(m_uri, req, cb, err_cb);
+        g_fiy->https.request(m_uri, req, cb, err_cb);
     else
-        g_fiy->m_http.request(m_uri, req, cb, err_cb);
+        g_fiy->http.request(m_uri, req, cb, err_cb);
 
     // hostinfo should also include authentication system
     // ie - credentials we can validate for every request
@@ -90,7 +90,7 @@ bool ModConnectorNet::stop() {
         return true;
     }
 
-    g_fiy->m_mods.remove_net_connector(m_bearer_accept);
+    g_fiy->mods.remove_net_connector(m_bearer_accept);
     m_bearer_accept.clear();
 
     using namespace boost::beast;
@@ -102,19 +102,19 @@ bool ModConnectorNet::stop() {
 
     auto cb = [this](auto resp) {
         if (resp.result() != http::status::ok)
-            DEBUG_LOG("Mod " <<m_mod->m_id <<": failed to stop: HTTP " <<resp.result());
+            DEBUG_LOG("Mod " <<m_mod->id <<": failed to stop: HTTP " <<resp.result());
         else
-            DEBUG_LOG("Mod " <<m_mod->m_id <<": stopped");
+            DEBUG_LOG("Mod " <<m_mod->id <<": stopped");
     };
     auto err_cb = [this](auto err) {
-        DEBUG_LOG("Mod " <<m_mod->m_id <<": failed to stop: " <<err);
+        DEBUG_LOG("Mod " <<m_mod->id <<": failed to stop: " <<err);
         (void)err;
     };
 
     if (m_https)
-        g_fiy->m_https.request(m_uri, req, cb, err_cb);
+        g_fiy->https.request(m_uri, req, cb, err_cb);
     else
-        g_fiy->m_http.request(m_uri, req, cb, err_cb);
+        g_fiy->http.request(m_uri, req, cb, err_cb);
     return true;
 }
 
@@ -137,13 +137,13 @@ void ModConnectorNet::handle_request(std::shared_ptr<Session> conn) {
         res.body() = "<h1>Server Error</h1><p>Request failed: " + err + "</p>";
         res.set(boost::beast::http::field::content_type, "text/html");
         session->respond(session->prep(std::move(res)));
-        LOG_ERR("ModNetConnector[" <<m_mod->m_id <<"]: ");
+        LOG_ERR("ModNetConnector[" <<m_mod->id <<"]: ");
     };
 
     if (m_https)
-        g_fiy->m_https.request(m_uri, conn->req(), cb, err_cb);
+        g_fiy->https.request(m_uri, conn->req(), cb, err_cb);
     else
-        g_fiy->m_http.request(m_uri, conn->req(), cb, err_cb);
+        g_fiy->http.request(m_uri, conn->req(), cb, err_cb);
 }
 
 void ModConnectorNet::delete_user(const char* user) {
@@ -156,16 +156,16 @@ void ModConnectorNet::delete_user(const char* user) {
 
     auto cb = [this] (auto resp) {
         if (resp.result_int() != 200)
-            LOG("Mod " <<m_mod->m_id <<": failed to delete user: HTTP code " <<resp.result());
+            LOG("Mod " <<m_mod->id <<": failed to delete user: HTTP code " <<resp.result());
     };
     auto err_cb = [this, user] (auto err) {
-        LOG("Mod " <<m_mod->m_id <<": failed to delete user: " <<user <<" -- " <<err);
+        LOG("Mod " <<m_mod->id <<": failed to delete user: " <<user <<" -- " <<err);
     };
 
     if (m_https)
-        g_fiy->m_https.request(m_uri, req, cb, err_cb);
+        g_fiy->https.request(m_uri, req, cb, err_cb);
     else
-        g_fiy->m_http.request(m_uri, req, cb, err_cb);
+        g_fiy->http.request(m_uri, req, cb, err_cb);
 }
 
 void ModConnectorNet::handle_request(
@@ -210,7 +210,7 @@ void ModConnectorNet::handle_request(
         callback(&response, context);
     };
     auto err_cb = [this, context, callback] (auto err) {
-        DEBUG_LOG("Mod " <<m_mod->m_id <<": handle request failed " <<err);
+        DEBUG_LOG("Mod " <<m_mod->id <<": handle request failed " <<err);
         if (callback == nullptr)
             return;
 
@@ -223,7 +223,7 @@ void ModConnectorNet::handle_request(
     };
 
     if (m_https)
-        g_fiy->m_https.request(m_uri, net_req, cb, err_cb);
+        g_fiy->https.request(m_uri, net_req, cb, err_cb);
     else
-        g_fiy->m_http.request(m_uri, net_req, cb, err_cb);
+        g_fiy->http.request(m_uri, net_req, cb, err_cb);
 }

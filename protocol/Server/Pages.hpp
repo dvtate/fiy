@@ -11,14 +11,14 @@
 #include "Session.hpp"
 
 inline std::string fiy_portal_templates_dir() {
-    return g_fiy->m_config.m_data_dir + "/pages/";
+    return g_fiy->config.data_dir + "/pages/";
 }
 
 struct Pages : public FileCache<fiy_portal_templates_dir> {
 
     static ReplacementMap get_host_data() {
         return {
-                { "{{domain}}",     g_fiy->m_config.m_hostname  },
+                { "{{domain}}",     g_fiy->config.hostname  },
                 { "{{protocol}}",   "https://"      },
             };
     }
@@ -56,7 +56,7 @@ struct Pages : public FileCache<fiy_portal_templates_dir> {
         res.body() = mustache(file_contents<path>(),
             ReplacementMap{
                 { "user_data", user.json() },
-                { "installed_apps", g_fiy->m_mods.get_mods_json() }
+                { "installed_apps", g_fiy->mods.get_mods_json() }
             });
         return res;
     }

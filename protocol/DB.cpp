@@ -9,7 +9,7 @@ namespace DB {
     SQLite::Database& connection() {
         // By the time the db gets used the config should already be initialized
         thread_local SQLite::Database db{
-            g_fiy->m_config.m_data_dir + "/db.db3",
+            g_fiy->config.data_dir + "/db.db3",
             SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE
         };
         return db;

@@ -36,10 +36,10 @@ bool LocalUsers::add_user(const LocalUser& user, std::string password) {
     unsigned char* hp = LocalUser::hash_password(std::move(password), buff);
 
     q.bindNoCopy(1, user.get_username());
-    q.bind(2, (int32_t)user.m_is_admin);
+    q.bind(2, (int32_t)user.is_admin);
     q.bind(3, (void*)hp, LocalUser::PASSWORD_HASH_SIZE);
-    q.bindNoCopy(4, user.m_email);
-    q.bind(5, (int64_t) user.m_joined_ts);
+    q.bindNoCopy(4, user.email);
+    q.bind(5, (int64_t) user.joined_ts);
     const auto ret = q.exec();
     q.clearBindings();
     q.reset();
@@ -163,16 +163,7 @@ LocalUser::AuthToken LocalUsers::authorize_user(std::shared_ptr<LocalUser> user)
     LocalUser::AuthToken token{std::move(user)};
     while (m_token_cache.contains(token))
         token.m_token = LocalUser::AuthToken::get_token_string();
-
-    auto p = m_token_cache.insert(token);
-
-#ifdef FIY_DEBUG
-    // Was getting a weird bug at some point
-    assert(token.m_token.length() == strlen(token.m_token.c_str()));
-    assert(LocalUser::AuthToken::TOKEN_LEN == strlen(token.m_token.c_str()));
-    assert(strlen(p.first->m_token.c_str()) == token.m_token.length());
-    assert(strlen(p.first->m_token.c_str()) == LocalUser::AuthToken::TOKEN_LEN);
-#endif
+    m_token_cache.insert(token);
     return token;
 }
 
@@ -211,8 +202,8 @@ void LocalUsers::delete_user(const std::string& username) {
     });
 
     // Inform mods
-    for (Mod* m : g_fiy->m_mods.get_mods())
-        m->m_ipc->delete_user(username.c_str());
+    for (Mod* m : g_fiy->mods.get_mods())
+        m->ipc->delete_user(username.c_str());
 
     // Remove from username cache
     m_username_cache.erase(username);

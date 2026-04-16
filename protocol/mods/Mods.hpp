@@ -100,8 +100,8 @@ public:
         // Remove mod
         m_mtx.read_to_write();
         m_mods.erase(std::ranges::find(m_mods, m));
-        m_mods_lookup.erase(m->m_path);
-        m_mods_by_id.erase(m->m_id);
+        m_mods_lookup.erase(m->path);
+        m_mods_by_id.erase(m->id);
         m_mtx.write_unlock();
         // TODO probably should delete the mod to prevent memory leak
         return m->stop();

@@ -18,13 +18,14 @@ class Mod;
  * Abstract class that handles communication between the protocol host and mods
  */
 class ModConnector {
-public:
+protected:
     /// Owner
     Mod* m_mod{nullptr};
 
     /// Where can we connect to it?
     std::string m_uri;
 
+public:
     ModConnector(Mod* mod, std::string path): m_mod(mod), m_uri(std::move(path)) {}
 
     // owning mod should call stop before destructor
@@ -58,5 +59,8 @@ public:
     /// Handle user data deletion request
     virtual void delete_user(const char* user) = 0;
 
+    const std::string& uri() const {
+        return m_uri;
+    }
 };
 

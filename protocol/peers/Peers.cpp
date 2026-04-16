@@ -26,7 +26,7 @@ bool Peers::add_peer(const std::string& domain, const std::shared_ptr<Peer>& p) 
     auto ret = m_peers_out.emplace(domain, p);
     if (!ret.second)
         return false;
-    ret = m_peers_in.emplace(p->m_auth.m_bearer_token_we_accept, p);
+    ret = m_peers_in.emplace(p->auth.bearer_token_we_accept, p);
     if (!ret.second) {
         m_peers_out.erase(domain);
         return false;
@@ -45,7 +45,7 @@ bool Peers::remove_peer(const std::string& domain) {
     const auto it = m_peers_out.find(domain);
     if (it == m_peers_out.end() || it->second == nullptr)
         return false;
-    m_peers_in.erase(it->second->m_auth.m_bearer_token_we_accept);
+    m_peers_in.erase(it->second->auth.bearer_token_we_accept);
     m_peers_out.erase(it);
     return true;
 }
@@ -77,8 +77,8 @@ void Peers::prune() {
         const auto& [domain, peer] = item;
         if (peer == nullptr)
             return false; // would be unsafe to erase placeholders
-        if (peer->m_auth.is_expired(now)) {
-            m_peers_out.erase(peer->m_domain);
+        if (peer->auth.is_expired(now)) {
+            m_peers_out.erase(peer->domain);
             return true;
         }
         return false;
@@ -110,12 +110,12 @@ void Peers::new_peer(const std::string& domain, std::function<void(std::shared_p
         std::string symkey_part1 = PeerAuth::get_token_string();
 
         std::string payload;
-        payload += g_fiy->m_config.m_hostname;
+        payload += g_fiy->config.hostname;
         payload += '\n';
         payload += symkey_part1;
         payload += '\n';
         payload += bearer_token;
-        auto signature = Crypto::SSL::sign(g_fiy->m_config.m_private_key, payload);
+        auto signature = Crypto::SSL::sign(g_fiy->config.private_key, payload);
         payload += '\n' + signature;
         // DEBUG_LOG("Outgoing Handshake request:\n" << payload << "\n");
 
@@ -188,11 +188,11 @@ void Peers::new_peer(const std::string& domain, std::function<void(std::shared_p
 
             // Add peer
             m_mtx.write_lock();
-            m_peers_in[p->m_auth.m_bearer_token_we_accept] = p; // was nullptr
+            m_peers_in[p->auth.bearer_token_we_accept] = p; // was nullptr
             auto ret = m_peers_out.emplace(domain, p);
             if (!ret.second) {
                 DEBUG_LOG("Duplicate peer?? - " <<domain);
-                m_peers_in.erase(p->m_auth.m_bearer_token_we_accept);
+                m_peers_in.erase(p->auth.bearer_token_we_accept);
                 m_mtx.write_unlock();
                 cb(nullptr);
                 return;
@@ -212,14 +212,14 @@ void Peers::new_peer(const std::string& domain, std::function<void(std::shared_p
 
         bool use_https = domain.find(':') == std::string::npos;
         if (use_https)
-            g_fiy->m_https.request(
+            g_fiy->https.request(
                 domain,
                 std::move(req),
                 std::move(handshake_cb),
                 std::move(handshake_err_cb)
             );
         else
-            g_fiy->m_http.request(
+            g_fiy->http.request(
                 domain,
                 std::move(req),
                 std::move(handshake_cb),
@@ -238,14 +238,14 @@ void Peers::new_peer(const std::string& domain, std::function<void(std::shared_p
     key_req.keep_alive(false);
 
     if (domain.find(':') == std::string::npos)
-        g_fiy->m_https.request(
+        g_fiy->https.request(
             domain,
             std::move(key_req),
             std::move(with_key_cb),
             std::move(err_key_cb)
         );
     else
-        g_fiy->m_http.request(
+        g_fiy->http.request(
             domain,
             std::move(key_req),
             std::move(with_key_cb),
@@ -297,10 +297,10 @@ void Peers::request_peer(
     void (*callback)(const fiy_response_t*, void*)
 ) {
     // Local request
-    if (domain.empty() || domain == g_fiy->m_config.m_hostname) {
-        Mod* m = g_fiy->m_mods.get_mod_by_id(appid);
+    if (domain.empty() || domain == g_fiy->config.hostname) {
+        Mod* m = g_fiy->mods.get_mod_by_id(appid);
         if (m != nullptr) {
-            m->m_ipc->handle_request(req, context, callback);
+            m->ipc->handle_request(req, context, callback);
         } else {
             DEBUG_LOG("Missing local mod: " <<appid);
             if (callback != nullptr)
@@ -315,6 +315,7 @@ void Peers::request_peer(
         request_peer(p, appid, req, context, callback);
         return;
     }
+    // TODO should have a separate cache to track invalid peers?
 
     // New Peer
     DEBUG_LOG("Peer " <<domain <<" not in cache");
@@ -323,7 +324,7 @@ void Peers::request_peer(
         [appid, request = ScopedRequest(req), callback, context]
         (std::shared_ptr<Peer> new_peer) {
             if (new_peer != nullptr) {
-                DEBUG_LOG("sending request to peer " <<new_peer->m_domain );
+                DEBUG_LOG("sending request to peer " <<new_peer->domain);
                 auto r = request.temp_copy(); // copied earlier to prevent invalidation
                 request_peer(new_peer, appid, &r, context, callback);
             } else {
@@ -356,7 +357,7 @@ void Peers::request_peer(
     request.method(static_cast<http::verb>(req->method));
     request.target("/mods/" + appid);
     request.body() = std::string(req->body, req->body_len); // note this should work even if body contains null chars
-    request.set("Fiy-Peer", peer->m_auth.m_bearer_token_we_send);
+    request.set("Fiy-Peer", peer->auth.bearer_token_we_send);
     request.set("Fiy-User", user);
     request.set("Fiy-Path", path);
     std::string now_str = std::to_string(g_fiy->now());
@@ -391,10 +392,10 @@ void Peers::request_peer(
         LOG_ERR("Peer request failed: " << err);
     };
 
-    bool use_https = std::string_view(peer->m_domain).find(':') == std::string_view::npos;
+    bool use_https = std::string_view(peer->domain).find(':') == std::string_view::npos;
     if (use_https) {
-        g_fiy->m_https.request(peer->m_domain, std::move(request), std::move(cb), std::move(err_cb));
+        g_fiy->https.request(peer->domain, std::move(request), std::move(cb), std::move(err_cb));
     } else {
-        g_fiy->m_http.request(peer->m_domain, std::move(request), std::move(cb), std::move(err_cb));
+        g_fiy->http.request(peer->domain, std::move(request), std::move(cb), std::move(err_cb));
     }
 }

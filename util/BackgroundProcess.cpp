@@ -3,7 +3,10 @@
 //
 
 #include <wait.h>
+
 #include <csignal>
+#include <cassert>
+
 #include <iostream>
 
 #include "BackgroundProcess.hpp"
@@ -31,6 +34,7 @@ void BackgroundProcess::start() {
 }
 
 int BackgroundProcess::wait() {
+    assert(started());
     int ret;
     if (waitpid(m_pid, &ret, 0) == -1)
         perror("waitpid() failed");
@@ -39,6 +43,9 @@ int BackgroundProcess::wait() {
 }
 
 void BackgroundProcess::stop() {
+    assert(started());
     if (kill(m_pid, SIGTERM) == -1)
         perror("kill() failed");
+    else
+        m_pid = -1;
 }

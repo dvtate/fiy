@@ -142,7 +142,7 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
     const auto& cookies = get_cookies();
     const auto token = cookies.find("fiy_auth");
     if (token != cookies.end())
-        return g_fiy->m_users.auth_user(token->second);
+        return g_fiy->users.auth_user(token->second);
 
     // Basic auth (used by git mod)
     const auto it = req().find("Authorization");
@@ -169,12 +169,12 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
 
     // Check login
     const std::string username{ auth.substr(0, i) };
-    int r = g_fiy->m_users.auth_user(username, std::string(auth.substr(i + 1)));
+    int r = g_fiy->users.auth_user(username, std::string(auth.substr(i + 1)));
 
     // Remove header so that we don't forward valid password anywhere else
     if (r == 0)
         req().erase(it);
-    return g_fiy->m_users.get_user(username);
+    return g_fiy->users.get_user(username);
 }
 
 Session::User Session::find_user() {
@@ -192,12 +192,12 @@ Session::User Session::find_user() {
 //        std::cout << "missing auth token\n";
         return unauthenticated;
     }
-    const auto peer = g_fiy->m_peers.get_peer_from_token(it->value());
+    const auto peer = g_fiy->peers.get_peer_from_token(it->value());
     if (!peer) {
         DEBUG_LOG("Invalid peer auth token: " << it->value());
         return unauthenticated;
     }
     const auto user = req().at("Fiy-User");
     DEBUG_LOG("remote user authenticated\n");
-    return { .domain=peer->m_domain, .user=user };
+    return { .domain=peer->domain, .user=user };
 }

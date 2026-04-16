@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <boost/asio.hpp>
+
 namespace Server {
-    void start();
+    void start(boost::asio::io_context* ioc);
 }

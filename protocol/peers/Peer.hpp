@@ -8,21 +8,20 @@
 
 #include "../../util/Crypto.hpp"
 
-class PeerAuth {
-public:
+struct PeerAuth {
     /// Super secret symmetric key
-    std::string m_sym_key;
+    std::string sym_key;
 
     /// Public key
-    // dvtt: should we store this for later in case they change it?
-//    std::string m_pubkey;
+    // Should we store this for later in case they change it?
+//    std::string pubkey;
 
     /// Bearer token for authenticating endpoints
-    std::string m_bearer_token_we_send;
-    std::string m_bearer_token_we_accept;
+    std::string bearer_token_we_send;
+    std::string bearer_token_we_accept;
 
     /// When was this authentication credential created?
-    time_t m_link_ts;
+    time_t link_ts;
 
     static constexpr time_t SESSION_LIFETIME = 60 * 60 * 24 * 7; // 1 week
     static constexpr int TOKEN_LEN = 24;
@@ -38,11 +37,11 @@ public:
         std::string our_generated_token,
         const time_t now
     ):
-        m_sym_key(std::move(sym_key)),
+        sym_key(std::move(sym_key)),
 //        m_pubkey(std::move(pubkey)),
-        m_bearer_token_we_send(std::move(peer_provided_token)),
-        m_bearer_token_we_accept(std::move(our_generated_token)),
-        m_link_ts(now)
+        bearer_token_we_send(std::move(peer_provided_token)),
+        bearer_token_we_accept(std::move(our_generated_token)),
+        link_ts(now)
     {}
 
     PeerAuth(
@@ -54,28 +53,27 @@ public:
 
     [[nodiscard]] bool is_expired() const;
     [[nodiscard]] bool is_expired(const time_t now) const {
-        return now > (m_link_ts + SESSION_LIFETIME);
+        return now > (link_ts + SESSION_LIFETIME);
     }
 };
 
 // This is another server on a different domain
-class Peer {
-public:
-    PeerAuth m_auth;
-    char* m_domain;
+struct Peer {
+    PeerAuth auth;
+    char* domain;
 
-    Peer(const std::string& domain, PeerAuth auth):
-        m_auth(std::move(auth))
+    Peer(const std::string& hostname, PeerAuth peer_auth):
+        auth(std::move(peer_auth))
     {
-        m_domain = (char*) malloc(domain.size() + 1);
-        strcpy(m_domain, domain.c_str());
+        domain = (char*) malloc(hostname.size() + 1);
+        strcpy(domain, hostname.c_str());
     }
-    Peer(char* domain, PeerAuth auth):
-        m_auth(std::move(auth)), m_domain(domain)
+    Peer(char* domain, PeerAuth peer_auth):
+        auth(std::move(peer_auth)), domain(domain)
     {}
 
     ~Peer() {
-        free(m_domain);
+        free(domain);
     }
 
     [[nodiscard]] std::string sig(

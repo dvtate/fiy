@@ -293,7 +293,7 @@ struct fiy_host_info_t {
     time_t (*now)();
 
     /**
-     * Contents of module.json file
+     * Path to module.json file
      */
     const char* mod_config;
 

@@ -5,6 +5,7 @@
 #include <fcntl.h>
 
 #include <filesystem>
+#include <fstream>
 #include <optional>
 
 #include <nlohmann/json.hpp>
@@ -109,9 +110,11 @@ void handle_request(fiy::Request& req, const fiy::fiy_callback_t cb) {
 
 /// Export: Start module
 FIY_EXPORT fiy::ModInfo* start(const fiy_host_info_t* host_info) {
-    // Read config
     fiy::host() = *host_info;
-    auto config = nlohmann::json::parse(fiy::host().mod_config);
+
+    // Read config
+    std::ifstream ifs{fiy::host().mod_config};
+    auto config = nlohmann::json::parse(ifs);
     if (!config.contains("mod_settings") || !config["mod_settings"].is_object()) {
         fiy::host().log_fatal("module.json: expected a mod_settings field containing an object with target path");
         return nullptr;

@@ -145,7 +145,7 @@ std::vector<BasicRepo> RepoSearch::search(
         return ret;
     } catch (SQLite::Exception& e) {
         fiy::host().log_error("DB Error: " + std::string(e.what()) + ": " + e.getErrorStr() );
-        fiy::host().log_error("DB Error: Statement: " + qb.m_stmt);
+        fiy::host().log_error("DB Error: Statement: " + qb.raw_statement());
         throw e;
     }
 }

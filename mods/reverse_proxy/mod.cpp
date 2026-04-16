@@ -2,6 +2,8 @@
 // Created by tate on 2/27/26.
 //
 
+#include <fstream>
+
 #include <nlohmann/json.hpp>
 
 #include "../../modlib/fiymod.hpp"
@@ -21,7 +23,8 @@ void handle_request(fiy::Request& r, const fiy::Callback cb) {
 FIY_EXPORT fiy::ModInfo* start(const fiy_host_info_t* host_info) {
     // Read config
     fiy::host() = *host_info;
-    auto config = nlohmann::json::parse(fiy::host().mod_config);
+    std::ifstream ifs{fiy::host().mod_config};
+    auto config = nlohmann::json::parse(ifs);
     if (!(config.contains("mod_settings") && config.is_object()
         && (config = config["mod_settings"]).contains("target"))
     ) {

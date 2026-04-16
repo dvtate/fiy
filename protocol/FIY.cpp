@@ -14,8 +14,8 @@
  */
 bool FIY::start(const int argc, char* argv[]) {
     // Load config
-    if (!m_config.from_argv(argc, argv)) {
-        if (m_config.m_error) {
+    if (!config.from_argv(argc, argv)) {
+        if (config.error) {
             LOG_ERR("Failed to load configuration.");
             return false;
         }
@@ -35,7 +35,7 @@ bool FIY::start() {
     // Note: order is important
 
     // Make sure config loaded
-    if (m_config.m_error) {
+    if (config.error) {
         LOG_ERR("Failed to parse config file.");
         return false;
     }
@@ -49,23 +49,23 @@ bool FIY::start() {
     }};
 
     // Start apps
-    m_mods.find_modules();
-    if (!m_mods.start_all()) {
+    mods.find_modules();
+    if (!mods.start_all()) {
         LOG_ERR("Failed to start apps.");
         // return false;
     }
 
     // Make Boost IO context
-    m_ioc = new boost::asio::io_context{m_config.m_concurrency};
+    m_ioc = new boost::asio::io_context{config.concurrency};
 
     // Initialize the server (it uses boost io context)
-    Server::start();
+    Server::start(m_ioc);
 
     // Run the I/O service on the requested number of threads
     std::vector<std::thread> v;
-    v.reserve(m_config.m_concurrency - 1);
-    DEBUG_LOG("Using " << m_config.m_concurrency << " threads");
-    for (auto i = m_config.m_concurrency - 1; i > 0; --i)
+    v.reserve(config.concurrency - 1);
+    DEBUG_LOG("Using " << config.concurrency << " threads");
+    for (auto i = config.concurrency - 1; i > 0; --i)
         v.emplace_back([this]{ m_ioc->run(); });
     m_ioc->run();
 
@@ -73,7 +73,7 @@ bool FIY::start() {
 }
 
 const std::string& FIY::base_uri() const {
-    static const std::string ret = std::string(m_config.m_protocol)
-        + m_config.m_hostname;
+    static const std::string ret = std::string(config.protocol)
+        + config.hostname;
     return ret;
 }

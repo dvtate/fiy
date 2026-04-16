@@ -22,25 +22,25 @@ extern FIY* g_fiy;
 class FIY {
     volatile std::time_t m_now{0};
 
-public:
+    friend class HttpClient;
+    friend class HttpsClient;
     boost::asio::io_context* m_ioc{nullptr};
 
-    FiyConfig m_config;
-    Peers m_peers;
-    Mods m_mods;
-    LocalUsers m_users;
-    HttpClient m_http;
-    HttpsClient m_https;
+public:
+    FiyConfig config;
+    Peers peers;
+    Mods mods;
+    LocalUsers users;
+    HttpClient http;
+    HttpsClient https;
 
     FIY() = default;
     explicit FIY(const std::string& config_path):
-        m_config(config_path)
+        config(config_path)
     {}
-
 
     bool start(int argc, char* argv[]);
     bool start();
-
 
     std::time_t now() const {
         return m_now;

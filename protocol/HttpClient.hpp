@@ -173,4 +173,6 @@ public:
     ) {
         request(host, req, cb, [](std::string err){ (void)err; DEBUG_LOG(err); });
     }
+
+    // TODO request overload with combined success+error callbacks
 };
