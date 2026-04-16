@@ -1,7 +1,7 @@
 //
 // Created by tate on 7/31/25.
 //
-#include "FIY.hpp"
+#include "../FIY.hpp"
 
 #include "Peer.hpp"
 

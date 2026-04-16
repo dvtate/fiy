@@ -1,6 +1,6 @@
-#include "FIY.hpp"
+#include "../FIY.hpp"
 
-#include "Server/util.hpp"
+#include "../Server/util.hpp"
 
 #include "Peers.hpp"
 
@@ -85,7 +85,7 @@ void Peers::prune() {
     });
 }
 
-void Peers::new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb) {
+void Peers::new_peer(const std::string& domain, std::function<void(std::shared_ptr<Peer>)> cb) {
     DEBUG_LOG("Sending message to new peer " << domain);
 
     auto with_key_cb =
@@ -200,7 +200,7 @@ void Peers::new_peer(const std::string& domain, std::function<void(const std::sh
             m_mtx.write_unlock();
 
             // Success
-            cb(p);
+            cb(std::move(p));
             DEBUG_LOG("New peer: " <<domain);
         };
 
@@ -321,7 +321,7 @@ void Peers::request_peer(
     new_peer(
         domain,
         [appid, request = ScopedRequest(req), callback, context]
-        (const std::shared_ptr<Peer>& new_peer) {
+        (std::shared_ptr<Peer> new_peer) {
             if (new_peer != nullptr) {
                 DEBUG_LOG("sending request to peer " <<new_peer->m_domain );
                 auto r = request.temp_copy(); // copied earlier to prevent invalidation

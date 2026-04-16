@@ -27,46 +27,53 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/SQLiteCpp)
 
 find_package(Boost REQUIRED COMPONENTS url context)
 
-file(GLOB protocol_server_sources protocol/*.cpp)
-
 add_executable(protocol_server ${protocol_server_sources}
     third_party/inih/ini.c
-    modlib/fiymod.h
-    protocol/defs.hpp
-    protocol/FIY.hpp
-    protocol/FIY.cpp
-    protocol/mods/Mod.cpp
-    protocol/mods/Mod.hpp
-    protocol/mods/Mods.cpp
-    protocol/mods/Mods.hpp
-    protocol/mods/ModConnector.hpp
-    protocol/LocalUser.cpp
-    protocol/Server/Server.cpp
-    protocol/Server/Server.hpp
-    protocol/Server/Router.hpp
-    protocol/Server/Router.cpp
-    protocol/LocalUsers.hpp
-    protocol/LocalUsers.cpp
     util/WebUtils.hpp
     util/WebUtils.cpp
-    protocol/HttpsClient.cpp
-    protocol/HttpsClient.hpp
-    protocol/Server/Session.cpp
-    protocol/Server/Session.hpp
-    protocol/HttpClient.cpp
-    protocol/HttpClient.hpp
-    protocol/Server/util.hpp
     util/FileCache.hpp
     util/Crypto.cpp
     util/Crypto.hpp
     util/ThreadPool.hpp
-    protocol/Peer.cpp
-    protocol/Server/Pages.hpp
+    protocol/defs.hpp
+    protocol/Config.hpp
+    protocol/Config.cpp
+    protocol/FIY.hpp
+    protocol/FIY.cpp
+    protocol/DB.hpp
+    protocol/DB.cpp
+    modlib/fiymod.h
+    protocol/mods/Mod.cpp
+    protocol/mods/Mod.hpp
+    protocol/mods/Mods.cpp
+    protocol/mods/Mods.hpp
     protocol/mods/ModConnectorDll.cpp
     protocol/mods/ModConnectorDll.hpp
     protocol/mods/ModConnectorNet.cpp
     protocol/mods/ModConnectorNet.hpp
+    protocol/mods/ModConnector.hpp
+    protocol/users/LocalUser.hpp
+    protocol/users/LocalUser.cpp
+    protocol/users/LocalUsers.hpp
+    protocol/users/LocalUsers.cpp
+    protocol/peers/Peer.hpp
+    protocol/peers/Peer.cpp
+    protocol/peers/Peers.hpp
+    protocol/peers/Peers.cpp
+    protocol/Server/util.hpp
+    protocol/Server/Server.cpp
+    protocol/Server/Server.hpp
+    protocol/Server/Router.hpp
+    protocol/Server/Router.cpp
+    protocol/Server/Session.cpp
+    protocol/Server/Session.hpp
+    protocol/Server/Pages.hpp
+    protocol/HttpsClient.cpp
+    protocol/HttpsClient.hpp
+    protocol/HttpClient.cpp
+    protocol/HttpClient.hpp
     util/Version.hpp
+    protocol/main.cpp
 )
 
 # Debug/vs release

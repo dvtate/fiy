@@ -6,12 +6,12 @@
 #include <thread>
 #include <functional>
 
-#include "defs.hpp"
-#include "../util/RWMutex.hpp"
+#include "../defs.hpp"
+#include "../../util/RWMutex.hpp"
 
 #include "Peer.hpp"
 
-#include "../modlib/fiymod.hpp"
+#include "../../modlib/fiymod.hpp"
 
 
 class Peers {
@@ -38,7 +38,7 @@ public:
     std::shared_ptr<Peer> get_peer_for_domain(const std::string& domain);
     std::shared_ptr<Peer> get_peer_from_token(const std::string& token);
 
-    void new_peer(const std::string& domain, std::function<void(const std::shared_ptr<Peer>&)> cb);
+    void new_peer(const std::string& domain, std::function<void(std::shared_ptr<Peer>)> cb);
 
     static void request_peer(
         const std::shared_ptr<Peer>& peer,

@@ -6,7 +6,7 @@
 #include <cstring>
 #include <random>
 
-#include "../util/Crypto.hpp"
+#include "../../util/Crypto.hpp"
 
 class PeerAuth {
 public:

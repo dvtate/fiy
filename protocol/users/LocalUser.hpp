@@ -6,11 +6,11 @@
 #include <unordered_map>
 #include <openssl/sha.h>
 
-#include "../third_party/SQLiteCpp/include/SQLiteCpp/Column.h"
+#include "../../third_party/SQLiteCpp/include/SQLiteCpp/Column.h"
 
-#include "../util/Crypto.hpp"
+#include "../../util/Crypto.hpp"
 
-#include "Peer.hpp"
+#include "../peers/Peer.hpp"
 
 /**
  * User authenticated on our instance (not remotee)

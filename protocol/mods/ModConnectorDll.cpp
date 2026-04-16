@@ -14,7 +14,7 @@
 
 #include "../Server/util.hpp"
 
-#include "../LocalUser.hpp"
+#include "../users/LocalUser.hpp"
 #include "../Server/Session.hpp"
 
 #include "../../util/ThreadPool.hpp"
