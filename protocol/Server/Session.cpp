@@ -151,33 +151,30 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
     // DEBUG_LOG("Using http basic auth");
 
     // Get the encoded part
-    auto v = it->value();
-    if (!v.starts_with("Basic "))
+    auto hv = it->value();
+    if (!hv.starts_with("Basic "))
         return nullptr;
-    v.remove_prefix(6);
+    hv.remove_prefix(6);
 
     // Decode base64
     namespace b64 = boost::beast::detail::base64;
-    const auto p = std::make_unique<char[]>(b64::decoded_size(v.size()));
-    b64::decode(p.get(), v.data(), v.size());
+    const auto buff = std::make_unique<char[]>(b64::decoded_size(hv.size()));
+    b64::decode(buff.get(), hv.data(), hv.size());
 
     // Split username+password
-    std::string_view auth(p.get());
+    std::string_view auth(buff.get());
     const auto i = auth.find(':');
     if (i == std::string_view::npos)
         return nullptr;
 
     // Check login
-    auto ret = g_fiy->m_users.login_user(
-        std::string(auth.substr(0, i)),
-        std::string(auth.substr(i + 1))
-    ).m_user;
+    const std::string username{ auth.substr(0, i) };
+    int r = g_fiy->m_users.auth_user(username, std::string(auth.substr(i + 1)));
 
     // Remove header so that we don't forward valid password anywhere else
-    if (ret != nullptr)
+    if (r == 0)
         req().erase(it);
-
-    return ret;
+    return g_fiy->m_users.get_user(username);
 }
 
 Session::User Session::find_user() {

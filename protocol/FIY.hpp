@@ -4,10 +4,10 @@
 
 #include "defs.hpp"
 
-#include "Peers.hpp"
+#include "peers/Peers.hpp"
 #include "Config.hpp"
 #include "mods/Mods.hpp"
-#include "LocalUsers.hpp"
+#include "users/LocalUsers.hpp"
 #include "HttpClient.hpp"
 #include "HttpsClient.hpp"
 

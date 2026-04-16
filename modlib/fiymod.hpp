@@ -683,6 +683,26 @@ next_field:
             }
             return ret;
         }
+
+        template <typename TU2, typename TD2>
+        Locality distance(const User& other) const {
+            // Not authenticated
+            if (!user || !other.user)
+                return Locality::PUBLIC;
+
+            // Same domain
+            const std::string_view hd = fiy::host().domain;
+            if (domain == other.domain
+                || (!domain && other.domain == hd)
+                || (!other.domain && domain == hd)
+            )
+                return user == other.user
+                    ? Locality::USER
+                    : Locality::INSTANCE;
+
+            // Different domain
+            return Locality::FEDIVERSE;
+        }
     };
 
     // Users may want to make PPC wrappers around these that include file/line numbers

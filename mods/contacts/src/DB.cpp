@@ -347,7 +347,8 @@ namespace DB {
         if (ret.id == -1) {
             // Ignore non-existent local users
             if (user.find('@') == std::string_view::npos
-                && fiy::host().user_info(user.c_str(), nullptr) != 0) {
+                && fiy::host().user_info(user.c_str(), nullptr) != 0
+            ) {
                 fiy::log_warning("Non-existent user: " + user);
                 return ret;
             }

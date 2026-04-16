@@ -29,23 +29,21 @@ LocalUsers::LocalUsers() {
  */
 bool LocalUsers::add_user(const LocalUser& user, std::string password) {
     thread_local auto q = "INSERT INTO Users"
-        " (username, isAdmin, name, hashedPassword, email, locale, joinTs) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)"_sql;
+        " (username, isAdmin, hashedPassword, email, joinTs) "
+        "VALUES (?, ?, ?, ?, ?)"_sql;
 
     unsigned char buff[LocalUser::PASSWORD_HASH_SIZE];
     unsigned char* hp = LocalUser::hash_password(std::move(password), buff);
 
     q.bindNoCopy(1, user.get_username());
     q.bind(2, (int32_t)user.m_is_admin);
-    q.bindNoCopy(3, user.get_name());
-    q.bind(4, (void*)hp, LocalUser::PASSWORD_HASH_SIZE);
-    q.bindNoCopy(5, user.m_email);
-    q.bindNoCopy(6, user.m_locale);
-    q.bind(7, (int64_t) user.m_joined_ts);
+    q.bind(3, (void*)hp, LocalUser::PASSWORD_HASH_SIZE);
+    q.bindNoCopy(4, user.m_email);
+    q.bind(5, (int64_t) user.m_joined_ts);
     const auto ret = q.exec();
     q.clearBindings();
     q.reset();
-    return ret;
+    return ret > 0;
 
     // TODO also add them to cache + return auth token
 }
@@ -64,22 +62,20 @@ std::shared_ptr<LocalUser> LocalUsers::get_user(const std::string& username) {
         return it->second;
 
     // Use database
-    thread_local auto query = "SELECT username, isAdmin, name, email, locale, joinTs"
+    thread_local auto query = "SELECT isAdmin, email, joinTs"
         " FROM Users WHERE username = ?"_sql;
-
     query.bindNoCopy(1, username);
     if (!query.executeStep()) {
         query.reset();
         return nullptr;
     }
 
+    // Construct user object
     auto user = std::make_shared<LocalUser>(
         username,
-        query.getColumn(1).getInt() != 0, // isAdmin
-        query.getColumn(2).getString(),  // name
-        query.getColumn(3).getString(),  // email
-        query.getColumn(4).getString(),  // locale
-        query.getColumn(5).getUInt()  // join_ts
+        query.getColumn(0).getInt() != 0, // isAdmin
+        query.getColumn(1).getString(),  // email
+        query.getColumn(2).getUInt()  // join_ts
     );
     query.reset();
     m_username_cache[username] = user;
@@ -203,7 +199,7 @@ LocalUser::AuthToken LocalUsers::login_user(const std::string& username, std::st
  * Delete a user
  */
 void LocalUsers::delete_user(const std::string& username) {
-    auto user = get_user(username);
+    const auto user = get_user(username);
     if (user == nullptr)
         return;
 

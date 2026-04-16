@@ -27,9 +27,7 @@ CREATE TABLE Peers (
 CREATE TABLE Users (
     username       VARCHAR(32) PRIMARY KEY,
     isAdmin        INTEGER NOT NULL,
-    name           VARCHAR(128) NOT NULL DEFAULT "", -- Moved to contacts app
     hashedPassword CHAR(128) NOT NULL,
     email          VARCHAR(255) NOT NULL DEFAULT "",
-    locale         VARCHAR(12)   NOT NULL DEFAULT "en",
     joinTs         INTEGER UNSIGNED NOT NULL
 );

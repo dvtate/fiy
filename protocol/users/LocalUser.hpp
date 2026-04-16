@@ -16,15 +16,10 @@
  * User authenticated on our instance (not remotee)
  */
 class LocalUser {
-protected:
-    std::string m_username;
 public:
+    const std::string m_username;
     bool m_is_admin{false};
-protected:
-    std::string m_name;
-public:
     std::string m_email;
-    std::string m_locale; // TODO replace this with something better?
     time_t m_joined_ts{0};
 
     static constexpr size_t USERNAME_MAX_LENGTH = 32;
@@ -40,34 +35,14 @@ public:
     LocalUser(
         std::string username,
         const bool is_admin,
-        std::string name,
         std::string email,
-        std::string locale,
         const time_t joined_ts
     ):
         m_username(std::move(username)),
         m_is_admin(is_admin),
-        m_name(std::move(name)),
         m_email(std::move(email)),
-        m_locale(std::move(locale)),
         m_joined_ts(joined_ts)
     {}
-
-    /**
-     * Update user's username
-     * @param name new name for user
-     * @return nullptr on success, reason string on fail
-     */
-    const char* set_name(std::string name) {
-        if (name.size() > NAME_MAX_LENGTH)
-            return "Name too long";
-        m_name = std::move(name);
-        // TODO update database
-        return nullptr;
-    }
-    [[nodiscard]] const std::string& get_name() const {
-        return m_name.empty() ? m_username : m_name;
-    }
 
     [[nodiscard]] const std::string& get_username() const {
         return m_username;

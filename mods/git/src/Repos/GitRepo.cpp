@@ -320,7 +320,7 @@ GitRepo::Commit::Commit(git_commit* commit, git_mailmap* mailmap) {
 
     // Get fiy user from the commit notes
     git_note* note = nullptr;
-    ok(git_note_commit_read(&note, git_commit_owner(commit), commit, oid));
+    git_note_commit_read(&note, git_commit_owner(commit), commit, oid);
     if (note != nullptr) {
         std::string_view notes = git_note_message(note);
         constexpr auto author_key = "FIY-author: ";

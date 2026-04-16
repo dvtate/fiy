@@ -8,16 +8,18 @@
 
 #include <nlohmann/json.hpp>
 
+#include "../../util/ThreadPool.hpp"
+
 #include "../../modlib/fiymod.hpp"
 
 #include "../FIY.hpp"
+#include "../DB.hpp"
 
 #include "../Server/util.hpp"
 
 #include "../users/LocalUser.hpp"
 #include "../Server/Session.hpp"
 
-#include "../../util/ThreadPool.hpp"
 
 struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
     // TODO these should probably be unique_ptr's ?
@@ -101,25 +103,23 @@ struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
      *  -1 error
      */
     static int user_info_impl(const char* local_user_name, fiy::fiy_local_user_info_t* ret) {
-        const auto u = g_fiy->m_users.get_user(local_user_name);
-        if (u == nullptr)
-            return 1;
-        if (ret == nullptr)
-            return 0;
+        try {
+            const auto u = g_fiy->m_users.get_user(local_user_name);
+            if (u == nullptr)
+                return 1;
+            if (ret == nullptr)
+                return 0;
 
-        // Check sizes
-        if (u->get_name().size() >= sizeof(ret->name) / sizeof(char)
-            || u->m_locale.size() >= sizeof(ret->locale) / sizeof(char)
-        ) {
-            LOG_ERR("ModDLLHostInfo: content would overflow field");
+            ret->admin = u->m_is_admin;
+            ret->join_ts = u->m_joined_ts;
+            return 0;
+        } catch (const DB::Exception& e) {
+            LOG_ERR("Database Error: " <<e.what());
+#ifdef FIY_DEBUG
+            throw e;
+#endif
             return -1;
         }
-
-        strcpy(ret->name, u->get_name().c_str());
-        strcpy(ret->locale, u->m_locale.c_str());
-        ret->admin = u->m_is_admin;
-        ret->join_ts = u->m_joined_ts;
-        return 0;
     }
 };
 

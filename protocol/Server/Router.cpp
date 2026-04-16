@@ -228,7 +228,7 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
     }
 
     // Create user
-    LocalUser user{username, false, username, contact, "en", g_fiy->now()};
+    LocalUser user{username, false, contact, g_fiy->now()};
     try {
         if (!g_fiy->m_users.add_user(user, password)) {
             LOG_ERR("Failed to create user?");
@@ -237,6 +237,8 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
         }
     } catch (const DB::Exception& e) {
         LOG_ERR("Failed to create new user: Database Error: " <<e.what());
+        conn->respond(conn->prep(resp_server_error));
+        return;
     }
 
     auto auth_token = g_fiy->m_users.login_user(username, password);

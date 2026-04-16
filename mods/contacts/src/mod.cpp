@@ -421,23 +421,10 @@ static void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb)
     req.respond(cb, 404, "", fiy::Body("Not found"));
 }
 
-static void delete_user(const char* username) {
-    // Invalid input
-    if (username == nullptr || username[0] == '\0')
-        return;
-
-    // Not a local user -- not our problem
-    if (strchr(username, '@') != nullptr)
-        return;
-
-    // Delete the user
-    DB::delete_user(username);
-}
-
 FIY_EXPORT fiy::ModInfo* start(const fiy::fiy_host_info_t* host_info) {
     static fiy::ModInfo mod_info = {
         .on_request = handle_request,
-        .delete_user = delete_user,
+        .delete_user = DB::delete_user,
         .id="fiy.contacts",
         .version = "0.0"
     };
