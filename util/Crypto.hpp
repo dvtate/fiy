@@ -59,8 +59,8 @@ namespace Crypto {
     extern std::mt19937& rng(void);
 
     template<std::size_t TOKEN_LEN>
-    inline std::string get_token_string() {
-        std::uniform_int_distribution<unsigned short> dist(1, 63);
+    std::string get_token_string() {
+        std::uniform_int_distribution<unsigned short> dist(0, 62);
         const char charset[64] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
 
         // Generate token using random chars from charset
