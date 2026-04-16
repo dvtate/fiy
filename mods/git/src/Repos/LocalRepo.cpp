@@ -59,7 +59,7 @@ bool LocalRepo::can_access(
             case fiy::Locality::PUBLIC:
                 return true;
             case fiy::Locality::FEDIVERSE:
-                return user != nullptr && domain != nullptr;
+                return user != nullptr;
             case fiy::Locality::INSTANCE:
                 return user != nullptr && domain == nullptr;
             case fiy::Locality::USER:
