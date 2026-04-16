@@ -213,6 +213,7 @@ struct ModDllConnectorRequest : public fiy::fiy_request_t {
                 break;
             }
         }
+        delete this;
     }
 
     static char* new_cstr_from_string(const std::string_view s) {
@@ -338,8 +339,8 @@ void ModConnectorDll::handle_request(std::shared_ptr<Session> conn) {
     }
 
     // Call mods in separate threadpool so that they don't block asio threads
-    static ThreadPool<std::unique_ptr<ModDllConnectorRequest>> request_handler{
-        [](std::unique_ptr<ModDllConnectorRequest> r) {
+    static ThreadPool<ModDllConnectorRequest*> request_handler{
+        [](ModDllConnectorRequest* r) {
             r->on_request(
                 &*r,
                 [](
