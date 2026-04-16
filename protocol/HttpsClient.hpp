@@ -12,7 +12,6 @@
 
 #include "defs.hpp"
 
-
 template<class RequestType, class CallbackType, class ErrCallbackType>
 class HttpsRequest : public std::enable_shared_from_this<HttpsRequest<RequestType, CallbackType, ErrCallbackType>> {
     using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>

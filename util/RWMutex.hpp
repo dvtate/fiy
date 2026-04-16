@@ -5,6 +5,7 @@
 
 /**
  * Mutex that supports multiple simultaneous reads but only a single write
+ * @deprecated use std::shared_mutex instead
  */
 // TODO Maybe use std::shared_mutex instead?
 struct RWMutex {

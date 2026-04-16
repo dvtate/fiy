@@ -194,10 +194,22 @@ struct fiy_mod_info_t {
     ;
 };
 
+/**
+ * Basic information about a user
+ */
 struct fiy_local_user_info_t {
+    /// True if user is administrator
     bool admin;
+
+    /// Unix timestamp when did the user created their account
     int64_t join_ts;
+
+    /// User's name (usually same as their username)
+    /// @deprecated instead use contacts mod
     char name[200];   // max should be 128
+
+    /// User's preferred locale
+    /// @deprecated instead use contacts mod
     char locale[16]; // max should be 12
 };
 

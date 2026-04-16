@@ -227,7 +227,7 @@ void Mod::load() {
         if (!version.is_string()) {
             load_error("module.json: \"version\" should be a string of format NN.nn");
         } else {
-            m_version = Mod::Version(version.get<std::string>());
+            m_version = Version(version.get<std::string>());
         }
     } else {
         // load_error("module.json: missing key: version");

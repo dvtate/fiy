@@ -2,9 +2,14 @@
 // Created by tate on 7/8/25.
 //
 
-#include "FIY.hpp"
-
 #include "LocalUsers.hpp"
+
+#include <utility>
+
+#include "FIY.hpp"
+#include "DB.hpp"
+
+using DB::operator ""_sql;
 
 LocalUsers::LocalUsers() {
     m_cron = std::thread([this]() {
@@ -16,7 +21,41 @@ LocalUsers::LocalUsers() {
     });
 }
 
-std::shared_ptr<LocalUser> LocalUsers::get_username(const std::string& username) {
+/**
+ * Add a new user to the database
+ * @param user
+ * @param password
+ * @return true if user was added, false otherwise
+ */
+bool LocalUsers::add_user(const LocalUser& user, std::string password) {
+    thread_local auto q = "INSERT INTO Users"
+        " (username, isAdmin, name, hashedPassword, email, locale, joinTs) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)"_sql;
+
+    unsigned char buff[LocalUser::PASSWORD_HASH_SIZE];
+    unsigned char* hp = LocalUser::hash_password(std::move(password), buff);
+
+    q.bindNoCopy(1, user.get_username());
+    q.bind(2, (int32_t)user.m_is_admin);
+    q.bindNoCopy(3, user.get_name());
+    q.bind(4, (void*)hp, LocalUser::PASSWORD_HASH_SIZE);
+    q.bindNoCopy(5, user.m_email);
+    q.bindNoCopy(6, user.m_locale);
+    q.bind(7, (int64_t) user.m_joined_ts);
+    const auto ret = q.exec();
+    q.clearBindings();
+    q.reset();
+    return ret;
+
+    // TODO also add them to cache + return auth token
+}
+
+/**
+ * Get user info for given username
+ * @param username user to find
+ * @return LocalUser object or null if no user exists with given username
+ */
+std::shared_ptr<LocalUser> LocalUsers::get_user(const std::string& username) {
     RWMutex::LockForRead lock{m_mtx};
 
     // Use cache
@@ -25,19 +64,64 @@ std::shared_ptr<LocalUser> LocalUsers::get_username(const std::string& username)
         return it->second;
 
     // Use database
-    auto user = DB::get_user(username);
-    if (user == nullptr)
-        return user;
+    thread_local auto query = "SELECT username, isAdmin, name, email, locale, joinTs"
+        " FROM Users WHERE username = ?"_sql;
+
+    query.bindNoCopy(1, username);
+    if (!query.executeStep()) {
+        query.reset();
+        return nullptr;
+    }
+
+    auto user = std::make_shared<LocalUser>(
+        username,
+        query.getColumn(1).getInt() != 0, // isAdmin
+        query.getColumn(2).getString(),  // name
+        query.getColumn(3).getString(),  // email
+        query.getColumn(4).getString(),  // locale
+        query.getColumn(5).getUInt()  // join_ts
+    );
+    query.reset();
     m_username_cache[username] = user;
     return user;
 }
 
+/**
+ * Validate user login credentials
+ * @param username local user username
+ * @param password local user password
+ * @return 0 on success, 1 on login fail, -1 on error
+ */
+int LocalUsers::auth_user(const std::string& username, std::string password) {
+    // Get query
+    thread_local auto q = "SELECT hashedPassword FROM Users WHERE username = ?"_sql;
+    try {
+        q.bindNoCopy(1, username);
+        if (!q.executeStep()) {
+            q.reset();
+            return 0;
+        }
+        const auto ret = LocalUser::check_password_hash(
+            std::move(password),
+            q.getColumn(0)
+        );
+        q.reset();
+        return ret ? 0 : 1;
+    } catch (const SQLite::Exception& e) {
+        DEBUG_LOG("DB Error: " << e.what());
+        return -1;
+    }
+}
+
+/**
+ * Authenticate user auth token
+ * @param auth_token User-provided authentication token
+ * @return user object or null if invalid token
+ */
 std::shared_ptr<LocalUser> LocalUsers::auth_user(const std::string& auth_token) {
-    LocalUser::AuthToken token{nullptr, auth_token, 0};
     RWMutex::LockForRead lock{m_mtx};
 
-    DEBUG_LOG("Checking token: " <<auth_token);
-    auto it = m_token_cache.find(token);
+    const auto it = m_token_cache.find({nullptr, auth_token, 0});
     if (it == m_token_cache.end())
         return nullptr;
 
@@ -48,7 +132,9 @@ std::shared_ptr<LocalUser> LocalUsers::auth_user(const std::string& auth_token) 
     return it->m_user;
 }
 
-// Should run every 1-10 mins
+/**
+ * Run periodically to remove expired auth tokens
+ */
 void LocalUsers::cron() {
     RWMutex::LockForWrite lock{m_mtx};
 
@@ -60,40 +146,84 @@ void LocalUsers::cron() {
     );
 }
 
+/**
+ * De-authenticate a token (ie - to sign a user out)
+ * @param auth_token token to deauthenticate
+ */
 void LocalUsers::deauth_token(const std::string& auth_token) {
-    LocalUser::AuthToken token{nullptr, auth_token, 0};
+    const LocalUser::AuthToken token{nullptr, auth_token, 0};
     RWMutex::LockForWrite lock{m_mtx};
     m_token_cache.erase(token);
 }
 
-LocalUser::AuthToken LocalUsers::login_user(const std::string& username, std::string password) {
-    // Get user from database
-    auto user = DB::get_user(username, std::move(password));
-    if (user == nullptr)
-        return  LocalUser::AuthToken(nullptr, "", 0);
-
-    // Get preliminary auth token
-    // TODO maybe stay-logged-in option with longer duration?
-    LocalUser::AuthToken token{user};
-
+/**
+ * Create an auth token for the user
+ * @param user User to authorize
+ * @return Auth token for the user
+ */
+LocalUser::AuthToken LocalUsers::authorize_user(std::shared_ptr<LocalUser> user) {
+    // Make new auth token for them
     RWMutex::LockForWrite lock{m_mtx};
-    m_username_cache.emplace(username, user);
-
-    // Generate auth token
+    LocalUser::AuthToken token{std::move(user)};
     while (m_token_cache.contains(token))
         token.m_token = LocalUser::AuthToken::get_token_string();
-    DEBUG_LOG("added token: " << token.m_token);
-    m_token_cache.emplace(token);
+
+    auto p = m_token_cache.insert(token);
+
+#ifdef FIY_DEBUG
+    // Was getting a weird bug at some point
+    assert(token.m_token.length() == strlen(token.m_token.c_str()));
+    assert(LocalUser::AuthToken::TOKEN_LEN == strlen(token.m_token.c_str()));
+    assert(strlen(p.first->m_token.c_str()) == token.m_token.length());
+    assert(strlen(p.first->m_token.c_str()) == LocalUser::AuthToken::TOKEN_LEN);
+#endif
     return token;
 }
 
-void LocalUsers::delete_user(const std::string& username) {
-    delete_user(get_username(username));
+/**
+ * Log a user in, providing a valid authentication token on success
+ */
+LocalUser::AuthToken LocalUsers::login_user(const std::string& username, std::string password) {
+    // TODO could better utilize cache and always do a single DB query
+
+    // Check username
+    std::shared_ptr<LocalUser> user = get_user(username);
+    if (user == nullptr)
+        return {};
+
+    // Check password
+    if (auth_user(username, std::move(password)) != 0)
+        return {};
+
+    // Make authorization token
+    return authorize_user(std::move(user));
 }
-void LocalUsers::delete_user(std::shared_ptr<LocalUser> user) {
+
+/**
+ * Delete a user
+ */
+void LocalUsers::delete_user(const std::string& username) {
+    auto user = get_user(username);
+    if (user == nullptr)
+        return;
+
     RWMutex::LockForWrite lock{m_mtx};
-    std::erase_if(m_token_cache, [&user](const LocalUser::AuthToken& t) {
-        return t.m_user == user;
+
+    // Log out user & remove them from cache
+    std::erase_if(m_token_cache, [&](const LocalUser::AuthToken& t) {
+        return t.m_user == user || t.m_user->get_username() == username;
     });
 
+    // Inform mods
+    for (Mod* m : g_fiy->m_mods.get_mods())
+        m->m_ipc->delete_user(username.c_str());
+
+    // Remove from username cache
+    m_username_cache.erase(username);
+
+    // Remove user from database
+    thread_local auto q = "DELETE FROM Users WHERE username = ?"_sql;
+    q.bindNoCopy(1, username);
+    q.exec();
+    q.reset();
 }

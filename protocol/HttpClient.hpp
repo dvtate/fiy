@@ -10,8 +10,6 @@
 
 #include "defs.hpp"
 
-// TODO callback for errors?
-
 template<class RequestType, class CallbackType, class ErrCallbackType>
 class HttpRequest : public std::enable_shared_from_this<HttpRequest<RequestType, CallbackType, ErrCallbackType>> {
     using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>

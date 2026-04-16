@@ -4,6 +4,8 @@
 
 #include "WebUtils.hpp"
 
+#include <cctype>
+#include <iostream>
 
 /**
  * RegExp to match cookie-name in RFC 6265 sec 4.1.1

@@ -88,13 +88,7 @@ struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
      *  -1 error
      */
     static int local_login_impl(const char* username, const char* password) {
-        try {
-            auto u = DB::get_user(username, password);
-            return u != nullptr ? 0 : 1;
-        } catch (const DB::Exception& e) {
-            LOG_ERR("DB Error: " <<e.what());
-            return -1;
-        }
+        return LocalUsers::auth_user(username, password);
     }
 
     /**
@@ -107,7 +101,7 @@ struct ModConnectorDll::ModDLLHostInfo : fiy::fiy_host_info_t {
      *  -1 error
      */
     static int user_info_impl(const char* local_user_name, fiy::fiy_local_user_info_t* ret) {
-        const auto u = DB::get_user(local_user_name);
+        const auto u = g_fiy->m_users.get_user(local_user_name);
         if (u == nullptr)
             return 1;
         if (ret == nullptr)
@@ -305,7 +299,7 @@ bool ModConnectorDll::start() {
 
     // Update fields
     if (m_mod_info->version != nullptr /* && !m_mod->m_version.initialized() */)
-            m_mod->m_version = Mod::Version(m_mod_info->version);
+        m_mod->m_version = Version(m_mod_info->version);
     if (m_mod_info->id != nullptr && m_mod->m_id.empty())
         m_mod->m_id = m_mod_info->id;
     return true;

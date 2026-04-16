@@ -19,6 +19,9 @@ These are just some ideas
 - Replace std::stoll, atoi, etc. with std::from_chars
   - especially w/ std::string_view's
 - Replace `const std::string&` with `std::string_view` where it makes sense to reduce copies
+- Members designed to be public should not start with `m_`
+  - FIY, Config, etc.
+- Replace custom RWMutex with std::shared_mutex
 
 ## Portal+Protocol Server Features
 - [minify](https://www.npmjs.com/package/minify) html+css+js?
@@ -31,7 +34,8 @@ Currently developing all mods as .so's as this would give best performance on lo
 This wrapper would enable some degree of horizontal scaling without having to rewrite the mods. 
 
 ## Logging system
-- Log files
+- Something auditable?
+- Log to file
 - Module log files
 - Maybe write logs in a different format?
 - Maybe good for new users

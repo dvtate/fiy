@@ -64,7 +64,7 @@ bool ModConnectorNet::start() {
             // && !m_mod->m_version.initialized()
             && j["version"].is_string()
         ) {
-            m_mod->m_version = Mod::Version(j["version"].get<std::string>());
+            m_mod->m_version = Version(j["version"].get<std::string>());
         }
     };
     auto err_cb = [this](const std::string& err) {

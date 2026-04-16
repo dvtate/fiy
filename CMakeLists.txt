@@ -66,6 +66,7 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/mods/ModConnectorDll.hpp
     protocol/mods/ModConnectorNet.cpp
     protocol/mods/ModConnectorNet.hpp
+    util/Version.hpp
 )
 
 # Debug/vs release
@@ -197,6 +198,8 @@ add_library(git_mod SHARED
     mods/git/src/Repos/RepoSearch.cpp
     mods/git/src/Routes/UserRouter.cpp
     mods/git/src/Routes/UserRouter.hpp
+    mods/git/src/Routes/TicketRouter.cpp
+    mods/git/src/Routes/TicketRouter.hpp
 )
 target_link_libraries(git_mod
     PRIVATE fiymod

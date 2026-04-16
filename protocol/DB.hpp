@@ -2,12 +2,15 @@
 
 #include "../third_party/SQLiteCpp/include/SQLiteCpp/SQLiteCpp.h"
 
-#include "Config.hpp"
-#include "Peer.hpp"
-#include "LocalUser.hpp"
-
 namespace DB {
     using Exception = SQLite::Exception;
+
+    enum class Result {
+        Success,
+        Unauthorized,
+        DbError,
+        NetError
+    };
 
     /**
      * Get a connection to the database
@@ -16,10 +19,36 @@ namespace DB {
      */
     SQLite::Database& connection();
 
-    std::shared_ptr<LocalUser> get_user(const std::string& username);
-    std::shared_ptr<LocalUser> get_user(const std::string& username, std::string password);
-    bool add_user(const LocalUser& user, std::string password);
-    std::shared_ptr<Peer> get_peer(const std::string_view domain);
+    inline SQLite::Statement operator ""_sql(const char* str, std::size_t) {
+        return SQLite::Statement{ connection(), str };
+    }
+
+    /**
+     * Start a transaction
+     */
+    inline void transaction_begin() {
+        thread_local auto q = "BEGIN TRANSACTION"_sql;
+        q.exec();
+        q.reset();
+    }
+
+    /**
+     * Complete a transaction
+     */
+    inline void transaction_commit() {
+        thread_local auto q = "COMMIT"_sql;
+        q.exec();
+        q.reset();
+    }
+
+    /**
+     * Cancel a transaction
+     */
+    inline void transaction_rollback() {
+        thread_local auto q = "ROLLBACK"_sql;
+        q.exec();
+        q.reset();
+    }
 
 }
 

@@ -5,7 +5,6 @@
 #include "defs.hpp"
 
 #include "Peers.hpp"
-#include "DB.hpp"
 #include "Config.hpp"
 #include "mods/Mods.hpp"
 #include "LocalUsers.hpp"

@@ -148,7 +148,7 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
     const auto it = req().find("Authorization");
     if (it == req().end())
         return nullptr;
-    DEBUG_LOG("Using http basic auth");
+    // DEBUG_LOG("Using http basic auth");
 
     // Get the encoded part
     auto v = it->value();
@@ -168,10 +168,10 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
         return nullptr;
 
     // Check login
-    auto ret = DB::get_user(
+    auto ret = g_fiy->m_users.login_user(
         std::string(auth.substr(0, i)),
         std::string(auth.substr(i + 1))
-    );
+    ).m_user;
 
     // Remove header so that we don't forward valid password anywhere else
     if (ret != nullptr)

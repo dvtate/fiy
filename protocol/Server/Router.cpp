@@ -12,6 +12,7 @@
 #include "Session.hpp"
 #include "Router.hpp"
 #include "Pages.hpp"
+#include "DB.hpp"
 
 namespace http = boost::beast::http;
 
@@ -209,7 +210,7 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
         conn->respond(conn->prep(resp_username_reserved));
         return;
     }
-    if (g_fiy->m_users.get_username(username) != nullptr) {
+    if (g_fiy->m_users.get_user(username) != nullptr) {
         conn->respond(conn->prep(resp_username_taken));
         return;
     }
@@ -229,7 +230,7 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
     // Create user
     LocalUser user{username, false, username, contact, "en", g_fiy->now()};
     try {
-        if (!DB::add_user(user, password)) {
+        if (!g_fiy->m_users.add_user(user, password)) {
             LOG_ERR("Failed to create user?");
             conn->respond(conn->prep(resp_server_error));
             return;
@@ -302,7 +303,7 @@ static void login_post(std::shared_ptr<Session>&& conn) {
 //    }
 
     // Get auth token for user
-    auto auth_token = g_fiy->m_users.login_user(username, std::move(password));
+    const auto auth_token = g_fiy->m_users.login_user(username, std::move(password));
     if (auth_token.m_user == nullptr) {
         conn->respond(conn->prep(resp_bad_creds));
         DEBUG_LOG("wrong username/password for user " <<username);
@@ -318,7 +319,8 @@ static void login_post(std::shared_ptr<Session>&& conn) {
         WebUtils::serialize_cookie(
             "fiy_auth",
             auth_token.m_token,
-            {   .encode_fn=nullptr,
+            {
+                .encode_fn=nullptr,
                 .max_age=LocalUser::AuthToken::SESSION_LIFETIME,
                 .path="/",
                 .http_only=true
@@ -516,6 +518,7 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
 }
 
 void login_user_internal(const std::shared_ptr<Session>& conn) {
+    // TODO this should probably be encrypted or something
     const auto token = conn->req()["fiy-auth"];
     const auto username = conn->req()["fiy-user"];
     const auto password = conn->req()["fiy-pass"];
@@ -527,19 +530,10 @@ void login_user_internal(const std::shared_ptr<Session>& conn) {
         return;
     }
 
-    try {
-        auto u = DB::get_user(username, password);
-        http::response<http::empty_body> res;
-        res.result(u == nullptr ? 401 : 200);
-        conn->respond(conn->prep(std::move(res)));
-        return;
-    } catch (const DB::Exception& e) {
-        LOG_ERR("DB Error: " <<e.what());
-        http::response<http::string_body> res;
-        res.result(500);
-        res.body() = "Database Error";
-        conn->respond(conn->prep(std::move(res)));
-    }
+    const auto r = LocalUsers::auth_user(username, std::move(password));
+    http::response<http::empty_body> res;
+    res.result(r == 0 ? 200 : r == 1 ? 401 : 500);
+    conn->respond(conn->prep(std::move(res)));
 }
 
 void route_request(std::shared_ptr<Session> conn) {

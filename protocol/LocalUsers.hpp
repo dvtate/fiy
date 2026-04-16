@@ -10,6 +10,8 @@
 #include <thread>
 #include <chrono>
 
+// #include <boost/unordered/unordered_flat_set.hpp>
+
 #include "../util/RWMutex.hpp"
 
 #include "LocalUser.hpp"
@@ -20,6 +22,7 @@ private:
      * Map of usernames -> users
      */
     // TODO can probably switch to unique_ptr
+    // TODO use boost::unordered_flat_map
     std::unordered_map<std::string, std::shared_ptr<LocalUser>> m_username_cache;
 
     /**
@@ -42,19 +45,22 @@ private:
      * Thread safety
      */
     // TODO maybe one lock per collection instead?
+    // TODO don't use RWMutex
     RWMutex m_mtx;
 
 public:
     LocalUsers();
 
-    std::shared_ptr<LocalUser> get_username(const std::string& username);
-    std::shared_ptr<LocalUser> auth_user(const std::string& auth_token);
-    LocalUser::AuthToken login_user(const std::string& username, std::string password);
-
     void cron();
 
+    bool add_user(const LocalUser& user, std::string password);
+    std::shared_ptr<LocalUser> get_user(const std::string& username);
+    static int auth_user(const std::string& username, std::string password);
+    std::shared_ptr<LocalUser> auth_user(const std::string& auth_token);
+    LocalUser::AuthToken login_user(const std::string& username, std::string password);
     void deauth_token(const std::string& auth_token);
     void delete_user(const std::string& username);
-    void delete_user(std::shared_ptr<LocalUser> username);
 
+private:
+    LocalUser::AuthToken authorize_user(std::shared_ptr<LocalUser> user);
 };

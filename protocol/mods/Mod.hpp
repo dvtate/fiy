@@ -5,6 +5,8 @@
 
 #include "nlohmann/json.hpp"
 
+#include "../../util/Version.hpp"
+
 #include "ModConnector.hpp"
 
 class Mods;
@@ -25,50 +27,12 @@ protected:
     std::string m_error;
 public:
 
-    // overengineering
-    struct Version {
-        mutable long major{-1}, minor{-1};
-        mutable std::string major_string;
-
-        Version() = default;
-
-        explicit Version(const std::string& version_str) {
-            std::size_t pos;
-            major = std::stoi(version_str, &pos);
-            major_string = std::to_string(major);
-            if (pos >= version_str.size() || version_str.at(pos) != '.') {
-                minor = 0;
-                return;
-            }
-            char* end = nullptr;
-            minor = std::strtol(version_str.c_str() + pos, &end, 10);
-        }
-
-        Version(const long major, const long minor):
-                major(major), minor(minor)
-        {
-            major_string = std::to_string(major);
-        }
-
-        [[nodiscard]] bool compatible(const Version& other) const {
-            return major == other.major;
-        }
-        [[nodiscard]] bool compatible(const std::string& other_major_str) const {
-            return major_string == other_major_str;
-        }
-
-        [[nodiscard]] auto operator<=>(const Version& other) const {
-            if (const auto c = major <=> other.major; c != 0)
-                return c;
-            return minor <=> other.minor;
-        }
-        [[nodiscard]] std::string str() const {
-            return major_string + '.' + std::to_string(minor);
-        }
-
-        [[nodiscard]] bool initialized() const {
-            return major != -1;
-        }
+    enum class Status {
+        INVALID,    // failed to read module
+        DISABLED,   // module installed but not enabled
+        ENABLED,    // module enabled but not started
+        RUNNING,    // module running
+        FAILED,     // module failed while running
     };
 
     using AccessChecker = std::function<bool(const char* user, const char* domain)>;
@@ -99,13 +63,6 @@ public:
     void set_enabled(bool enabled);
     void set_path(const std::string& path);
 
-    enum class Status {
-        INVALID,    // failed to read module
-        DISABLED,   // module installed but not enabled
-        ENABLED,    // module enabled but not started
-        RUNNING,    // module running
-        FAILED,     // module failed while running
-    };
 
     [[nodiscard]] Status status() const {
         if (!m_loaded)
