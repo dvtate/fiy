@@ -11,6 +11,7 @@
 #include <functional>
 #include <list>
 #include <optional>
+#include <boost/unordered/unordered_flat_map.hpp>
 
 #include "../../../../util/RWMutex.hpp"
 
@@ -18,9 +19,10 @@
 
 #include "BasicRepo.hpp"
 #include "GitRepo.hpp"
+#include "../DTO/DTORepo.hpp"
 
 struct RepoPageData;
-struct RepoFileBrowserPageData;
+// struct RepoFileBrowserPageData;
 
 class LocalRepo : public BasicRepo, public GitRepo {
 public:
@@ -64,8 +66,8 @@ public:
     ssize_t tickets_count();
 
     bool get_repo_page_data(const std::string& branch, RepoPageData& data);
-    bool get_repo_page_data(const std::string& branch, const std::string& path, RepoFileBrowserPageData& data);
-
+    // bool get_repo_page_data(const std::string& branch, const std::string& path, RepoFileBrowserPageData& data);
+    bool get_dto(const std::string& branch, DTORepo& dto);
 protected:
     // Can only have GitRepo instance per repository
     explicit LocalRepo(const BasicRepo& repo);

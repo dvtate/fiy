@@ -24,7 +24,7 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
     auto path = conn->req().target();
     if (path.starts_with("/mods/")) {
         path.remove_prefix(6);
-        auto mod_end = path.find_first_of("/?#");
+        const auto mod_end = path.find_first_of("/?");
         Mod* mod = g_fiy->mods.get_mod_by_id(
             path.substr(0, mod_end));
         std::string subpath = conn->req()["Fiy-Path"];
@@ -365,7 +365,21 @@ std::vector<std::string> split_string(
     return ret;
 }
 
+/// Sent to us from a peer that wants to connect
 void peer_handshake(std::shared_ptr<Session>&& conn) {
+    switch (g_fiy->config.federation) {
+        case FiyConfig::FederationStatus::ENABLED:
+            break;
+        case FiyConfig::FederationStatus::DISABLED:
+        case FiyConfig::FederationStatus::REJECT_INCOMING: {
+            Session::StringResponse res;
+            res.result(http::status::unauthorized);
+            res.body() = "This instance is not accepting federation requests right now.";
+            conn->respond(conn->prep(std::move(res)));
+            return;
+        }
+    }
+
     // DEBUG_LOG("handshake: body: " << conn->req().body());
     // auto body = Crypto::SSL::decrypt(
     //     g_fiy->m_config.m_private_key,
@@ -644,6 +658,13 @@ void route_request(std::shared_ptr<Session> conn) {
                     return;
                 }
             } else if (path == "/peer/key") {
+                if (g_fiy->config.federation == FiyConfig::FederationStatus::DISABLED) {
+                    Session::EmptyResponse res;
+                    res.result(http::status::unauthorized);
+                    conn->respond(conn->prep(std::move(res)));
+                    return;
+                }
+
                 // Send key
                 Session::StringResponse res;
                 res.result(200);

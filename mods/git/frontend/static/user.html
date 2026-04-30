@@ -43,6 +43,7 @@
         const tabView = document.getElementById('tab-view');
 
         async function getUserInfo() {
+            // TODO fetch this on the backend instead
             const url = "//{{fiy_domain}}/mods/contacts/profile/" + user;
             const r = await fetch(url, {
                 headers: {
@@ -86,10 +87,11 @@
                     + repos.map(path => repoCard({ path })).join('');
             },
             async likes() {
-                const rs = [
+                const rs = await Promise.all([
                     fetch(baseUrl + '/api/user/' + user + '/likes_count'),
                     fetch(baseUrl + '/api/user/' + user + '/likes')
-                ]
+                ]);
+                const vs = await Promise.all(rs.map(r => r.json()));
             },
         };
 

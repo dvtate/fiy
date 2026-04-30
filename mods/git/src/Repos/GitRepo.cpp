@@ -328,9 +328,9 @@ GitRepo::Commit::Commit(git_commit* commit, git_mailmap* mailmap) {
         if (start != std::string_view::npos) {
             const auto end = notes.find('\n', start + strlen(author_key));
             if (end != std::string_view::npos)
-                this->author.fiy_user = notes.substr(start, end - start);
+                this->author.set_user(notes.substr(start, end - start));
             else
-                this->author.fiy_user = notes.substr(start);
+                this->author.set_user(notes.substr(start));
         }
 
         constexpr auto committer_key = "FIY-committer: ";
@@ -338,36 +338,18 @@ GitRepo::Commit::Commit(git_commit* commit, git_mailmap* mailmap) {
         if (start != std::string_view::npos) {
             const auto end = notes.find('\n', start + strlen(committer_key));
             if (end != std::string_view::npos)
-                this->committer.fiy_user = notes.substr(start, end - start);
+                this->committer.set_user(notes.substr(start, end - start));
             else
-                this->committer.fiy_user = notes.substr(start);
+                this->committer.set_user(notes.substr(start));
         }
         git_note_free(note);
     }
 
     // Default to using email
-    if (this->author.fiy_user.empty())
-        this->author.fiy_user = this->author.email;
-    if (this->committer.fiy_user.empty())
-        this->committer.fiy_user = this->committer.email;
-
-    // Remove local domain
-    if (!this->author.fiy_user.empty()) {
-        auto i = this->author.fiy_user.find('@', 1);
-        if (i != std::string_view::npos) {
-            auto dom = this->author.fiy_user.substr(i + 1);
-            if (dom == fiy::host().domain)
-                this->author.fiy_user = this->author.fiy_user.substr(0,i);
-        }
-    }
-    if (!this->committer.fiy_user.empty()) {
-        auto i = this->committer.fiy_user.find('@', 1);
-        if (i != std::string_view::npos) {
-            auto dom = this->committer.fiy_user.substr(i + 1);
-            if (dom == fiy::host().domain)
-                this->committer.fiy_user = this->committer.fiy_user.substr(0,i);
-        }
-    }
+    if (!this->author.has_user())
+        this->author.set_user(this->author.email);
+    if (!this->committer.has_user())
+        this->committer.set_user(this->committer.email);
 }
 
 GitRepo::Commit::Commit(git_commit* commit) {
@@ -523,7 +505,7 @@ int GitRepo::entries(
 
             case GIT_OBJECT_COMMIT:
             case GIT_OBJECT_TAG: {
-                // char sub_oid[GIT_OID_HEXSZ + 1];
+                // char sub_oid[GIT_OID_MAX_HEXSIZE + 1];
                 // git_oid_tostr(sub_oid, sizeof(sub_oid),
                 //               git_tree_entry_id(entry));
                 // e.path += " @ ";
@@ -576,37 +558,25 @@ bool GitRepo::get_repo_page_data(const std::string& branch, RepoPageData& data) 
     return true;
 }
 
-/**
- * @return HTML for a link to user's profile or at least a titled span
- */
-std::string GitRepo::User::profile_link() const {
-    std::string ret;
-    if (!fiy_user.empty()) {
-        ret = "<a href=\"";
-        ret += fiy::host().base_uri;
-        ret += '/';
-        ret += fiy_user;
-        ret += "\">";
-        ret += fiy_user;
-        ret += "</a>";
-        return ret;
-    }
+bool GitRepo::get_dto(const std::string& branch, DTORepo& dto) {
+    // No lock required
+    dto.tree.active_branch = branch.empty() ? default_branch() : branch;
 
-    ret = "<span title=\"";
-    if (name.empty()) {
-        ret += email.empty() ? "<unknown>" : email;
-    } else {
-        ret += name;
-        if (!email.empty()) {
-            ret += " <";
-            ret += email;
-            ret += ">";
-        }
-    }
-    ret += "\">";
-    ret += name.empty()
-        ? (email.empty() ? "<unknown>" : email)
-        : name;
-    ret += "</span>";
-    return ret;
+    // These lock themselves
+    dto.info.default_branch = default_branch();
+    dto.stats.branches_count = branches_count();
+    dto.stats.tags_count = tags_count();
+
+    // These expect the mutex to be locked already
+    std::lock_guard lock{m_mtx};
+    git_oid target;
+    if (!ok(branch_tip(dto.tree.active_branch, target), "branch_tip"))
+        return false;
+
+    dto.stats.commits_count = commits_count(&target);
+    dto.tree.last_commit = last_commit(&target);
+    if (!ok(entries(dto.entries.entries, &target), "entries"))
+        return false;
+
+    return true;
 }

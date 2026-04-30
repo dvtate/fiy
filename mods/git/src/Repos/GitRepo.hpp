@@ -8,10 +8,13 @@
 #include <vector>
 #include <git2.h>
 #include <utility>
-#include <boost/unordered/unordered_flat_map.hpp>
+
+#include "../../../third_party/json/include/nlohmann/json.hpp"
 
 #include "BasicRepo.hpp"
+#include "GitUser.hpp"
 
+struct DTORepo;
 struct RepoPageData;
 struct RepoFileBrowserPageData;
 
@@ -37,20 +40,12 @@ protected:
 
 public:
 
-    struct User {
-        std::string name;
-        std::string email;
-        std::string fiy_user;
-
-        std::string profile_link() const;
-    };
-
     struct Commit {
-        char id[GIT_OID_HEXSZ + 1]{""};
+        char id[GIT_OID_MAX_HEXSIZE + 1]{""};
         std::string message;
         time_t ts{0};
-        User author;
-        User committer;
+        GitUser author;
+        GitUser committer;
 
         explicit Commit(git_commit* commit);
         Commit(git_commit* commit, git_mailmap* mailmap);
@@ -59,15 +54,30 @@ public:
         [[nodiscard]] bool valid() const {
             return ts != 0;
         }
+
+        std::string id_str() const {
+            if (id[0] == '\0')
+                return {};
+            return std::string(this->id, GIT_OID_HEXSZ);
+        }
+
+        bool id_str(const std::string_view str) {
+            if (str.size() >= GIT_OID_HEXSZ)
+                return false;
+            strncpy(this->id, str.data(), str.size());
+            return true;
+        }
     };
 
     // Git tree entry
     struct Entry {
-        enum {
+        enum Type {
+            INVALID,
             COMMIT,
             DIRECTORY,
             FILE
-        } type;
+            // Note: if new values are added they must go at the end
+        } type = INVALID;
         std::string path;
         Commit last_commit;
     };
@@ -118,6 +128,7 @@ protected:
     Commit last_commit(const git_oid* start_oid, const std::string& path, git_mailmap* mailmap);
 
     bool get_repo_page_data(const std::string& branch, RepoPageData& data);
+    bool get_dto(const std::string& branch, DTORepo& dto);
 
 private:
     static bool ok(int status, const std::string& message= "");

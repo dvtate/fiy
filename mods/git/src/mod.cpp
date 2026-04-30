@@ -9,61 +9,8 @@
 
 #include "../../../util/WebUtils.hpp"
 
-#include "Repos/git_http_backend.hpp"
-#include "Routes/ApiRouter.hpp"
-#include "Routes/Pages.hpp"
-#include "Routes/AssetRouter.hpp"
-#include "Routes/RepoRouter.hpp"
-#include "Routes/UserRouter.hpp"
 
-/// User is unauthenticated, send them to login page
-void unauthenticated(const fiy::Request& req, const fiy::Callback cb) {
-    static const fiy::Response no_auth_resp{
-        303,
-        "Location: " + fiy::host().host_base_uri() + "/portal/login",
-        fiy::Body()
-    };
-
-    req.respond(cb, no_auth_resp);
-}
-
-void not_found_404(const fiy::Request& req, const fiy::Callback cb) {
-    // TODO
-    req.respond(cb, 404, "", "Not Found");
-}
-
-void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb) {
-    auto& req = *(fiy::Request*)request;
-
-    std::string_view path = req.path;
-
-    if (path == "/") {
-        static constexpr char file_path[] = "/landing.html";
-        auto body = Pages::mustache(
-                Pages::file_contents<file_path>(),
-                Pages::ReplacementMap({
-                { "profile_url", req.user == nullptr
-                    ? std::string("//") + fiy::host().domain + "/portal"
-                    : std::string(fiy::host().base_uri) + '/' + req.user,
-                }
-            }));
-        req.respond(cb, 200,
-            "Content-Type: text/html; charset=utf-8\nCache-Control: max-age=604800",
-            fiy::Body(body)
-        );
-        return;
-    }
-
-    if ( static_asset_router(path, cb, req)
-        || user_router(path, cb, req)
-        || api_router(path, cb, req)
-        || repo_router(path, cb, req)
-    )
-        return;
-
-    // No router
-    not_found_404(req, cb);
-}
+#include "Routes/Router.hpp"
 
 void delete_user(const char* username) {
     fiy::log_warning("Git module currently does not handle user deletion");

@@ -190,23 +190,24 @@ add_library(git_mod SHARED
     mods/git/src/Repos/BasicRepo.hpp
     mods/git/src/Routes/RepoPageData.cpp
     mods/git/src/Routes/RepoPageData.hpp
-    mods/git/src/Routes/RepoRouter.cpp
     mods/git/src/Routes/RepoRouter.hpp
     mods/git/src/Routes/Router.hpp
     mods/git/src/Repos/RemoteRepo.cpp
     mods/git/src/Repos/RemoteRepo.hpp
-    mods/git/src/Routes/ApiRouter.cpp
     mods/git/src/Routes/ApiRouter.hpp
-    mods/git/src/Routes/AssetRouter.cpp
     mods/git/src/Routes/AssetRouter.hpp
     mods/git/src/Routes/UserPageData.cpp
     mods/git/src/Routes/UserPageData.hpp
     mods/git/src/Repos/RepoSearch.hpp
     mods/git/src/Repos/RepoSearch.cpp
-    mods/git/src/Routes/UserRouter.cpp
     mods/git/src/Routes/UserRouter.hpp
-    mods/git/src/Routes/TicketRouter.cpp
     mods/git/src/Routes/TicketRouter.hpp
+    mods/git/src/Routes/Router.cpp
+    mods/git/src/DTO/DataTransferObject.hpp
+    mods/git/src/DTO/DTORepo.cpp
+    mods/git/src/DTO/DTORepo.hpp
+    mods/git/src/Repos/GitUser.cpp
+    mods/git/src/Repos/GitUser.hpp
 )
 target_link_libraries(git_mod
     PRIVATE fiymod

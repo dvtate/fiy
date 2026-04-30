@@ -14,6 +14,7 @@
  * Data shown for viewing files within a repo
  */
 struct RepoFileBrowserPageData : public BasicRepo {
+    RepoFileBrowserPageData() = default;
 
     /// List of files list
     std::vector<GitRepo::Entry> files;
@@ -23,25 +24,20 @@ struct RepoFileBrowserPageData : public BasicRepo {
     std::string active_branch;
     std::string default_branch;
 
-    // Project path we're looking at
+    /// Project path we're looking at
     std::string project_path;
 
     fiy::Locality visibility;
 
-    std::string to_json();
-    bool from_json(const std::string& json);
-
-    std::string entries_html() const;
-
-    static std::string time_str(time_t ts);
-    static std::string time_diff_str(time_t then);
-
+    [[nodiscard]] std::string entries_html() const;
 };
 
 /**
  * Data shown for repo landing page
  */
 struct RepoPageData : public RepoFileBrowserPageData {
+
+    RepoPageData() = default;
     ssize_t commits_count{-1};
     ssize_t tags_count{-1};
     ssize_t branches_count{-1};

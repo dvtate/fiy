@@ -195,6 +195,21 @@ bool LocalRepo::get_repo_page_data(const std::string& branch, RepoPageData& data
     return true;
 }
 
+bool LocalRepo::get_dto(const std::string& branch, DTORepo& dto) {
+    // Get data from git
+    GitRepo::get_dto(branch, dto);
+    dto.info.visibility = this->visibility;
+    dto.info.description = this->description;
+    dto.info.fork_of = this->fork_of;
+    dto.info.owner = this->owner;
+    dto.info.name = this->name;
+    dto.info.instance = this->instance.empty() ? fiy::host().domain : this->instance;
+    dto.stats.likes_count = this->likes_count();
+    dto.stats.forks_count = this->forks_count();
+    dto.stats.tickets_count = this->tickets_count();
+    return true;
+}
+
 static size_t get_repos_cache_size() {
     auto env = std::getenv("FIY_GIT_REPO_CACHE_SIZE");
     size_t cache_size = 0;

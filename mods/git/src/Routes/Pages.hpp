@@ -16,6 +16,47 @@ inline std::string get_frontend_dir() {
 }
 
 struct Pages : FileCache<get_frontend_dir> {
+    static std::string time_diff_str(const time_t now, const time_t then) {
+        const auto secs = abs(then - now);
+        const std::string dist = now > then ? " ago" : " from now";
+
+        // Use the biggest relevant unit of measure
+        constexpr long min = 60;
+        constexpr long hour = 60 * min;
+        constexpr long day = 24 * hour;
+        constexpr long week = 7 * day;
+        constexpr long month = 30 * day;
+        constexpr long year = 52 * week;
+        if (secs / year > 1)
+            return std::to_string(secs / year) + " years" + dist;
+        if (secs / year == 1)
+            return now > then ? "last year" : "next year";
+        if (secs / month > 1)
+            return std::to_string(secs / month) + " months" + dist;
+        if (secs / week > 1)
+            return std::to_string(secs / week) + " weeks" + dist;
+        if (secs / day > 1)
+            return std::to_string(secs / day) + " days" + dist;
+        if (secs / hour > 1)
+            return std::to_string(secs / hour) + " hours" + dist;
+        if (secs / min > 1)
+            return std::to_string(secs / min) + " minutes" + dist;
+        return "just now";
+    }
+
+    /// Convert timestamp to RFC 3339 UTC time string
+    static std::string time_str(const time_t ts) {
+        struct tm tm;
+        if (gmtime_r(&ts, &tm) == nullptr) {
+            return std::to_string(ts);
+        }
+
+        // TODO probably better way to do this
+        std::stringstream ss;
+        ss <<std::put_time(&tm, "%FT%TZ");
+        return ss.str();
+    }
+
 
     static ReplacementMap get_host_data() {
         return {
@@ -64,6 +105,7 @@ struct Pages : FileCache<get_frontend_dir> {
     // Edge cases not handled:
     //  - user not logged in but still shows profile tab
     //  - repo not initialized (ie - no files), should give new repo instructions
+    // TODO instead put page data into JSON object and render it with JS on client ?
     static std::string repo_page(const RepoPageData& repo, const char* request_user = nullptr) {
         // TODO the right way to do this is probably to populate the page data by calling the API
         //      that we already have to implement in order for federation to work.
@@ -78,10 +120,10 @@ struct Pages : FileCache<get_frontend_dir> {
             Pages::file_contents<repo_page>(),
             ReplacementMap({
                 { "repo_owner_pfp", pfp_url(repo.owner_user()) },
-                { "last_commit_author_pfp", pfp_url(repo.last_commit.author.fiy_user) },
+                { "last_commit_author_pfp", pfp_url(repo.last_commit.author.local_user()) },
                 { "last_commit_author", repo.last_commit.author.profile_link() },
-                { "last_commit_time", repo.time_str(repo.last_commit.ts) },
-                { "last_commit_time_diff", repo.time_diff_str(repo.last_commit.ts) },
+                { "last_commit_time", time_str(repo.last_commit.ts) },
+                { "last_commit_time_diff", time_diff_str(fiy::host().now(), repo.last_commit.ts) },
                 { "last_commit_id", repo.last_commit.id },
                 { "last_commit_msg", repo.last_commit.message.substr(0,
                     repo.last_commit.message.find('\n')) },

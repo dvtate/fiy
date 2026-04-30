@@ -19,3 +19,5 @@ using RequestRouter = bool (*)(
     fiy::Callback cb,
     fiy::Request& req
 );
+
+void handle_request(struct fiy::fiy_request_t* request, fiy::Callback cb);
