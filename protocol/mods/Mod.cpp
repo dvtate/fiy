@@ -124,13 +124,19 @@ void Mod::save() {
  *  - `"federated"` : Grants access to any authenticated user, even those on other instances
  *  - `"local"` : Grants access to users of this instance
  *  - `"user1,user2,user3"`: grants access to a specific list of users
- * @return
+ * @return access checker functor
  */
 Mod::AccessChecker Mod::parse_access_checker(const std::string& value) {
     // Global access
     if (value.empty() || value == "public")
         return [](const char*, const char*) {
             return true;
+        };
+
+    // No access
+    if (value == "disabled")
+        return [](const char*, const char*) {
+            return false;
         };
 
     // Federated users
@@ -313,6 +319,8 @@ void Mod::load() {
         auto value = conf.at("access");
         if (value.is_string()) [[likely]] {
             can_access = parse_access_checker(value.get<std::string>());
+        } else if (value.is_boolean()) {
+            can_access = parse_access_checker(value.get<bool>() ? "" : "disabled");
         } else {
             load_error("module.json: \"access\" should be either \"public\", \"federated\", \"local\","
                 " or a comma-separated list of local users allowed to use the mod");
