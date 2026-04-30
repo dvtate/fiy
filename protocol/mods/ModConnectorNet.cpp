@@ -122,7 +122,10 @@ void ModConnectorNet::handle_request(std::shared_ptr<Session> conn) {
     // TODO probably shouldn't send the fiy_auth cookie
     //  but mods should be trusted so not concerning
 
-    conn->req().set("Fiy-User", conn->find_user().str());
+    const auto user = conn->find_user();
+    if (user == std::nullopt)
+        return;
+    conn->req().set("Fiy-User", user->str());
     conn->req().set("Fiy-Auth", m_bearer_send);
     std::string target = "/request";
     target += conn->req().target();

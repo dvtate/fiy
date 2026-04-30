@@ -321,7 +321,7 @@ void Peers::request_peer(
     DEBUG_LOG("Peer " <<domain <<" not in cache");
     new_peer(
         domain,
-        [appid, request = ScopedRequest(req), callback, context]
+        [this, appid = appid, request = ScopedRequest(req), callback, context]
         (std::shared_ptr<Peer> new_peer) {
             if (new_peer != nullptr) {
                 DEBUG_LOG("sending request to peer " <<new_peer->domain);
@@ -356,19 +356,39 @@ void Peers::request_peer(
     http::request<http::string_body> request;
     request.method(static_cast<http::verb>(req->method));
     request.target("/mods/" + appid);
-    request.body() = std::string(req->body, req->body_len); // note this should work even if body contains null chars
+    request.body() = std::string_view(req->body, req->body_len); // note this should work even if body contains null chars
     request.set("Fiy-Peer", peer->auth.bearer_token_we_send);
     request.set("Fiy-User", user);
     request.set("Fiy-Path", path);
-    std::string now_str = std::to_string(g_fiy->now());
+    const std::string now_str = std::to_string(g_fiy->now());
     request.set("Fiy-Now", now_str);
     request.set("Authorization", "FIY1 " + peer->sig(appid, path, user, req->body_len, now_str));
     request.set(http::field::host, req->domain);
     response_set_headers(request, req->headers);
     request.prepare_payload();
 
-    auto cb = [context, callback] (http::response<http::string_body> res) {
+    // FIXME passing req here is unsafe !
+    auto cb = [this, context, callback, appid = appid, domain = peer->domain, req] (http::response<http::string_body> res) {
 //        std::cout <<"p2p response: " <<res <<std::endl;
+        if (res.result_int() == PeerAuth::REAUTH_HTTP_STATUS) {
+            DEBUG_LOG("Re-auth peer: " <<domain);
+            // new peer with this as cb
+            this->new_peer(
+                domain,
+                [this, appid, request = ScopedRequest(req), callback, context]
+                (std::shared_ptr<Peer> new_peer) {
+                    if (new_peer != nullptr) {
+                        DEBUG_LOG("sending request to peer " <<new_peer->domain);
+                        auto r = request.temp_copy(); // copied earlier to prevent invalidation
+                        this->request_peer(new_peer, appid, &r, context, callback);
+                    } else {
+                        DEBUG_LOG("couldn't link with peer");
+                        if (callback != nullptr)
+                            callback(nullptr, context);
+                    }
+                }
+            );
+        }
         if (callback == nullptr)
             return;
         auto headers_str = get_headers_string(res);

@@ -13,7 +13,9 @@
 
 #include "../../modlib/fiymod.hpp"
 
-
+// TODO track invalid peers so we don't waste time trying to deal with them
+// TODO unordered_flat_map
+// TODO std::shared_mutex
 class Peers {
     RWMutex m_mtx;
 
@@ -40,7 +42,7 @@ public:
 
     void new_peer(const std::string& domain, std::function<void(std::shared_ptr<Peer>)> cb);
 
-    static void request_peer(
+    void request_peer(
         const std::shared_ptr<Peer>& peer,
         const std::string& appid,
         const fiy_request_t* req,

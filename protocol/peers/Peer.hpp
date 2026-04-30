@@ -24,7 +24,9 @@ struct PeerAuth {
     time_t link_ts;
 
     static constexpr time_t SESSION_LIFETIME = 60 * 60 * 24 * 7; // 1 week
+    static constexpr time_t MAX_RESPONSE_TIME = 60 * 90; // 1.5 hrs timeout
     static constexpr int TOKEN_LEN = 24;
+    static constexpr unsigned REAUTH_HTTP_STATUS = 478;
 
     static std::string get_token_string() {
         return Crypto::get_token_string<TOKEN_LEN>();

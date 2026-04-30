@@ -137,10 +137,9 @@ public:
     using RequestHandler = void (*)(struct fiy_request_t*, fiy::fiy_callback_t);
     RequestHandler on_request;
 
-
-    explicit ModDllConnectorRequest(std::shared_ptr<Session> conn, RequestHandler on_request):
-        ModDllConnectorRequest(std::move(conn), conn->find_user(), on_request)
-    {}
+    // explicit ModDllConnectorRequest(std::shared_ptr<Session> conn, RequestHandler on_request):
+    //     ModDllConnectorRequest(std::move(conn), conn->find_user(), on_request)
+    // {}
 
     explicit ModDllConnectorRequest(
         std::shared_ptr<Session> conn,
@@ -319,8 +318,13 @@ void ModConnectorDll::delete_user(const char* user) {
 }
 
 void ModConnectorDll::handle_request(std::shared_ptr<Session> conn) {
+    // Authenticate user
+    const auto user_check = conn->find_user();
+    if (!user_check)
+        return;
+    const auto& user = *user_check;
+
     // Check access restrictions
-    const auto user = conn->find_user();
     const char* username = user.user.empty() ? nullptr : user.user.c_str();
     if (m_mod->can_access == nullptr
         || !m_mod->can_access(username, user.domain)

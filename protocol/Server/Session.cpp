@@ -177,15 +177,27 @@ std::shared_ptr<LocalUser> Session::find_user_local() {
     return g_fiy->users.get_user(username);
 }
 
-Session::User Session::find_user() {
+/**
+ * Authenticate session user
+ * @return Either User associated with this session
+ *  or nullopt, in which case this function responds,
+ *  informing the peer that it needs to reauthenticate
+ *
+ * @remark handles peer requests
+ */
+std::optional<Session::User> Session::find_user(const char* app_id) {
     static const User unauthenticated = { .domain=nullptr, .user=" " };
 
     // Local User authentication
     const auto lu = find_user_local();
     if (lu != nullptr)
-        return { .domain=nullptr, .user=lu->get_username() };
+        return { { .domain=nullptr, .user=lu->get_username() } };
 
     // Peer authentication
+    if (g_fiy->config.federation != FiyConfig::FederationStatus::ENABLED) {
+        return unauthenticated;
+    }
+
     const auto it = req().find("Fiy-Peer");
     if (it == req().end() || it->value().empty()) {
 //    if (*it.empty()) {
@@ -195,9 +207,56 @@ Session::User Session::find_user() {
     const auto peer = g_fiy->peers.get_peer_from_token(it->value());
     if (!peer) {
         DEBUG_LOG("Invalid peer auth token: " << it->value());
-        return unauthenticated;
+        // Tell the peer to re-authenticate
+        EmptyResponse res;
+        res.result(PeerAuth::REAUTH_HTTP_STATUS);
+        this->respond(this->prep(std::move(res)));
+        return std::nullopt;
     }
+
+    // Fully validate request
     const auto user = req().at("Fiy-User");
+    // if (user.size() > LocalUser::USERNAME_MAX_LENGTH) {
+    //     // Should we error here?
+    // }
+
+    if (app_id != nullptr) {
+        auto time_str = req()["Fiy-Now"];
+        time_t ts = 0;
+        {
+            auto rv = std::from_chars(
+                time_str.data(),
+                time_str.data() + time_str.size(),
+                ts,
+                time_str.size());
+            if (rv.ec != std::errc()) {
+                ts = 0;
+            }
+        }
+        if (g_fiy->now() - ts > PeerAuth::MAX_RESPONSE_TIME) {
+            // Tell the peer to re-authenticate
+            EmptyResponse res;
+            res.result(PeerAuth::REAUTH_HTTP_STATUS);
+            this->respond(this->prep(std::move(res)));
+            return std::nullopt;
+        }
+
+        if (req()["Authorization"] != peer->sig(
+            app_id,
+            req()["Fiy-Path"],
+            user,
+            req().body().size(),
+            time_str
+        )) {
+            // Tell the peer to re-authenticate
+            EmptyResponse res;
+            res.result(PeerAuth::REAUTH_HTTP_STATUS);
+            this->respond(this->prep(std::move(res)));
+            return std::nullopt;
+        }
+    }
+
     DEBUG_LOG("remote user authenticated\n");
-    return { .domain=peer->domain, .user=user };
+    return { { .domain=peer->domain, .user=user } };
+
 }

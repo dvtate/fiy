@@ -89,7 +89,18 @@ public:
         return protocol == PROTOCOL_HTTPS;
     }
 
+    enum class FederationStatus {
+        ENABLED,
+        REJECT_INCOMING,
+        DISABLED,
+    };
+
+    FederationStatus federation{FederationStatus::ENABLED};
+
     // TODO request timeouts?
+    // TODO option to reject requests from peers
+    // TODO option to disable federation all-together
+
 
     bool from_argv(int argc, char** argv);
     bool from_file(const std::string& path = CONFIG_FILE_PATH);

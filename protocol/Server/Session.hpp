@@ -65,7 +65,7 @@ public:
     std::map<std::string, std::string>& get_cookies();
 
     std::shared_ptr<LocalUser> find_user_local();
-    User find_user();
+    std::optional<User> find_user(const char* app_id = nullptr);
 
     void run();
 
