@@ -20,7 +20,6 @@ These are just some ideas
   - especially w/ std::string_view's
 - Replace `const std::string&` with `std::string_view` where it makes sense to reduce copies
 - Members designed to be public should not start with `m_`
-  - FIY, Config, etc.
 - Replace custom RWMutex with std::shared_mutex
 
 ## Portal+Protocol Server Features

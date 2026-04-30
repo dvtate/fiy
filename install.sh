@@ -194,7 +194,7 @@ if [ "$DEVEL_INSTALL" -eq 1 ]; then
     cp -r $CP_INSTALL_FLAG "$(realpath ./portal_frontend)" "$INSTALL_PATH/pages"
 else
     mkdir "$INSTALL_PATH/pages"
-    cp ./portal_frontend/* "$INSTALL_PATH/pages"
+    cp -r $CP_INSTALL_FLAG ./portal_frontend/* "$INSTALL_PATH/pages"
 fi
 echo "Installed Portal Frontend."
 

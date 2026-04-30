@@ -11,9 +11,8 @@
 #include "HttpClient.hpp"
 #include "HttpsClient.hpp"
 
-class FIY;
-
 // Global Singleton set in main.cpp
+class FIY;
 extern FIY* g_fiy;
 
 /**
