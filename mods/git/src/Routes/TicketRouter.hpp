@@ -6,6 +6,8 @@
 
 #include "Router.hpp"
 
+#include "../Repos/BasicRepo.hpp"
+
 // Called by repo router
 // For paths like /user/repo/ticket/:number
 
@@ -15,5 +17,5 @@ bool ticket_router(
     fiy::Request& req,
     const BasicRepo& repo
 ) {
-
+    return false;
 }

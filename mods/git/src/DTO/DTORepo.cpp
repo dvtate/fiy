@@ -161,7 +161,7 @@ bool DTORepo::DTORepoTreeData::from_json(const nlohmann::json& json) {
         it = lc.find("id");
         if (it == lc.end() || !it->is_string())
             return false;
-        if (!this->last_commit.id_str(it->get<std::string_view>()));
+        if (!this->last_commit.id_str(it->get<std::string_view>()))
             return false;
     }
 

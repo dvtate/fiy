@@ -3,6 +3,7 @@
 #include <thread>
 #include <filesystem>
 #include <utility>
+#include <charconv>
 
 #include "../third_party/inih/ini.h"
 
@@ -118,7 +119,7 @@ bool FiyConfig::set_key(const char* section, const char* key, const char* value)
         }
     } else if (strcmp(key, "concurrency") == 0) {
         char* pend = nullptr;
-        int threads = strtol(value, &pend, 10);
+        int threads = strtol(value, &pend, 10); // TODO use std::from_chars
         if (pend == value) {
             LOG_ERR("Config file: concurrency should be an integer, failed to parse " << value);
             threads = 0;
