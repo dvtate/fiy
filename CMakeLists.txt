@@ -163,6 +163,7 @@ target_link_libraries(contacts_mod
 )
 target_include_directories(contacts_mod PUBLIC
     third_party/SQLiteCpp/include
+    third_party/json/single_include
 )
 target_compile_options(contacts_mod PRIVATE
     -fvisibility=hidden
@@ -208,6 +209,10 @@ add_library(git_mod SHARED
     mods/git/src/DTO/DTORepo.hpp
     mods/git/src/Repos/GitUser.cpp
     mods/git/src/Repos/GitUser.hpp
+)
+target_include_directories(git_mod PUBLIC
+    third_party/SQLiteCpp/include
+    third_party/json/single_include
 )
 target_link_libraries(git_mod
     PRIVATE fiymod

@@ -88,7 +88,7 @@ namespace Pages {
         std::string template_string,
         const std::vector<std::pair<std::string_view, std::string_view>>& replacements
     ) {
-        for (const auto [ from, to ] : replacements)
+        for (const auto& [ from, to ] : replacements)
             template_string = replace_all(std::move(template_string), from, to);
         return template_string;
     }

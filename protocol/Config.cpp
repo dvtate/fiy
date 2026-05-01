@@ -109,11 +109,12 @@ bool FiyConfig::set_key(const char* section, const char* key, const char* value)
     } else if (strcmp(key, "salt") == 0) {
         salt = value;
     } else if (strcmp(key, "port") == 0) {
-        int port = strtol(value, nullptr, 10);
-        if (port == 0 || port < 0 || port >= 65536) {
+        int v;
+        auto ec = std::from_chars(value, value + strlen(value), v).ec;
+        if (ec != std::errc() || v < 0 || v > 65535) {
             LOG_ERR("Config file: port should be a valid port number, not " << value);
         } else {
-            port = port;
+            this->port = v;
         }
     } else if (strcmp(key, "concurrency") == 0) {
         char* pend = nullptr;
@@ -130,6 +131,9 @@ bool FiyConfig::set_key(const char* section, const char* key, const char* value)
                 concurrency += threads;
         } else {
             concurrency = threads;
+        }
+        if (concurrency > 50'000) {
+            LOG_WARN("Concurrency level set to a massive number. Are you sure that's what you want?");
         }
     } else if (strcmp(key, "public_key") == 0) {
         public_key = load_file_as_string(value);
