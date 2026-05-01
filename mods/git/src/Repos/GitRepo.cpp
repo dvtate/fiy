@@ -6,10 +6,8 @@
 
 #include <unordered_set>
 
-
 #include "../../../../modlib/fiymod.hpp"
 #include "../Routes/RepoPageData.hpp"
-
 
 /**
  * Check for git error

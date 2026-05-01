@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-#include "../../../../third_party/json/single_include/nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
 // TODO instead do this?: https://github.com/nlohmann/json#basic-usage
 

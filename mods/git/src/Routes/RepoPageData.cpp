@@ -7,7 +7,7 @@
 #include <ctime>
 #include <iomanip>
 
-#include "../../../../third_party/json/single_include/nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
 #include "Pages.hpp"
 

@@ -9,7 +9,6 @@
 
 #include "../../../util/WebUtils.hpp"
 
-
 #include "Routes/Router.hpp"
 
 void delete_user(const char* username) {

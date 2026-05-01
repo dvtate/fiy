@@ -7,7 +7,7 @@
 #include "../../../../protocol/defs.hpp"
 #include "../../../modlib/fiymod.hpp"
 
-#include "../../../third_party/json/include/nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
 /**
  * Git commit author/commiter

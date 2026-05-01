@@ -1,8 +1,8 @@
-#include "nlohmann/json.hpp"
+#include "LocalUser.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include "../../util/Crypto.hpp"
-
-#include "LocalUser.hpp"
 
 #include "../FIY.hpp"
 

@@ -5,7 +5,6 @@
 #include "LocalRepo.hpp"
 
 #include <git2.h>
-#include <nlohmann/json.hpp>
 
 #include "git_http_backend.hpp"
 #include "../DB.hpp"

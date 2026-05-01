@@ -9,8 +9,6 @@
 #include <git2.h>
 #include <utility>
 
-#include "../../../third_party/json/include/nlohmann/json.hpp"
-
 #include "BasicRepo.hpp"
 #include "GitUser.hpp"
 
