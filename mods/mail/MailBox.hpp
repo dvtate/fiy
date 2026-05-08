@@ -8,6 +8,8 @@
 #include <vector>
 #include <ctime>
 
+#include "../../util/FileCache.hpp"
+
 class Mail {
 public:
     std::string m_from_user;
@@ -26,21 +28,20 @@ public:
     {}
 
     [[nodiscard]] std::string short_view() const {
-        std::string ret = "<tr>";
-        ret += "<td><a href='view/";
-        ret += std::to_string(m_index);
-        ret += "'>";
-        ret += asctime(gmtime(&m_date));
-        ret += "</a></td><td>";
-        ret += m_from_user;
-        ret += "</td><td>";
-        if (m_subject.size() > 20) {
-            ret += m_subject.substr(0, 17) + "...";
-        } else {
-            ret += m_subject;
-        }
-        ret += "</td></tr>";
-        return ret;
+        return concat(
+            "<tr>",
+            "<td><a href='view/",
+            std::to_string(m_index),
+            "'>",
+            asctime(gmtime(&m_date)),
+            "</a></td><td>",
+            m_from_user,
+            "</td><td>",
+            m_subject.size() > 20
+                ? m_subject.substr(0, 17) + "..."
+                : m_subject,
+            "</td></tr>"
+        );
     }
 
     [[nodiscard]] std::string long_view() const {

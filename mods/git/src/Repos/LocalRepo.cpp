@@ -81,8 +81,8 @@ bool LocalRepo::can_access(
 }
 
 const char* LocalRepo::create() {
-    std::string repo_path = fiy::host().data_dir;
-    repo_path += "/repos/" + owner + "/" + name;
+    std::string repo_path = concat(
+        fiy::host().data_dir, "/repos/", owner, '/', name);
 
     thread_local auto q_exists = "SELECT 1 FROM Repos WHERE userName=? AND repoName=?"_sql;
     q_exists.bindNoCopy(1, owner);
@@ -93,8 +93,7 @@ const char* LocalRepo::create() {
     }
     q_exists.reset();
 
-    std::string user_repos_dir = fiy::host().data_dir;
-    user_repos_dir += "/repos/" + owner;
+    std::string user_repos_dir = concat(fiy::host().data_dir, "/repos/", owner);
     if (!std::filesystem::is_directory(user_repos_dir))
         if (!std::filesystem::create_directory(user_repos_dir))
             return "5XX: Failed to create user repos directory";
@@ -134,13 +133,15 @@ const char* LocalRepo::create() {
 ssize_t LocalRepo::forks_count() const {
     thread_local auto q = "SELECT COUNT(*) FROM RepoForks WHERE fromRepoPath = ?"_sql;
 
-    std::string cannonical_path = this->owner;
-    cannonical_path += '@';
-    cannonical_path += this->instance.empty() ? fiy::host().domain : this->instance;
-    cannonical_path += '/';
-    cannonical_path += this->name;
+    std::string canonical_path = concat(
+        this->owner,
+        '@',
+        this->instance.empty() ? fiy::host().domain : this->instance,
+        '/',
+        this->name
+    );
 
-    q.bindNoCopy(1, cannonical_path);
+    q.bindNoCopy(1, canonical_path);
     if (!q.executeStep()) {
         fiy::log_error("Could not select COUNT of repo forks");
         q.reset();

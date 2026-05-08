@@ -40,6 +40,8 @@ public:
     std::shared_ptr<Peer> get_peer_for_domain(const std::string& domain);
     std::shared_ptr<Peer> get_peer_from_token(const std::string& token);
 
+    std::string new_token_stub();
+
     void new_peer(const std::string& domain, std::function<void(std::shared_ptr<Peer>)> cb);
 
     void request_peer(
@@ -56,4 +58,5 @@ public:
         void* context,
         void (*callback)(const fiy_response_t*, void*)
     );
+
 };

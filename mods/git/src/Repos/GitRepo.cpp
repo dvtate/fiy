@@ -6,7 +6,10 @@
 
 #include <unordered_set>
 
+#include "../../../../util/FileCache.hpp"
+
 #include "../../../../modlib/fiymod.hpp"
+
 #include "../Routes/RepoPageData.hpp"
 
 /**
@@ -65,10 +68,11 @@ git_revwalk* GitRepo::walker() {
 
 bool GitRepo::open(const BasicRepo& repo) {
     std::lock_guard lock{m_mtx};
-    std::string repo_path = fiy::host().data_dir;
-    repo_path += repo.is_local() ? "/repos/" : "/mirrors/";
-    repo_path += repo.path();
-
+    std::string repo_path = concat(
+        fiy::host().data_dir,
+        repo.is_local() ? "/repos/" : "/mirrors/",
+        repo.path()
+    );
     return ok(
         git_repository_open(&m_repo, repo_path.c_str()),
         "Failed to open repo" + repo.path()
@@ -85,9 +89,11 @@ int GitRepo::create(const BasicRepo& repo, const char* description) {
     std::lock_guard lock{m_mtx};
 
     // Construct path
-    std::string repo_path = fiy::host().data_dir;
-    repo_path += repo.is_local() ? "/repos/" : "/mirrors/";
-    repo_path += repo.path();
+    std::string repo_path = concat(
+        fiy::host().data_dir,
+        repo.is_local() ? "/repos/" : "/mirrors/",
+        repo.path()
+    );
 
     // Set options for a bare repository
     git_repository_init_options opts = GIT_REPOSITORY_INIT_OPTIONS_INIT;

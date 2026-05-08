@@ -94,9 +94,11 @@ inline void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
 
     const char* err = repo.create();
     if (err != nullptr) {
-        std::string msg = "<h1>That didn't work!</h1><br/><p>";
-        msg += err;
-        msg += "</p>";
+        std::string msg = concat(
+            "<h1>That didn't work!</h1><br/><p>",
+            err,
+            "</p>"
+        );
         req.respond(cb, err[0] == '4' ? 400 : 500,
             "Content-type: text/html; charset=utf-8",
             fiy::Body(msg));
@@ -104,11 +106,12 @@ inline void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
     }
 
     // Send the user to the newly created repo
-    std::string body;
-    body += "<meta http-equiv=\"refresh\" content=\"0; url=";
-    body += fiy::host().base_uri;
-    body += '/' + repo.path();
-    body += "\" />";
+    std::string body = concat(
+        "<meta http-equiv=\"refresh\" content=\"0; url=",
+        fiy::host().base_uri,
+        '/' + repo.path(),
+        "\" />"
+    );
     req.respond(cb, 200, "Content-Type: text/html; charset=utf-8", body);
 }
 

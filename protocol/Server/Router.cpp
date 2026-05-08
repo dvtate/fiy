@@ -36,6 +36,8 @@ static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<
     }
 
     // Subdomains
+    // TODO should probably just redirect them to the equivalent subdir instead
+    //  because apparently there's no way to enable Access-Control-Allow-Origin for all subdomains
     const auto hostname = conn->req()["Host"];
     if (!hostname.empty()) {
         const std::string_view hhn = g_fiy->config.hostname;
@@ -380,49 +382,22 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
         }
     }
 
-    // DEBUG_LOG("handshake: body: " << conn->req().body());
-    // auto body = Crypto::SSL::decrypt(
-    //     g_fiy->m_config.m_private_key,
-    //     conn->req().body()
-    // );
-    const auto& body = conn->req().body();
-
-    // DEBUG_LOG("Incoming Handshake request:\n" << body << "\n");
-
-    // Get body components
-    // Body should contain the following:
-    //  - peer domain
-    //  - part of a secret
-    //  - bearer token
-    //  - signature
-    std::string domain, secret, bearer_token, signature;
-    auto eol = body.find('\n');
-    if (eol != std::string::npos) {
-        domain = body.substr(0, eol);
-        size_t start = eol + 1;
-        eol = body.find('\n', start);
-        if (eol != std::string::npos) {
-            secret = body.substr(start, eol - start);
-            start = eol + 1;
-            eol = body.find('\n', start);
-            if (eol != std::string::npos) {
-                bearer_token = body.substr(start, eol - start);
-                signature = body.substr(eol + 1);
-            }
-        }
-    }
-
-    // Missing components
-    if (signature.empty() || bearer_token.empty() || secret.empty() || domain.empty()) {
+    std::string signature;
+    auto peer = Peer::parse_handshake_request(
+        conn->req().body(),
+        signature
+    );
+    if (peer == nullptr) {
+        DEBUG_LOG("Invalid handshake body");
         Session::StringResponse res;
         res.result(400);
-        res.body() = "Invalid handshake body: missing components";
+        res.body() = "Invalid handshake body";
         conn->respond(conn->prep(std::move(res)));
         return;
     }
 
     // TODO is there a reason/process for re-authentication
-    if (g_fiy->peers.get_peer_for_domain(domain) != nullptr) {
+    if (g_fiy->peers.get_peer_for_domain(peer->domain) != nullptr) {
         Session::StringResponse res;
         res.result(400);
         res.body() = "Already peers";
@@ -432,25 +407,28 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
 
     // Get foreign public key
     auto with_pubkey_cb = [
-        domain,
-        secret = std::move(secret),
-        our_token = std::move(bearer_token),
-        handshake_sig = std::move(signature),
-        conn = std::move(conn)
+        peer, conn, handshake_sig = std::move(signature)
     ] (http::response<http::string_body> res) {
         // Make sure it's success
         if (res.result_int() != 200) {
             Session::StringResponse ret;
             ret.result(ret.result());
-            ret.body() = "Failed to get public key from domain " + domain;
+            ret.body() = "Failed to get public key from domain " + std::string(peer->domain);
             conn->respond(conn->prep(std::move(ret)));
             LOG_ERR("Failed to get public key for handshake peer "
-                <<domain <<": " <<ret.result_int());
+                <<peer->domain <<": " <<ret.result_int());
         }
 
         // Verify signature
         const auto pubkey = res.body();
-        const std::string sig_data = domain + '\n' + secret + '\n' + our_token;
+
+        const auto sig_data = concat(
+            peer->domain,
+            '\n',
+            peer->auth.sym_key,
+            '\n',
+            peer->auth.bearer_token_we_send
+        );
         if (!Crypto::SSL::verify(pubkey, sig_data, handshake_sig)) {
             Session::StringResponse ret;
             ret.result(401);
@@ -462,19 +440,12 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
 
         // Our contribution to the secret
         std::string our_secret = PeerAuth::get_token_string();
-
-        // Add peer to the db
-        auto peer = std::make_shared<Peer>(
-            domain,
-            PeerAuth{
-                secret + our_secret, our_token
-            }
-        );
+        peer->auth.sym_key += our_secret;
 
         int max_tries = 10;
-        while (!g_fiy->peers.add_peer(domain, peer) && max_tries-- > 0) {
+        while (!g_fiy->peers.add_peer(peer->domain, peer) && max_tries-- > 0) {
             // Maybe another thread already completed the handshake?
-            if (g_fiy->peers.get_peer_for_domain(domain) != nullptr) {
+            if (g_fiy->peers.get_peer_for_domain(peer->domain) != nullptr) {
                 Session::StringResponse ret;
                 ret.result(400);
                 ret.body() = "Already peers";
@@ -490,8 +461,11 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
         //  - bearer token
         //  - our part of the secret
         //  - signature
-        std::string response = peer->auth.bearer_token_we_accept
-            + '\n' + our_secret;
+        std::string response = concat(
+            peer->auth.bearer_token_we_accept,
+            '\n',
+            our_secret
+        );
         auto sig = Crypto::SSL::sign(g_fiy->config.private_key, response);
         response += '\n' + sig;
 
@@ -503,12 +477,12 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
         conn->respond(conn->prep(std::move(ret)));
     };
 
-    auto err_key_cb = [domain, conn = std::move(conn)](const std::string& message) {
+    auto err_key_cb = [peer, conn](const std::string& message) {
         Session::StringResponse res;
         res.result(404);
-        res.body() = "Could not get public key from domain " + domain;
+        res.body() = "Could not get public key from domain " + std::string(peer->domain);
         conn->respond(conn->prep(std::move(res)));
-        LOG_ERR("Could not get public key for handshake peer " <<domain <<": " <<message);
+        LOG_ERR("Could not get public key for handshake peer " <<peer->domain <<": " <<message);
     };
 
     http::request<http::empty_body> key_req;
@@ -516,16 +490,16 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
     key_req.method(http::verb::get);
     // key_req.keep_alive(false);
 
-    if (domain.find(':') == std::string_view::npos) {
+    if (strchr(peer->domain, ':') == nullptr) {
         g_fiy->https.request(
-            domain,
+            peer->domain,
             std::move(key_req),
             std::move(with_pubkey_cb),
             std::move(err_key_cb)
         );
     } else {
         g_fiy->http.request(
-            domain,
+            peer->domain,
             std::move(key_req),
             std::move(with_pubkey_cb),
             std::move(err_key_cb)

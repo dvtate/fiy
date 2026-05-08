@@ -19,6 +19,7 @@
 #include <boost/beast/core/detail/base64.hpp>
 
 #include "../../../../util/CGI.hpp"
+#include "../../../../util/FileCache.hpp"
 #include "../../../../modlib/fiymod.hpp"
 
 /*
@@ -234,9 +235,11 @@ inline void git_repo_cgi(const fiy::Request& req, fiy::Callback cb) {
         cgi.PATH_INFO,
         cgi.QUERY_STRING);
 
-    cgi.PATH_TRANSLATED = fiy::host().data_dir;
-    cgi.PATH_TRANSLATED += "/repos";
-    cgi.PATH_TRANSLATED += path.substr(0, path.find('?'));
+    cgi.PATH_TRANSLATED = concat(
+        fiy::host().data_dir,
+        "/repos",
+        path.substr(0, path.find('?'))
+    );
 
     // TODO instead manually set name + email combo?
     cgi.REMOTE_ADDR = req.domain ? req.domain : fiy::host().domain;

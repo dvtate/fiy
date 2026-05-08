@@ -50,6 +50,7 @@ CREATE TABLE Repos (
     visibility INTEGER DEFAULT 0,
 
     createTs INTEGER NOT NULL,
+    lastUpdateTs INTEGER NOT NULL,
 
     UNIQUE(userName, repoName)
 );
@@ -82,32 +83,32 @@ CREATE TABLE RepoAccess (
 --
 CREATE TABLE RepoTickets (
     repoId INTEGER REFERENCES Repos,
-    ticketNumber INTEGER NOT NULL,
+    ticketId INTEGER NOT NULL,
     userName TEXT NOT NULL,
     title TEXT NOT NULL,
     description NOT NULL DEFAULT '',
     createTs INTEGER NOT NULL,
     status INT DEFAULT 0, -- enum values open, closed, merged, rejected, etc.
 
-    PRIMARY KEY(repoId, ticketNumber)
+    PRIMARY KEY(repoId, ticketId)
 );
 -- CREATE TABLE RepoTicketEdits ( ts, oldDescription ); -- title edits also get added to comments
 
 -- a PR is a specific type of ticket
 CREATE TABLE RepoPullRequest (
     repoId INTEGER REFERENCES Repos,
-    ticketNumber INTEGER NOT NULL,
+    ticketId INTEGER NOT NULL,
     fromRepoPath TEXT NOT NULL, -- could be on a different instance
     fromBranch TEXT NOT NULL,
     toBranch TEXT NOT NULL,
 
-    PRIMARY KEY(repoId, ticketNumber)
+    PRIMARY KEY(repoId, ticketId)
 );
 
 CREATE TABLE RepoTicketComments (
     id INTEGER PRIMARY KEY,
     repoId INTEGER REFERENCES Repos,
-    ticketNumber INTEGER NOT NULL,
+    ticketId INTEGER NOT NULL,
     createTs INTEGER NOT NULL
 );
 -- CREATE TABLE RepoTicketCommentEdits

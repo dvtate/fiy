@@ -2,13 +2,15 @@
 // Created by tate on 7/30/25.
 //
 
+#include "DB.hpp"
+
 #include <nlohmann/json.hpp>
+
+#include "../../../util/FileCache.hpp"
 
 #include "../../../modlib/fiymod.hpp"
 
 #include "Contact.hpp"
-
-#include "DB.hpp"
 
 namespace DB {
     SQLite::Database& connection() {
@@ -171,11 +173,12 @@ namespace DB {
             return Success;
         } catch (const SQLite::Exception& e) {
             transaction_rollback();
-            std::string msg = "contacts: new_contact: database error: ";
-            msg += e.what();
-            msg += '\n';
-            msg += e.getErrorStr();
-            fiy::log_error(msg);
+            fiy::log_error(concat(
+                "contacts: new_contact: database error: ",
+                e.what(),
+                '\n',
+                e.getErrorStr()
+            ));
             return Error;
         }
     }

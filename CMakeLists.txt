@@ -74,6 +74,8 @@ add_executable(protocol_server ${protocol_server_sources}
     protocol/HttpClient.hpp
     util/Version.hpp
     protocol/main.cpp
+    protocol/peers/PeerAuth.cpp
+    protocol/peers/PeerAuth.hpp
 )
 
 # Debug/vs release

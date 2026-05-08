@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <string_view>
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -47,12 +48,34 @@ static std::string load_file_as_string(const std::string& file_path) {
     return contents;
 }
 
+/**
+ * Concatenate components into a single string, reserving space before appending them
+ * @tparam Args char or StringViewLike
+ * @param args parts to combine into single string
+ * @return concatenated string
+ */
+template<typename... Args>
+__attribute__((always_inline))
+constexpr inline std::string concat(const Args&... args) {
+    constexpr auto to_sv = []<typename T>(const T& v) constexpr {
+        if constexpr (std::is_same_v<T, char>)
+            return std::string_view(&v, 1);
+        else
+            return std::string_view(v);
+    };
+    return [](auto ...sv) {
+        std::string ret;
+        ret.reserve((sv.size() + ...));
+        (ret.append(sv), ...);
+        return ret;
+    }(to_sv(args)...);
+}
+
 /*
  * Cache frequently used file contents into static memory.
  *
  * Includes a rudimentary template engine.
  */
-
 template <auto(*GetBaseDirFunctor)(void)>
 struct FileCache {
 

@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #include "../../util/ThreadPool.hpp"
+#include "../../util/FileCache.hpp"
 
 #include "../../modlib/fiymod.hpp"
 
@@ -42,11 +43,12 @@ public:
         };
         this->now = []() { return g_fiy->now(); };
 
-        m_base_uri =  g_fiy->config.protocol;
-        m_base_uri += g_fiy->config.hostname;
-        m_base_uri += '/';
-        m_base_uri += mod->path;
-
+        this->m_base_uri = concat(
+            g_fiy->config.protocol,
+            g_fiy->config.hostname,
+            '/',
+            mod->path
+        );
         this->base_uri = m_base_uri.c_str(); // host info shouldn't be moved either
         this->request = ModDLLHostInfo::request_impl;
         this->domain = g_fiy->config.hostname;

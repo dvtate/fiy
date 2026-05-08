@@ -16,6 +16,8 @@ Peers::Peers() {
     });
 }
 
+// TODO this should update/add peer
+// TODO why duplicate domain param?
 /**
  * @param domain
  * @param p
@@ -36,6 +38,21 @@ bool Peers::add_peer(const std::string& domain, const std::shared_ptr<Peer>& p) 
 }
 
 /**
+ * Create a new unique bearer token that has been inserted into the cache as a stub
+ * @return new bearer token
+ * @remarks remove token if handshake fails
+ */
+std::string Peers::new_token_stub() {
+    auto bearer_token = PeerAuth::get_token_string();
+    m_mtx.write_lock();
+    while (m_peers_in.contains(bearer_token))
+        bearer_token = PeerAuth::get_token_string();
+    m_peers_in[bearer_token] = nullptr; // placeholder to prevent another peer from using this token
+    m_mtx.write_unlock();
+    return bearer_token;
+}
+
+/**
  * Remove a peer from cache
  * @param domain peer domain to remove from cache
  * @return true if erased, false otherwise
@@ -51,7 +68,7 @@ bool Peers::remove_peer(const std::string& domain) {
 }
 
 /**
- * \returns null when not a peer invalid user token
+ * @returns null when not a peer invalid user token
  */
 std::shared_ptr<Peer> Peers::get_peer_for_domain(const std::string& domain) {
     RWMutex::LockForRead lock{m_mtx};
@@ -99,28 +116,11 @@ void Peers::new_peer(const std::string& domain, std::function<void(std::shared_p
         }
         const auto& key = res.body();
 
-        // Generate unique auth token
-        auto bearer_token = PeerAuth::get_token_string();
-        m_mtx.write_lock();
-        while (m_peers_in.contains(bearer_token))
-            bearer_token = PeerAuth::get_token_string();
-        m_peers_in[bearer_token] = nullptr; // placeholder to prevent another peer from using this token
-        m_mtx.write_unlock();
+        auto peer = std::make_shared<Peer>(domain);
+        peer->auth.handshake_start(new_token_stub(), key);
+        std::string payload = peer->auth.handshake_request_body();
 
-        std::string symkey_part1 = PeerAuth::get_token_string();
-
-        std::string payload;
-        payload += g_fiy->config.hostname;
-        payload += '\n';
-        payload += symkey_part1;
-        payload += '\n';
-        payload += bearer_token;
-        auto signature = Crypto::SSL::sign(g_fiy->config.private_key, payload);
-        payload += '\n' + signature;
-        // DEBUG_LOG("Outgoing Handshake request:\n" << payload << "\n");
-
-        // auto encrypted_payload = Crypto::SSL::encrypt(key, payload);
-        // instead: symmetrically encrypt body payload, pk encrypt symkey in header
+        // TODO symmetrically encrypt body payload, pk encrypt symkey in header
 
         // Make handshake request
         http::request<http::string_body> req;
@@ -133,11 +133,8 @@ void Peers::new_peer(const std::string& domain, std::function<void(std::shared_p
 
         auto handshake_cb = [
             this,
-            key = std::move(key),
             cb,
-            domain,
-            secret = std::move(symkey_part1),
-            token = std::move(bearer_token)
+            peer
         ] (
             http::response<http::string_body> res
         ) mutable {
@@ -148,51 +145,28 @@ void Peers::new_peer(const std::string& domain, std::function<void(std::shared_p
                 return;
             }
 
-            // Extract body components
-            // auto body = Crypto::SSL::decrypt(g_fiy->m_config.m_private_key, res.body());
-            const auto& body = res.body();
-            // DEBUG_LOG("Handshake response:\n" << body << "\n");
-
-            auto eol = body.find('\n');
-            if (eol == std::string::npos) {
-                LOG_ERR("Invalid handshake response: no bearer token");
+            // Parse body
+            if (!peer->auth.handshake_parse_response(res.body())) {
+                DEBUG_LOG("Failed to parse handshake");
+                m_mtx.write_lock();
+                m_peers_in.erase(peer->auth.bearer_token_we_accept);
+                m_mtx.write_unlock();
                 cb(nullptr);
                 return;
             }
-            std::string bearer_token_we_use = body.substr(0, eol);
-            auto start = eol + 1;
-            eol = body.find('\n', start);
-            if (eol == std::string::npos) {
-                LOG_ERR("Invalid handshake response: no secret");
-                cb(nullptr);
-                return;
-            }
-            const auto secret_part2 = body.substr(start, eol - start);
-            std::string sig = body.substr(eol + 1);
-            if (!Crypto::SSL::verify(key, bearer_token_we_use + '\n' + secret_part2, sig)) {
-                cb(nullptr);
-                DEBUG_LOG("Handshake response has invalid signature");
-                return;
-            }
-
-            secret += secret_part2;
-            // Make Peer
-            auto p = std::make_shared<Peer>(
-                domain,
-                PeerAuth(
-                    secret,
-                    bearer_token_we_use,
-                    std::move(token)
-                )
-            );
 
             // Add peer
+            if (!this->add_peer(peer->domain, peer)) {
+                LOG_ERR("Duplicate peer?? - " <<peer->domain);
+                cb(nullptr);
+                return;
+            }
             m_mtx.write_lock();
-            m_peers_in[p->auth.bearer_token_we_accept] = p; // was nullptr
-            auto ret = m_peers_out.emplace(domain, p);
+            m_peers_in[peer->auth.bearer_token_we_accept] = peer; // was nullptr
+            auto ret = m_peers_out.emplace(peer->domain, peer);
             if (!ret.second) {
-                DEBUG_LOG("Duplicate peer?? - " <<domain);
-                m_peers_in.erase(p->auth.bearer_token_we_accept);
+                DEBUG_LOG("Duplicate peer?? - " <<peer->domain);
+                m_peers_in.erase(peer->auth.bearer_token_we_accept);
                 m_mtx.write_unlock();
                 cb(nullptr);
                 return;
@@ -200,14 +174,19 @@ void Peers::new_peer(const std::string& domain, std::function<void(std::shared_p
             m_mtx.write_unlock();
 
             // Success
-            cb(std::move(p));
-            DEBUG_LOG("New peer: " <<domain);
+            cb(std::move(peer));
+            DEBUG_LOG("New peer: " <<peer->domain);
         };
 
-        auto handshake_err_cb = [domain, cb] (std::string err) {
+        auto handshake_err_cb = [this, cb, peer] (std::string err) {
+            LOG_ERR("Peer handshake failed for " <<peer->domain <<": " <<err);
+
+            // Remove peer stub from cache
+            m_mtx.write_lock();
+            m_peers_in.erase(peer->auth.bearer_token_we_accept);
+            m_mtx.write_unlock();
+
             cb(nullptr);
-            LOG_ERR("Peer handshake failed " <<domain <<": " <<err);
-            // Safe to leave the peer stub in the cache
         };
 
         bool use_https = domain.find(':') == std::string::npos;
