@@ -31,6 +31,9 @@ std::string RepoFileBrowserPageData::entries_html() const {
             case GitRepo::Entry::FILE:
                 ret += "\xf0\x9f\x93\x84"; // file emoji
                 break;
+            case GitRepo::Entry::INVALID:
+                ret += "?";
+                break;
         }
         ret += "</span> ";
         ret += e.path;
