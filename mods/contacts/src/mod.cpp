@@ -100,7 +100,7 @@ static void get_pfp(std::string_view user_str, fiy::Request& req, fiy::Callback 
 
     static const fiy::fiy_response_t default_pfp {
         .status = 404,  // should this be 200 instead?
-        .headers = "Content-Type: image/png\nCache-Control: max-age=300",
+        .headers = "Content-Type: image/png\nCache-Control: max-age=300\nAccess-Control-Allow-Origin: *",
         .body = fiy::Body(
             (const char*)VC::default_pfp_raw,
             sizeof VC::default_pfp_raw
@@ -191,7 +191,8 @@ static void get_pfp(std::string_view user_str, fiy::Request& req, fiy::Callback 
     const auto data = pfp.substr(start_data + 1);
     const auto raw_data = base64::decode_into<std::string>(data);
 
-    std::string headers = "Cache-Control: max-age=300\nContentType: ";
+    std::string headers = "Access-Control-Allow-Origin: *"
+        "\nCache-Control: max-age=300\nContentType: ";
     headers += media_type;
     req.respond(cb, 200, headers, fiy::Body(raw_data));
 }
