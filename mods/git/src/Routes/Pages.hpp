@@ -70,9 +70,16 @@ struct Pages : FileCache<get_frontend_dir> {
     static const std::string& file_contents() {
         return FileCache<get_frontend_dir>::file_contents<FileSubPath>(get_host_data());
     }
+
     template<const char* FileSubPath>
     static fiy::Body file_body() {
         return fiy::Body(file_contents<FileSubPath>());
+    }
+
+    template<const char* FileSubPath>
+    static fiy::Body mm_file_body() {
+        return fiy::Body(std::string_view(
+            mm_file<FileSubPath>()));
     }
 
     static std::string repo_create_page(

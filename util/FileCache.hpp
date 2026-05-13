@@ -9,15 +9,15 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <concepts>
+
+#include "MMFile.hpp"
 
 #if __has_include("../protocol/defs.hpp")
 #include "../protocol/defs.hpp"
 #else
 #include <stdexcept>
 #endif
-
-// TODO for static files that aren't templates, we should use mmap
-//      that way the OS can decide free up memory as needed
 
 /// Load entire file contents into a string
 /// returns "" if file could not be opened
@@ -63,7 +63,7 @@ constexpr inline std::string concat(const Args&... args) {
         else
             return std::string_view(v);
     };
-    return [](auto ...sv) {
+    return [](const auto ...sv) constexpr {
         std::string ret;
         ret.reserve((sv.size() + ...));
         (ret.append(sv), ...);
@@ -76,6 +76,7 @@ constexpr inline std::string concat(const Args&... args) {
  *
  * Includes a rudimentary template engine.
  */
+// TODO maybe non-templated base class that
 template <auto(*GetBaseDirFunctor)(void)>
 struct FileCache {
 
@@ -86,10 +87,16 @@ struct FileCache {
         return ::load_file_as_string(file_path);
     }
 
-    /// Getter
     static const std::string& prefix() {
         static auto ret = GetBaseDirFunctor();
         return ret;
+    }
+
+    static std::string path(const std::string& subpath) {
+        return prefix() + subpath;
+    }
+    static std::string path(const char* subpath) {
+        return prefix() + subpath;
     }
 
     /// Get cached contents of file as a string
@@ -97,6 +104,15 @@ struct FileCache {
     static const std::string& file_contents() {
         static const std::string contents = load_file_as_string(prefix() + FileSubPath);
         return contents;
+    }
+
+    /// Can be used similar to file_contents but uses mmap
+    /// Good for large files: lets OS free up RAM
+    /// No Global substitutions
+    template<const char* FileSubPath>
+    static const MMFile& mm_file() {
+        static const MMFile file{path(FileSubPath)};
+        return file;
     }
 
     /// Get cached contents of file as a string with global replacements
@@ -238,4 +254,16 @@ match_found:
         }
         return ret;
     }
+
 };
+
+namespace detail {
+    /// Call default constructor of for given type
+    template <std::default_initializable T>
+    __attribute__((always_inline))
+    constexpr T construct_default() {
+        return {};
+    }
+}
+
+using RootFileCache = FileCache<detail::construct_default<std::string>>;
