@@ -13,6 +13,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -Og -DFIY_DEBUG=1")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_STANDARD 20)
 
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/SQLiteCpp)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     file(READ "/etc/os-release" OS_RELEASE_CONTENT)
     # Skip static libs on Fedora
@@ -23,7 +25,26 @@ else()
     set(Boost_USE_STATIC_LIBS ON)
 endif()
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/SQLiteCpp)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    # Check if IPO is supported
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT supported)
+
+    if(supported)
+        # Enable IPO
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+
+        #if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        #set(CMAKE_C_COMPILE_OPTIONS_IPO "-flto;-ffat-lto-objects")
+        #set(CMAKE_CXX_COMPILE_OPTIONS_IPO "-flto;-ffat-lto-objects")
+        #endif()
+
+        message(STATUS "IPO flags: ${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
+        message(STATUS "IPO flags: ${CMAKE_C_COMPILE_OPTIONS_IPO}")
+    endif()
+endif()
+
 
 find_package(Boost REQUIRED COMPONENTS url context)
 
