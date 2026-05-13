@@ -28,9 +28,6 @@ extern const char* fiy_http_verb_strings[];
  * IPC request from a user
  */
 struct fiy_request_t {
-    // TODO maybe should indicate the value in the Host header so that the mod
-    //      knows if they're using it via subdomain or not
-
     // IDEA maybe do something like libgit2 where the actual structure is hidden
     //      and user has to do everything via functions?
     //      Then maybe we wouldn't have to copy headers

@@ -17,107 +17,12 @@
 namespace http = boost::beast::http;
 
 /**
- * @return [ mod , subpath ]
+ * Make mod request
+ * @param conn connection to send response to
+ * @param m mod to send request to (or nullptr for root mod)
+ * @param uri path to request mod
  */
-static std::pair<Mod*, std::string> parse_mod_request_get(const std::shared_ptr<Session>& conn) {
-    // Mod-by-ID API
-    auto path = conn->req().target();
-    if (path.starts_with("/mods/")) {
-        path.remove_prefix(6);
-        const auto mod_end = path.find_first_of("/?");
-        Mod* mod = g_fiy->mods.get_mod_by_id(
-            path.substr(0, mod_end));
-        std::string subpath = conn->req()["Fiy-Path"];
-        if (subpath.empty() && mod_end != std::string_view::npos)
-            subpath = path.substr(mod_end);
-        if (subpath.empty())
-            subpath = "/";
-        return { mod, subpath };
-    }
-
-    // Subdomains
-    // TODO should probably just redirect them to the equivalent subdir instead
-    //  because apparently there's no way to enable Access-Control-Allow-Origin for all subdomains
-    const auto hostname = conn->req()["Host"];
-    if (!hostname.empty()) {
-        const std::string_view hhn = g_fiy->config.hostname;
-        // Subdomain mod  mod.example.com/uri/path
-        if (hostname.ends_with(hhn) && hhn.size() != hostname.size()) {
-            const auto mod_name = hostname.substr(0, hostname.size() - hhn.size() - 1);
-            Mod* mod = g_fiy->mods.get_mod(mod_name);
-            return { mod, path };
-        }
-
-        // Invalid request to different host?
-        if (hostname != hhn) {
-//            Session::DynamicResponse res;
-//            res.result(400);
-//            boost::beast::ostream(res.body())
-//                    << "Wrong host? Expected host to be "
-//                    << hhn.data()
-//                    << " but host was "
-//                    << hostname
-//                    << '\n';
-//            conn->respond(res);
-            LOG_ERR("Received request for invalid hostname: expected "
-                << hhn.data()
-                << " but host was "
-                << hostname
-                << '\n');
-            return { nullptr, "/" }; // give invalid mod
-        }
-    }
-
-    // NOTE: weird feature: Root Mods (ie - mod w/ path '')
-    // this means that any time the mod path doesn't match
-    // we need to assume it's a request for the root mod
-    // so for example a request to /index.html would first check
-    // for mod 'index.html' and if that doesn't exist it would try
-    // mod '' with path '/index.html'
-
-    // Not a subdomain mod
-    const auto slash_idx = path.find('/', 1);
-    if (slash_idx == std::string_view::npos) {
-        // case: /mod
-        // case: /
-        const auto qs_idx = path.find('?', 1);
-        if (qs_idx == std::string_view::npos) {
-            Mod* mod = path.empty()
-                ? g_fiy->mods.get_mod("")
-                : g_fiy->mods.get_mod(path.substr(1));
-            return { mod, "/" };
-        }
-
-        // case: /mod?param
-        // case: /?param
-        std::string sub_path = "/";
-        sub_path += path.substr(qs_idx);
-        Mod* mod = path.empty()
-            ? g_fiy->mods.get_mod("")
-            : g_fiy->mods.get_mod(path.substr(1, qs_idx - 1));
-        return { mod, sub_path };
-    }
-
-    // case: /mod/
-    // case: /mod/uri/path
-    // case: /mod/uri/path/
-    // case: /mod/?param
-    // case: /mod/uri/path?param
-    // case: /mod/uri/path/?param
-    return {
-        g_fiy->mods.get_mod(path.substr(1, slash_idx - 1)),
-        path.substr(slash_idx)
-    };
-}
-
-/**
- * Invoke app
- * @param conn connection
- */
-static void mod_send_msg(std::shared_ptr<Session> conn) {
-    // Get app
-    auto [ m, uri ] = parse_mod_request_get(conn);
-
+static void request_mod(std::shared_ptr<Session> conn, Mod* m, const std::string_view uri) {
     // No mod
     if (m == nullptr) {
         // No '' mod, use default index.html
@@ -147,10 +52,109 @@ static void mod_send_msg(std::shared_ptr<Session> conn) {
         DEBUG_LOG("Invalid mod: " <<conn->req().target() <<" : " <<uri);
         return;
     }
-    DEBUG_LOG("Calling App " <<m->id <<" : " << uri);
 
+    // Call mod
+    DEBUG_LOG("Calling App " <<m->id <<" : " << uri);
     conn->req().target(uri);
     m->ipc->handle_request(std::move(conn));
+}
+
+/**
+ * Invoke app
+ * @param conn connection
+ */
+static void mod_send_msg(std::shared_ptr<Session> conn) {
+    // Mod-by-ID API
+    auto path = conn->req().target();
+    if (path.starts_with("/mods/")) {
+        path.remove_prefix(6);
+        const auto mod_end = path.find_first_of("/?");
+        Mod* mod = g_fiy->mods.get_mod_by_id(
+            path.substr(0, mod_end));
+        std::string subpath = conn->req()["Fiy-Path"];
+        if (subpath.empty() && mod_end != std::string_view::npos)
+            subpath = path.substr(mod_end);
+        if (subpath.empty())
+            subpath = "/";
+        request_mod(std::move(conn), mod, subpath);
+        return;
+    }
+
+    // Subdomains
+    const auto hostname = conn->req()[http::field::host];
+    if (!hostname.empty()) {
+        const std::string_view hhn = g_fiy->config.hostname;
+        if (hhn != hostname) {
+            // Subdomain mod  mod.example.com/uri/path
+            if (hostname.ends_with(hhn)) {
+                const auto mod_name = hostname.substr(0, hostname.size() - hhn.size() - 1);
+                Mod* mod = g_fiy->mods.get_mod(mod_name);
+                request_mod(std::move(conn), mod, path);
+                return;
+            }
+            //            Session::DynamicResponse res;
+            //            res.result(400);
+            //            boost::beast::ostream(res.body())
+            //                    << "Wrong host? Expected host to be "
+            //                    << hhn.data()
+            //                    << " but host was "
+            //                    << hostname
+            //                    << '\n';
+            //            conn->respond(res);
+            // Invalid host?
+            LOG_ERR("Received request for invalid hostname: expected "
+                << hhn.data()
+                << " but host was "
+                << hostname
+                << '\n');
+            request_mod(std::move(conn), nullptr, path);
+            return;
+        } // else: just a normal request
+    }
+
+    // NOTE: weird feature: Root Mods (ie - mod w/ path '')
+    // this means that any time the mod path doesn't match
+    // we need to assume it's a request for the root mod
+    // so for example a request to /index.html would first check
+    // for mod 'index.html' and if that doesn't exist it would try
+    // mod '' with path '/index.html'
+
+    // Not a subdomain mod
+    const auto slash_idx = path.find('/', 1);
+    if (slash_idx == std::string_view::npos) {
+        // case: /
+        // case: /mod
+        const auto qs_idx = path.find('?', 1);
+        if (qs_idx == std::string_view::npos) {
+            Mod* mod = path.size() <= 1
+                ? g_fiy->mods.get_mod("")
+                : g_fiy->mods.get_mod(path.substr(1));
+            request_mod(std::move(conn), mod, "/");
+            return;
+        }
+
+        // case: /mod?param
+        // case: /?param
+        std::string sub_path = "/";
+        sub_path += path.substr(qs_idx);
+        Mod* mod = qs_idx < 2
+            ? g_fiy->mods.get_mod("")
+            : g_fiy->mods.get_mod(path.substr(1, qs_idx - 1));
+        request_mod(std::move(conn), mod, sub_path);
+        return;
+    }
+
+    // case: /mod/
+    // case: /mod/uri/path
+    // case: /mod/uri/path/
+    // case: /mod/?param
+    // case: /mod/uri/path?param
+    // case: /mod/uri/path/?param
+    request_mod(
+        std::move(conn),
+        g_fiy->mods.get_mod(path.substr(1, slash_idx - 1)),
+        path.substr(slash_idx)
+    );
 }
 
 // TODO ?redirect=/mod/that/requires/auth query parameter
@@ -369,6 +373,7 @@ std::vector<std::string> split_string(
 
 /// Sent to us from a peer that wants to connect
 void peer_handshake(std::shared_ptr<Session>&& conn) {
+    // TODO move logic to Peers::handshake ?
     switch (g_fiy->config.federation) {
         case FiyConfig::FederationStatus::ENABLED:
             break;
@@ -383,10 +388,7 @@ void peer_handshake(std::shared_ptr<Session>&& conn) {
     }
 
     std::string signature;
-    auto peer = Peer::parse_handshake_request(
-        conn->req().body(),
-        signature
-    );
+    auto peer = Peer::parse_handshake_request(conn->req().body(), signature);
     if (peer == nullptr) {
         DEBUG_LOG("Invalid handshake body");
         Session::StringResponse res;
