@@ -21,7 +21,6 @@ private:
     /**
      * Map of usernames -> users
      */
-    // TODO can probably switch to unique_ptr
     // TODO use boost::unordered_flat_map
     std::unordered_map<std::string, std::shared_ptr<LocalUser>> m_username_cache;
 

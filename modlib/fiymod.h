@@ -202,7 +202,7 @@ struct fiy_local_user_info_t {
     /// True if user is administrator
     bool admin;
 
-    /// Unix timestamp when did the user created their account
+    /// Unix timestamp when the user created their account
     int64_t join_ts;
 };
 

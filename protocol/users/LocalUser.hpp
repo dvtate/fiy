@@ -19,6 +19,8 @@ class LocalUser {
 public:
     const std::string username;
     bool is_admin{false};
+
+    // TODO leave these in the DB and fetch them as needed
     std::string email;
     time_t joined_ts{0};
 
@@ -62,7 +64,7 @@ public:
         );
     }
 
-    // TODO this system is too simple
+    // TODO this system is too simple, loose session token and you're fucked
     // TODO this should be moved to its own class+file
     class AuthToken {
     public:
