@@ -97,7 +97,7 @@ bool repo_api(
                 key = path.substr(0, eq);
                 auto end = path.find('&', eq);
                 value = path.substr(eq + 1, end == std::string_view::npos
-                    ? end : (end - eq));
+                    ? end : (end - eq - 1));
                 if (end == std::string_view::npos)
                     path = "";
                 else
@@ -150,6 +150,8 @@ bool repo_api(
             } else if (key == "page") {
                 std::from_chars(value.data(), value.data() + value.size(),
                     search.page);
+            } else if (key == "fields") {
+                search.set_fields(value);
             }
         }
 
@@ -161,11 +163,12 @@ bool repo_api(
             std::string domain;
             if (req.domain)
                 domain = req.domain;
-            auto repos = search.search(user, domain);
-            auto ret = nlohmann::json::array();
-            for (auto& r : repos)
-                ret.emplace_back(r.path());
-            std::string body = ret.dump();
+            // auto repos = search.search(user, domain);
+            // auto ret = nlohmann::json::array();
+            // for (auto& r : repos)
+            //     ret.emplace_back(r.path());
+            // std::string body = ret.dump();
+            auto body = search.search(user, domain).dump();
             req.respond(cb, 200,
                 "Content-type: application/json",
                 fiy::Body(body));

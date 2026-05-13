@@ -7,18 +7,18 @@
 #include <string>
 #include <vector>
 
+#include <boost/unordered/unordered_flat_map.hpp>
+
+#include <nlohmann/json.hpp>
+
+#include "../DB.hpp"
+
 #include "BasicRepo.hpp"
 
-struct RepoListEntry {
-    std::string instance;
-    std::string owner;
-    std::string name;
-    std::string description;
-    unsigned int likes;
-    bool is_fork;
-};
 
 struct RepoSearch {
+    // TODO separate structs for filters and results
+
     /// Max number of results to return
     static constexpr int MAX_RESULTS = 1000;
 
@@ -48,9 +48,31 @@ struct RepoSearch {
     };
     BooleanFilter forks: 2 {Any};
 
-    // Visibility
+    /// Visibility
     fiy::Locality visibility : 3;
     bool filter_visibility : 1 {false};
+
+    /// Should we include pagination data in results?
+    bool page_data : 1 { false };
+
+    /// Output data components
+    enum class Parts : uint8_t {
+        Invalid = 0,        // this field is invalid
+        InternalId,
+        Path,
+        Description,
+        Likes,
+        Visibility,
+        Fork,
+        CreateTs,
+        UpdateTs,
+        Tickets,
+    };
+
+    static const std::vector<Parts> default_fields;
+
+    /// Fields what fields should we include in results
+    std::vector<Parts> fields;
 
     void set_min_likes(const int new_min_likes) {
         this->min_likes = new_min_likes;
@@ -98,10 +120,20 @@ struct RepoSearch {
         this->description_like = "%" + description + '%';
     }
 
-    std::vector<BasicRepo> search(
+    void set_fields(std::string_view csv);
+
+    // std::vector<BasicRepo> search(
+    //     const std::string& requesting_user = "",
+    //     const std::string& requesting_user_instance = ""
+    // );
+
+    nlohmann::json search(
         const std::string& requesting_user = "",
         const std::string& requesting_user_instance = ""
     );
 
-    // TODO need a way to specify what to include in search results (ie - description, likes, etc.)
+
+protected:
+    std::string fields_select_part();
+    nlohmann::json row_json(const SQLite::Statement& stmt) const;
 };

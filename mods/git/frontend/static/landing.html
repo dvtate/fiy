@@ -13,24 +13,53 @@
             display: inline-block;
             height: 10vh;
         }
+        div.repo a {
+            text-decoration: none;
+        }
+        div.repo a :hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <header>
         <span id="logo">Git-IY&nbsp;<img src="{{fiy_baseuri}}/logo.svg" /></span>
-        <h1>Git-IY: Git It Yourself -- Federated Git Host</h1>
+        <h1>Git-IY: Git It Yourself</h1>
+        <a class="button" href="//{{fiy_domain}}/portal">Instance portal</a>
+        | <a class="button" href="{{fiy_baseuri}}/repo/new">Create Repo</a>
+        | <a class="button" href="{{profile_url}}">Profile</a>
         <hr/>
     </header>
+    <h2>Federated Git Hosting</h2>
     <p>Giy-IY lets you use a single federated account to collaborate across federated instances while giving you or your
         organization code ownership and sovereignty. Giy-IY also integrates with other apps on the FIY platform,
         offering powerful tools for collaboration and community organization.
     </p>
 
-    <a class="button" href="//{{fiy_domain}}/portal">Instance portal</a>
-    | <a class="button" href="{{fiy_baseuri}}/repo/new">Create Repo</a>
-    | <a class="button" href="{{profile_url}}">Profile</a>
+    <h3>Popular Repositories</h3>
+    <div id="popular-repos">
+        <noscript>JavaScript required to get popular repos list</noscript>
+    </div>
 
-    <!-- popular repo list? -->
-    <!-- real-time activity stream? -->
+    <script>
+        (async () => {
+            const e = document.getElementById('popular-repos');
+            try {
+                const r = await fetch("{{fiy_baseuri}}/api/repo/search?sort=likes&fields=likes,path,description");
+                const s = await r.json();
+                e.innerHTML = s.results?.map(([likes, path, description]) =>
+                        `<div class="repo"><a href="{{fiy_baseuri}}/${path}/likes">( &hearts; ${likes
+                        } )</a> <a href="{{fiy_baseuri}}/${path}"><b>${path
+                        }</b></a>: ${description}</div>`
+                    ).join('')
+                    || "No repositories found.";
+            } catch (e) {
+                console.error(e);
+                e.innerHTML = "Failed to fetch popular repos.";
+            }
+        })();
+    </script>
+
+    <!-- TODO real-time activity stream -->
 </body>
 </html>

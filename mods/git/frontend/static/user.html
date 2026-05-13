@@ -1,7 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
+    <style>
+        .repo-likes {
+            border: 1px solid grey;
+            /*padding: 2px;*/
+            border-radius: 3px;
+            margin-right: 3px;
+        }
+        .repo-card {
+            padding: 5px;
+        }
+    </style>
 </head>
 <body>
 
@@ -67,25 +77,36 @@
                 ).join(''));
         }
 
-        function repoCard(repo) {
-            let displayPath = repo.path;
+        function repoCard(path, description, likes) {
+            let displayPath = path;
             const [owner, repoName] = displayPath.split('/');
             if (user === owner || user === owner + '@' + domain)
                 displayPath = repoName;
             return `<div class="repo-card">
-                    <span class="repo-card-path">
-                        <a href="${baseUrl}/${repo.path}">${displayPath}</a>
+                    <span class="repo-likes">
+                        &hearts; ${likes}
                     </span>
-                    <p class="repo-card-description">${repo.description || ""}</p>
+                    <span class="repo-card-path">
+                        <a href="${baseUrl}/${path}">${displayPath}</a>
+                    </span>:
+                    <span class="repo-card-description">${description || ""}</span>
                 </div>`;
         }
 
         const View = {
             async repos() {
-                const r = await fetch(baseUrl + '/api/repo/search?owner=' + user);
-                const repos = await r.json();
-                tabView.innerHTML = '<h3>Repositories</h3>'
-                    + repos.map(path => repoCard({ path })).join('');
+                let search;
+                try {
+                    const r = await fetch(`${baseUrl}/api/repo/search?owner=${user}&fields=path,description,likes`);
+                    search = await r.json();
+                } catch (e) {
+                    tabView.innerHTML = "Failed to fetch user's repositories";
+                    return;
+                }
+                tabView.innerHTML = '<h3>Repositories</h3>' + (search.results
+                    ?  search.results.map(repo => repoCard(...repo)).join('')
+                    : 'No repositories'
+                );
             },
             async likes() {
                 const rs = await Promise.all([

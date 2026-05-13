@@ -99,6 +99,15 @@ namespace DB {
         std::string& raw_statement() {
             return m_stmt;
         }
-    };
 
+        void replace_start(
+            const size_t first_n_chars,
+            const std::string_view replacement
+        ) {
+#ifdef FIY_DEBUG
+            assert(first_n_chars <= m_stmt.size());
+#endif
+            m_stmt.replace(0, first_n_chars, replacement);
+        }
+    };
 }
