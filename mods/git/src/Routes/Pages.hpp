@@ -76,6 +76,7 @@ struct Pages : FileCache<get_frontend_dir> {
         return fiy::Body(file_contents<FileSubPath>());
     }
 
+    // TODO make version of this which handles MMFile::Error and gives 404/500
     template<const char* FileSubPath>
     static fiy::Body mm_file_body() {
         return fiy::Body(std::string_view(

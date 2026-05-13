@@ -20,7 +20,7 @@ bool static_asset_router(
     const fiy::Callback cb,
     const fiy::Request &req
 ) {
-    // Landing page
+    // Landing page (technically not static but whatever)
     if (path[0] == '/' && (path.size() == 1 || path[1] == '?')) {
         static constexpr char file_path[] = "/landing.html";
         const auto body = Pages::mustache(

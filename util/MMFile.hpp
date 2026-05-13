@@ -19,14 +19,21 @@
  */
 class MMFile {
 public:
+    /// Thrown on error
     class Error : public std::runtime_error {
         using std::runtime_error::runtime_error;
     };
 
-    int m_fd;
-    size_t m_size;
-    char* m_data;
+    /// File descriptor
+    int m_fd{-1};
 
+    /// File size in bytes
+    size_t m_size{0};
+
+    /// mmap'd buffer
+    char* m_data{nullptr};
+
+    // Move-only
     MMFile() = delete;
     MMFile(const MMFile&) = delete;
     MMFile& operator=(const MMFile&) = delete;
@@ -34,31 +41,31 @@ public:
 
     explicit MMFile(const char* path, const long offset = 0) {
         m_fd = open(path, O_RDONLY);
-        if (m_fd < 0) {
+        if (m_fd < 0) [[unlikely]] {
 #ifdef FIY_DEBUG
             perror("open()");
 #endif
-            throw Error("Unable to open file");
+            throw Error("Unable to open file " + std::string(path));
         }
 
         // lseek returns the offset from the beginning of the file
         m_size = lseek(m_fd, offset, SEEK_END);
-        if (m_size <= 0) {
+        if (m_size <= 0) [[unlikely]] {
 #ifdef FIY_DEBUG
             perror("lseek()");
 #endif
             close(m_fd);
-            throw Error("Unable to seek file");
+            throw Error("Unable to seek file " + std::string(path));
         }
 
         // we don't need to lseek again as mmap ignores the offset
         m_data = (char *)mmap(NULL, m_size, PROT_READ, MAP_SHARED, m_fd, offset);
-        if (m_data == MAP_FAILED) {
+        if (m_data == MAP_FAILED) [[unlikely]] {
 #ifdef FIY_DEBUG
             perror("mmap()");
 #endif
             close(m_fd);
-            throw Error("mmap failed");
+            throw Error("Failed to mmap file " + std::string(path));
         }
     }
 
@@ -70,9 +77,18 @@ public:
         close(m_fd);
     }
 
+    /**
+     * Immutable access to the file contents
+     * @return buffer containing file contents
+     */
     const char* data() const {
         return m_data;
     }
+
+    /**
+     * Get the size of the file/buffer
+     * @return size of the file in bytes
+     */
     size_t size() const {
         return m_size;
     }

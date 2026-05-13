@@ -21,7 +21,10 @@ protected:
      * Also need fast iteration over mods
      *Don't care about insertion time
      */
-    RWMutex m_mtx; // TODO compare performance of just using std::mutex
+
+    // TODO adding/removing mods should require restarting the server
+    // TODO that way no locking needed
+    RWMutex m_mtx;
 
     std::vector<Mod*> m_mods;
     boost::unordered_flat_map<std::string, Mod*> m_mods_lookup; // path -> mod
@@ -52,7 +55,6 @@ public:
     }
 
     Mod* get_mod(const std::string& path) {
-        RWMutex::LockForRead lock{m_mtx};
         auto ret = m_mods_lookup.find(path);
         if (ret != m_mods_lookup.end())
             return ret->second;
@@ -61,7 +63,6 @@ public:
     }
 
     Mod* get_mod_by_id(const std::string& id) {
-        RWMutex::LockForRead lock{m_mtx};
         auto ret = m_mods_by_id.find(id);
         if (ret != m_mods_by_id.end())
             return ret->second;
@@ -69,15 +70,13 @@ public:
             return nullptr;
     }
 
-    std::vector<Mod*> get_mods() {
-        RWMutex::LockForRead lock{m_mtx};
+    const std::vector<Mod*>& get_mods() const {
         return m_mods; // copy
     }
 
     /// Get JSON list of installed apps for the user portal
     [[nodiscard]] std::string get_mods_json() {
         std::string ret = "[";
-        RWMutex::LockForRead lock{m_mtx};
         for (auto& m : m_mods) {
             ret += m->user_json();
             ret += ',';
@@ -85,26 +84,6 @@ public:
         if (ret[ret.size() - 1] == ',')
             ret[ret.size() - 1] = ']';
         return ret;
-    }
-
-    bool remove_mod(const std::string& id) {
-        // Find mod
-        m_mtx.read_lock();
-        const auto ret = m_mods_by_id.find(id);
-        if (ret == m_mods_by_id.end()) {
-            m_mtx.read_unlock();
-            return false;
-        }
-        Mod* m = ret->second;
-
-        // Remove mod
-        m_mtx.read_to_write();
-        m_mods.erase(std::ranges::find(m_mods, m));
-        m_mods_lookup.erase(m->path);
-        m_mods_by_id.erase(m->id);
-        m_mtx.write_unlock();
-        // TODO probably should delete the mod to prevent memory leak
-        return m->stop();
     }
 
     bool add_net_connector(const std::string& token, ModConnectorNet* connector) {

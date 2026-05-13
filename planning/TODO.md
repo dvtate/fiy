@@ -6,11 +6,11 @@ Convert protocol/main.cpp into a CLI with more functionality (or make a bash wra
 ### Commands
 These are just some ideas
 - Run server
-  - specify config
-- Set up mods
-- Check mods and configs
-- Admin web interface
-- Admin CLI
+  - specify/override config
+  - this is current functionality
+- Install mod from store (by id)
+- View and edit mod and host configs
+- Run admin web interface
 
 ## Micro-refactoring
 - Replace SQLiteCpp

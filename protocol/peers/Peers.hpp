@@ -16,6 +16,7 @@
 // TODO track invalid peers so we don't waste time trying to deal with them
 // TODO unordered_flat_map
 // TODO std::shared_mutex
+// TODO Use DB so that we don't have to reauthenticate every time
 class Peers {
     RWMutex m_mtx;
 

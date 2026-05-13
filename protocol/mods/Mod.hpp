@@ -39,19 +39,45 @@ public:
     using AccessChecker = std::function<bool(const char* user, const char* domain)>;
 
     // Metadata
+
+    /// Contents of module.json
     std::string config;
+
+    /// Where mod was found
     std::string data_dir;
+
+    /// Globally unique module identifier
+    /// @example com.example.socialnetwork
     std::string id;
+
+    /// User-friendly path the mod can be accessed at
+    /// @example social
     std::string path;
+
+    /// User-friendly name for the mod
+    /// @example Social Network
     std::string name;
+
+    /// User-friendly description of the mod
     std::string description;
+
+    /// URI to apps icon
+    /// @example "favicon.png"
     std::string icon;
+
+    /// Where mod is installed and can read/write files
     std::string user_data_dir;
+
+    /// When the mod was installed
     std::filesystem::file_time_type install_ts;
+
+    /// Mod version (maybe used in the future for compatibility checks
     Version version{0, 0};
+
+    /// Used to restrict access to the mod (from acces field of module.json)
     AccessChecker can_access{nullptr};
 
-    // Communicate with mod
+    /// Handles communication between host and the mod
     std::unique_ptr<ModConnector> ipc{nullptr};
 
     Mod() = default;
@@ -65,7 +91,6 @@ public:
     bool is_enabled() const { return m_enabled; }
     bool is_loaded() const { return m_loaded; }
     void set_path(const std::string& new_path);
-
 
     [[nodiscard]] Status status() const {
         if (!m_loaded)
