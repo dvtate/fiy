@@ -1,10 +1,17 @@
 # Server Installation
-Run the interactive installer: `install.sh`. 
+This guide is mostly intended for developers and/or package maintainers.
+
+## Interactive Installation Script
+The [`install.sh`](install.sh) script is currently the only way to install FIY.
+
+Features:
+- Development installation that installs files as symlinks to relevant project files and build targets. 
+- Makes it easy to install multiple instances on a single machine.
 
 ## config.ini
-The install script will walk you through the construction of config.ini file.
+The install.sh script will walk you through the construction of config.ini file.
 
-It should look like this.
+It should look like this. For a complete list of options, check the `Config.hpp`
 
 ```
 # Where your instance will be accessible at

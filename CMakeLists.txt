@@ -309,13 +309,14 @@ target_include_directories(fiy_cdn PUBLIC
     ${Boost_INCLUDE_DIRS}
 )
 
+find_package(CURL)
 target_link_libraries(fiy_cdn
     SQLiteCpp
     sqlite3
     pthread
     crypto
     ssl
-    curl
+    CURL::libcurl
     Boost::headers
     Boost::url
     Boost::context

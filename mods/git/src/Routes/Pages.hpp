@@ -68,7 +68,7 @@ struct Pages : FileCache<get_frontend_dir> {
     /// Automatically replace host_data in the loaded template
     template<const char* FileSubPath>
     static const std::string& file_contents() {
-        return FileCache<get_frontend_dir>::file_contents<FileSubPath>(get_host_data());
+        return FileCache::file_contents<FileSubPath>(get_host_data());
     }
 
     template<const char* FileSubPath>
@@ -100,8 +100,8 @@ struct Pages : FileCache<get_frontend_dir> {
         }
 
         static constexpr char repo_create[] = "/repo_create.html";
-        return FileCache::mustache(
-            Pages::file_contents<repo_create>(),
+        return mustache(
+            file_contents<repo_create>(),
             ReplacementMap({
             { "fiy_user", user },
             { "orgs_option_list", orgs_option_list }
@@ -124,8 +124,8 @@ struct Pages : FileCache<get_frontend_dir> {
         static std::string visibility_strs[] = {
             "Private", "Instance private", "Federated", "Public"
         };
-        return FileCache::mustache(
-            Pages::file_contents<repo_page>(),
+        return mustache(
+            file_contents<repo_page>(),
             ReplacementMap({
                 { "repo_owner_pfp", pfp_url(repo.owner_user()) },
                 { "last_commit_author_pfp", pfp_url(repo.last_commit.author.local_user()) },
@@ -160,8 +160,8 @@ struct Pages : FileCache<get_frontend_dir> {
     static std::string user_page(const std::string& user, const char* request_user = nullptr) {
         static constexpr char user_page[] = "/user.html";
 
-        return FileCache::mustache(
-            Pages::file_contents<user_page>(),
+        return mustache(
+            file_contents<user_page>(),
             ReplacementMap({
                 { "fiy_user", user },
                 { "fiy_domain", fiy::host().domain },

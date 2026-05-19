@@ -343,7 +343,7 @@ void Peers::request_peer(
     request.set("Fiy-Now", now_str);
     request.set("Authorization", "FIY1 " + peer->sig(appid, path, user, req->body_len, now_str));
     request.set(http::field::host, req->domain);
-    response_set_headers(request, req->headers);
+    response_set_headers(request, req->headers, false);
     request.prepare_payload();
 
     // FIXME passing req here is unsafe !

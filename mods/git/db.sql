@@ -84,7 +84,7 @@ CREATE TABLE RepoAccess (
 CREATE TABLE RepoTickets (
     repoId INTEGER REFERENCES Repos,
     ticketId INTEGER NOT NULL,
-    userName TEXT NOT NULL,
+    fromUser TEXT NOT NULL,             -- user@domain
     title TEXT NOT NULL,
     description NOT NULL DEFAULT '',
     createTs INTEGER NOT NULL,
@@ -95,6 +95,7 @@ CREATE TABLE RepoTickets (
 -- CREATE TABLE RepoTicketEdits ( ts, oldDescription ); -- title edits also get added to comments
 
 -- a PR is a specific type of ticket
+-- TODO should PR be a specific type of ticket or something added to a ticket?
 CREATE TABLE RepoPullRequest (
     repoId INTEGER REFERENCES Repos,
     ticketId INTEGER NOT NULL,
@@ -111,7 +112,7 @@ CREATE TABLE RepoTicketComments (
     ticketId INTEGER NOT NULL,
     createTs INTEGER NOT NULL
 );
--- CREATE TABLE RepoTicketCommentEdits
+-- TODO CREATE TABLE RepoTicketCommentEdits
 
 -- email -> fiy user map
 CREATE TABLE UserEmails (

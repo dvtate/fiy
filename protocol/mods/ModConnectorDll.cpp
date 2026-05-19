@@ -173,12 +173,16 @@ public:
         set_this_headers(m_conn->req().base());
     }
 
+    [[nodiscard]] bool request_is_local() const {
+        return domain == nullptr && user != nullptr;
+    }
+
     void callback(const fiy::fiy_response_t* r) const {
         switch (r->body.type) {
             case fiy::BodyType::FIY_BODY_NONE: {
                 Session::EmptyResponse res;
                 res.result(r->status);
-                response_set_headers(res, r->headers);
+                response_set_headers(res, r->headers, request_is_local() );
                 m_conn->respond(m_conn->prep(std::move(res)));
                 break;
             }
@@ -208,7 +212,7 @@ public:
                     break;
                 }
                 res.result(r->status);
-                response_set_headers(res, r->headers);
+                response_set_headers(res, r->headers, request_is_local());
                 m_conn->respond(m_conn->prep(std::move(res)));
                 break;
             }
@@ -218,7 +222,7 @@ public:
                 Session::StringResponse res;
                 res.body() = fiy::Body::to_string(r->body);
                 res.result(r->status);
-                response_set_headers(res, r->headers);
+                response_set_headers(res, r->headers, request_is_local());
                 m_conn->respond(m_conn->prep(std::move(res)));
                 break;
             }
