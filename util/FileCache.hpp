@@ -10,6 +10,8 @@
 #include <iostream>
 #include <vector>
 #include <concepts>
+#include <flat_map>
+#include <deque>
 
 #include "MMFile.hpp"
 
@@ -155,15 +157,16 @@ struct FileCache {
     }
 
     /// Get cached contents of file as a string
-    template<class Replacements>
+    template<class K, class V>
     [[nodiscard]] static std::string
-    mustache(std::string template_string, const Replacements& rules) {
+    mustache(std::string template_string, const std::vector<std::pair<K, V>>& rules) {
         // Editing in-place to reduce memory consumption
         // Probably a more performant way to do this
         std::size_t i = 0;
         while ((i = template_string.find("{{", i)) != std::string::npos) {
             const std::size_t end = template_string.find("}}", i + 2);
-            const auto tag = template_string.substr(i + 2, end - (i + 2));
+            const auto tag = std::string_view(template_string
+                ).substr(i + 2, end - (i + 2));
             for (const auto& [ needle, replacement ] : rules)
                 if (tag == needle) {
                     template_string.replace(i, needle.size() + 4, replacement);
@@ -176,51 +179,60 @@ match_found:
         }
         return template_string;
     }
-//
-//     /**
-//      * Subset of Mustache templating engine that only handles simple replacements
-//      * @tparam VecType list of replacement mappings
-//      * @tparam T list entry type, probably a pair of strings
-//      * @param template_string mustache template
-//      * @param rules list of replacement mappings
-//      * @param remove_unused if invalid variable
-//      * @return populated template
-//      */
-//     template<
-//         template<typename T> class VecType,
-//         typename T = std::pair<std::string_view, std::string>
-//     >
-//     [[nodiscard]] static std::string
-//     mustache(
-//         std::string template_string,
-//         const VecType<T>& rules,
-//         const bool remove_unused = false
-//     ) {
-//         // Editing in-place to reduce memory consumption
-//         // Probably a more performant way to do this
-//         std::size_t i = 0;
-//         while ((i = template_string.find("{{", i)) != std::string::npos) {
-//             i += 2;
-//             const std::size_t end = template_string.find("}}", i);
-//             const auto tag = template_string.substr(i, end - i);
-//             typename T::second_type* value = nullptr;
-//             for (const auto& [ needle, replacement ] : rules)
-//                 if (tag == needle)
-//                     value = &replacement;
-//
-//             if (value != nullptr || remove_unused)
-//                 template_string.replace(
-//                     i - 2,
-//                     end - i + 4,
-//                     value == nullptr ? "" : *value
-//                 );
-// #ifdef FIY_DEBUG
-//             if (value == nullptr && remove_unused)
-// #endif
-//             i = end + 2;
-//         }
-//         return template_string;
-//     }
+
+    /**
+     * Replace all {{tags}} in template_string with corresponding replacements from rules
+     * @param template_string mustache template string
+     * @param rules replacements to apply
+     * @return new string with replacements
+     * @remark tags not found in rules will not be removed!
+     */
+    [[nodiscard]] static std::string mustache(
+        const std::string_view template_string,
+        const std::flat_map<std::string_view, std::string_view>& rules
+    ) {
+        using Replacement = std::flat_map<std::string_view, std::string_view>::const_iterator;
+
+        // index of {{ , key + value
+        std::vector<std::pair<size_t, Replacement>> replacements;
+        replacements.reserve(rules.size()); // reasonable starting point
+
+        std::size_t len = template_string.size();
+        std::size_t i = 0;
+        while ((i = template_string.find("{{", i)) != std::string::npos) {
+            const std::size_t start = i + 2;
+            const std::size_t end = template_string.find("}}", start);
+            const auto tag = template_string.substr(start, end - start);
+            auto it = rules.find(tag);
+            if (it != rules.end()) {
+                replacements.emplace_back(i, it);
+                len -= 4; // {{ }}
+                len -= tag.size();
+                len += it->second.size();
+#ifdef FIY_DEBUG
+            } else {
+                // No replacement, leave it
+                std::cerr <<"FileCache::mustache(): Unknown tag: {{" << tag <<"}}\n";
+#endif
+            }
+
+            // put i after the }}
+            i = end + 2;
+        }
+
+        std::string ret;
+        ret.reserve(len);
+        i = 0;
+        for (const auto& p : replacements) {
+            const std::size_t l = p.first - i;
+            ret.append(template_string, i, l);
+            ret.append(p.second->second);
+            i += l;
+            i += 2; // }}
+        }
+        ret.append(template_string, i, -1);
+        return ret;
+    }
 
     /**
      * Escape HTML characters in a string

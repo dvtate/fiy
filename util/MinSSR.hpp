@@ -135,8 +135,8 @@ namespace MinSSR {
             for (const auto& p : substitution_points) {
                 const auto l = p.first - prev;
                 ret.append(stripped_template, prev, l);
-                prev = p.first;
                 ret.append(substitutions[p.second]);
+                prev = p.first;
             }
             return ret;
         }
@@ -183,13 +183,6 @@ namespace MinSSR {
                 } else {
                     // Substitution
                     ret.substitution_points.emplace_back(index_offset, idx);
-
-                }
-
-                if (!leave_unknown || idx != N) {
-                    // Not a substitution, include tag
-                    index_offset += 2 + (end - start);
-                } else {
                 }
 
                 // put i after the }}
@@ -274,7 +267,8 @@ namespace MinSSR {
             ret.append(template_string, i, l);
             ret.append(substitutions[p.second]);
             i += l;
-            i += 2; // }}
+            i += 4; // {{}}
+            i += sorted_tags[p.second].size();
         }
         ret.append(template_string, i, -1);
         return ret;
@@ -327,7 +321,8 @@ namespace MinSSR {
             ret.append(template_string, i, l);
             ret.append(substitutions[p.second]);
             i += l;
-            i += 2; // }}
+            i += 4; // {{}}
+            i += sorted_tags[p.second].size();
         }
         ret.append(template_string, i, -1);
         return ret;
@@ -371,7 +366,6 @@ namespace MinSSR {
 //         replacements[tags.size()] = unknown_handler; \
 //         return tp.process_unsafe(replacements); \
 //     })()
-
 
 #define MIN_SSR_MUSTACHE(template_string, rules) \
     ([&](){ \
