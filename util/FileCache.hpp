@@ -10,8 +10,10 @@
 #include <iostream>
 #include <vector>
 #include <concepts>
-#include <flat_map>
 #include <deque>
+#if __cplusplus >= 202302L
+#include <flat_map>
+#endif
 
 #include "MMFile.hpp"
 
@@ -179,7 +181,7 @@ match_found:
         }
         return template_string;
     }
-
+#if __cplusplus >= 202302L
     /**
      * Replace all {{tags}} in template_string with corresponding replacements from rules
      * @param template_string mustache template string
@@ -233,6 +235,7 @@ match_found:
         ret.append(template_string, i, -1);
         return ret;
     }
+#endif
 
     /**
      * Escape HTML characters in a string
