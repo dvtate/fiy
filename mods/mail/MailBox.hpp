@@ -6,18 +6,20 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 #include <ctime>
 
 #include "../../util/FileCache.hpp"
 
-class Mail {
-public:
+struct Mail {
     std::string m_from_user;
     std::vector<std::string> m_recipients;
     std::string m_subject;
     std::string m_body;
     time_t m_date;
     size_t m_index;
+
+    Mail() = default;
 
     Mail(std::string from, std::vector<std::string> to, std::string subject, std::string body, time_t ts = std::time(nullptr)):
         m_from_user(std::move(from)),
@@ -64,20 +66,25 @@ public:
 };
 
 class MailBox {
-    std::vector<Mail> m_mail;
+    std::vector<Mail> m_mail; // deque better for reference stability
+    std::mutex m_mtx;
 public:
     std::vector<Mail> get_inbox(const std::string& local_user) {
         std::vector<Mail> ret;
+        std::lock_guard lock{m_mtx};
         for (const auto& m : m_mail)
             for (const auto& u : m.m_recipients)
-                if (u == local_user)
+                if (u == local_user) {
                     ret.emplace_back(m);
+                    break;
+                }
         return ret;
     }
 
     std::string get_inbox_str(const std::string& local_user) {
         std::string ret = "<table><tr><th>Date</th><th>From</th><th>Subject</ht><tr/>";
 
+        std::lock_guard lock{m_mtx};
         for (const auto& m : m_mail)
             for (const auto& u : m.m_recipients)
                 if (u == local_user)
@@ -88,6 +95,7 @@ public:
 
     std::vector<Mail> get_outbox(const std::string& local_user) {
         std::vector<Mail> ret;
+        std::lock_guard lock{m_mtx};
         for (const auto& m : m_mail)
             if (m.m_from_user == local_user)
                 ret.emplace_back(m);
@@ -96,6 +104,7 @@ public:
 
     std::string get_outbox_str(const std::string& local_user) {
         std::string ret = "<table><tr><th>Date</th><th>From</th><th>Subject</ht><tr/>";
+        std::lock_guard lock{m_mtx};
         for (const auto& m : m_mail)
             if (m.m_from_user == local_user)
                 ret += m.short_view();
@@ -104,20 +113,23 @@ public:
     }
 
     size_t push(Mail&& mail) {
+        std::lock_guard lock{m_mtx};
         size_t ret = m_mail.size();
         mail.m_index = ret;
         m_mail.emplace_back(mail);
         return ret;
     }
 
-    Mail* get(size_t index) {
+    bool get(const size_t index, Mail& mail) {
+        std::lock_guard lock{m_mtx};
         if (index >= m_mail.size())
-            return nullptr;
-        else
-            return &m_mail[index];
+            return false;
+        mail = m_mail[index];
+        return true;
     }
 
     void delete_user_mail(const char* user) {
+        std::lock_guard lock{m_mtx};
         // Remove user from recipients list
         for (auto& m : m_mail)
             std::erase_if(

@@ -180,12 +180,12 @@ static void handle_request(fiy_request_t* request, fiy::Callback cb) {
     } else if (strncmp(req.path, "/view/", strlen("/view/")) == 0) {
         const size_t idx = strtoul(req.path + strlen("/view/"), nullptr, 10);
         // TODO verify that the user has access to the email
-        Mail* m = g_mailbox.get(idx);
-        if (m == nullptr) {
+        Mail m;
+        if (! g_mailbox.get(idx, m)) {
             req.respond(cb, 404, "Not found");
             return;
         }
-        const auto body_str = header_links() + m->long_view();
+        const auto body_str = header_links() + m.long_view();
         req.respond(cb, 200, "Content-Type: text/html", fiy::Body(body_str));
         return;
     }
