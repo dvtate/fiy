@@ -18,9 +18,10 @@ These are just some ideas
   - Maybe I should make my own sqlite wrapper or find a generic SQL library
 - Replace std::stoll, atoi, etc. with std::from_chars
   - especially w/ std::string_view's
-- Replace `const std::string&` with `std::string_view` where it makes sense to reduce copies
+- Use `std::string_view` where it makes sense to reduce copies
 - Members designed to be public should not start with `m_`
 - Replace custom RWMutex with std::shared_mutex
+- Use MinSSR instead of bad renderers in FileCache
 
 ## Portal+Protocol Server Features
 - [minify](https://www.npmjs.com/package/minify) html+css+js?

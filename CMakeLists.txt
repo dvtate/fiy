@@ -11,7 +11,7 @@ endif()
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Og -DFIY_DEBUG=1")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/SQLiteCpp)
 

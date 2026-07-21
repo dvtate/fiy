@@ -11,9 +11,6 @@
 #include <vector>
 #include <concepts>
 #include <deque>
-#if __cplusplus >= 202302L
-#include <flat_map>
-#endif
 
 #include "MMFile.hpp"
 
@@ -181,61 +178,61 @@ match_found:
         }
         return template_string;
     }
-#if __cplusplus >= 202302L
-    /**
-     * Replace all {{tags}} in template_string with corresponding replacements from rules
-     * @param template_string mustache template string
-     * @param rules replacements to apply
-     * @return new string with replacements
-     * @remark tags not found in rules will not be removed!
-     */
-    [[nodiscard]] static std::string mustache(
-        const std::string_view template_string,
-        const std::flat_map<std::string_view, std::string_view>& rules
-    ) {
-        using Replacement = std::flat_map<std::string_view, std::string_view>::const_iterator;
-
-        // index of {{ , key + value
-        std::vector<std::pair<size_t, Replacement>> replacements;
-        replacements.reserve(rules.size()); // reasonable starting point
-
-        std::size_t len = template_string.size();
-        std::size_t i = 0;
-        while ((i = template_string.find("{{", i)) != std::string::npos) {
-            const std::size_t start = i + 2;
-            const std::size_t end = template_string.find("}}", start);
-            const auto tag = template_string.substr(start, end - start);
-            auto it = rules.find(tag);
-            if (it != rules.end()) {
-                replacements.emplace_back(i, it);
-                len -= 4; // {{ }}
-                len -= tag.size();
-                len += it->second.size();
-#ifdef FIY_DEBUG
-            } else {
-                // No replacement, leave it
-                std::cerr <<"FileCache::mustache(): Unknown tag: {{" << tag <<"}}\n";
-#endif
-            }
-
-            // put i after the }}
-            i = end + 2;
-        }
-
-        std::string ret;
-        ret.reserve(len);
-        i = 0;
-        for (const auto& p : replacements) {
-            const std::size_t l = p.first - i;
-            ret.append(template_string, i, l);
-            ret.append(p.second->second);
-            i += l;
-            i += 2; // }}
-        }
-        ret.append(template_string, i, -1);
-        return ret;
-    }
-#endif
+// #if __cplusplus >= 202302L
+//     /**
+//      * Replace all {{tags}} in template_string with corresponding replacements from rules
+//      * @param template_string mustache template string
+//      * @param rules replacements to apply
+//      * @return new string with replacements
+//      * @remark tags not found in rules will not be removed!
+//      */
+//     [[nodiscard]] static std::string mustache(
+//         const std::string_view template_string,
+//         const std::flat_map<std::string_view, std::string_view>& rules
+//     ) {
+//         using Replacement = std::flat_map<std::string_view, std::string_view>::const_iterator;
+//
+//         // index of {{ , key + value
+//         std::vector<std::pair<size_t, Replacement>> replacements;
+//         replacements.reserve(rules.size()); // reasonable starting point
+//
+//         std::size_t len = template_string.size();
+//         std::size_t i = 0;
+//         while ((i = template_string.find("{{", i)) != std::string::npos) {
+//             const std::size_t start = i + 2;
+//             const std::size_t end = template_string.find("}}", start);
+//             const auto tag = template_string.substr(start, end - start);
+//             auto it = rules.find(tag);
+//             if (it != rules.end()) {
+//                 replacements.emplace_back(i, it);
+//                 len -= 4; // {{ }}
+//                 len -= tag.size();
+//                 len += it->second.size();
+// #ifdef FIY_DEBUG
+//             } else {
+//                 // No replacement, leave it
+//                 std::cerr <<"FileCache::mustache(): Unknown tag: {{" << tag <<"}}\n";
+// #endif
+//             }
+//
+//             // put i after the }}
+//             i = end + 2;
+//         }
+//
+//         std::string ret;
+//         ret.reserve(len);
+//         i = 0;
+//         for (const auto& p : replacements) {
+//             const std::size_t l = p.first - i;
+//             ret.append(template_string, i, l);
+//             ret.append(p.second->second);
+//             i += l;
+//             i += 2; // }}
+//         }
+//         ret.append(template_string, i, -1);
+//         return ret;
+//     }
+// #endif
 
     /**
      * Escape HTML characters in a string
