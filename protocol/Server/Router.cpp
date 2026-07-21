@@ -89,6 +89,7 @@ static void mod_send_msg(std::shared_ptr<Session> conn) {
             if (hostname.ends_with(hhn)) {
                 const auto mod_name = hostname.substr(0, hostname.size() - hhn.size() - 1);
                 Mod* mod = g_fiy->mods.get_mod(mod_name);
+                // TODO instead redirect subdomain mods
                 request_mod(std::move(conn), mod, path);
                 return;
             }
@@ -522,6 +523,7 @@ void login_user_internal(const std::shared_ptr<Session>& conn) {
         return;
     }
 
+    // TODO maybe we should sign response?
     const auto r = LocalUsers::auth_user(username, std::move(password));
     http::response<http::empty_body> res;
     res.result(r == 0 ? 200 : r == 1 ? 401 : 500);

@@ -1,5 +1,3 @@
-#include <openssl/sha.h>
-
 #include "DB.hpp"
 
 #include "FIY.hpp"

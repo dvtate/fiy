@@ -31,6 +31,7 @@ bool GitRepo::ok(const int status, const std::string& message) {
 }
 
 GitRepo::GitRepo(const char* path) {
+    std::lock_guard lock{m_mtx};
     ok( git_repository_open(&m_repo, path),
         "Failed to open repo " + std::string(path));
 }

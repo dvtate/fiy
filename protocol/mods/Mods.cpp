@@ -28,7 +28,7 @@ void Mods::find_modules() {
         return m1->id < m2->id;
     });
 
-    // m_mtx should be locked for write
+    // Populate lookups
     const size_t mod_count = m_mods.size();
     m_mods_lookup.reserve(mod_count);
     m_mods_by_id.reserve(mod_count);

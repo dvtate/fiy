@@ -9,50 +9,40 @@
 #include "ModConnectorNet.hpp"
 
 
-// TODO refactor so that it handles ids and path lookups better
-
 /**
  * Interface and cache for managing the installed FIY mods/apps
+ *
+ * Design Considerations:
+ * - Need fast lookups for mods by path+id
+ * - Fast iteration over mods
+ * - Server must be restarted to add/remove mods
  */
 class Mods {
 protected:
-    /* Design considerations
-     * Need fast lookups for mods by path+id
-     * Also need fast iteration over mods
-     *Don't care about insertion time
-     */
-
-    // TODO adding/removing mods should require restarting the server
-    // TODO that way no locking needed
-    RWMutex m_mtx;
-
     std::vector<Mod*> m_mods;
     boost::unordered_flat_map<std::string, Mod*> m_mods_lookup; // path -> mod
     boost::unordered_flat_map<std::string, Mod*> m_mods_by_id; // id -> mod
 
     // TODO instead just look up by id (must include in requests)
-    //  and then dynamic cast into modnetconnector
+    //  and then dynamic cast into ModConnectorNet to check bearer token
+    //  this would eliminate need for mutex
     std::unordered_map<std::string, ModConnectorNet*> m_net_connectors; // mod http bearer tokens
 
+    // Mods list cannot be changed while server is running
+    // For now net connectors get added/removed when mod is started/stopped
+    // this necessitates the mutex
+    RWMutex m_mtx;
 public:
 
     Mods() = default;
     ~Mods() {
-        clear();
+        for (auto* m : m_mods)
+                delete m;
     }
 
     void find_modules();
     bool start_all() const;
     bool stop_all() const;
-
-    void clear() {
-        RWMutex::LockForWrite lock{m_mtx};
-        for (auto* m : m_mods)
-#ifndef FIY_DEBUG
-            if (m != nullptr)
-#endif
-            delete m;
-    }
 
     Mod* get_mod(const std::string& path) {
         auto ret = m_mods_lookup.find(path);

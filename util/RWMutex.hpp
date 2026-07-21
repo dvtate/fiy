@@ -1,45 +1,22 @@
 #pragma once
 
-#include <atomic>
-#include <mutex>
+#include <shared_mutex>
 
 /**
  * Mutex that supports multiple simultaneous reads but only a single write
  * @deprecated use std::shared_mutex instead
  */
-// TODO Maybe use std::shared_mutex instead?
 struct RWMutex {
-protected:
-    std::mutex m_mtx;
-    std::atomic<unsigned short> m_readers{0};
+    std::shared_mutex m_mtx;
 
-public:
     void read_lock() {
-        m_mtx.lock();
-        ++m_readers;
-        m_mtx.unlock();
+        m_mtx.lock_shared();
     }
-
     void read_unlock() {
-        --m_readers;
+        m_mtx.unlock_shared();
     }
-
-    /**
-     * Upgrade read lock to write lock (optimization)
-     */
-    void read_to_write() {
-        if (m_mtx.try_lock()) {
-            --m_readers;
-        } else {
-            --m_readers;
-            m_mtx.lock();
-        }
-        while (m_readers > 0); // spinlock is kinda ugly but eh
-    }
-
     void write_lock() {
         m_mtx.lock();
-        while (m_readers > 0); // spinlock is kinda ugly but eh
     }
     void write_unlock() {
         m_mtx.unlock();

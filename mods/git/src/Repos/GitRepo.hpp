@@ -38,6 +38,7 @@ protected:
 
 public:
 
+    /// Git commit
     struct Commit {
         char id[GIT_OID_MAX_HEXSIZE + 1]{""};
         std::string message;
@@ -53,7 +54,7 @@ public:
             return ts != 0;
         }
 
-        std::string id_str() const {
+        [[nodiscard]] std::string id_str() const {
             if (id[0] == '\0')
                 return {};
             return std::string(this->id, GIT_OID_HEXSZ);
@@ -67,7 +68,7 @@ public:
         }
     };
 
-    // Git tree entry
+    /// Git tree entry
     struct Entry {
         enum Type {
             INVALID,

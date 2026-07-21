@@ -249,14 +249,16 @@ void LocalRepo::cache_lru_push(const std::shared_ptr<LocalRepo>& repo) {
 std::shared_ptr<LocalRepo> LocalRepo::get_repo(const BasicRepo& repo) {
     // Look for it in the cache
     auto rp = repo.path();
-    m_cache_mtx.read_lock();
-    auto it = m_cache.find(rp);
-    if (it != m_cache.end()) {
-        auto ret = it->second.lock();
-        if (ret != nullptr) {
-            m_cache_mtx.read_unlock();
-            cache_lru_push(ret);
-            return ret;
+    {
+        RWMutex::LockForRead lock{m_cache_mtx};
+        auto it = m_cache.find(rp);
+        if (it != m_cache.end()) {
+            auto ret = it->second.lock();
+            if (ret != nullptr) {
+                m_cache_mtx.read_unlock();
+                cache_lru_push(ret);
+                return ret;
+            }
         }
     }
 
@@ -271,12 +273,22 @@ std::shared_ptr<LocalRepo> LocalRepo::get_repo(const BasicRepo& repo) {
             free(ptr);
         }
     );
-    m_cache_mtx.read_to_write();
-    m_cache.emplace(rp, ret);
+    m_cache_mtx.write_lock();
+    auto p = m_cache.try_emplace(rp, ret);
     m_cache_mtx.write_unlock();
 
-    // Do the actual construction outside the mutex
-    ::new(&*ret) LocalRepo(repo);
+    // Another thread already inserted it
+    if (! p.second) [[unlikely]] {
+        return get_repo(repo);
+    }
+
+    if (p.second) {
+        // Do the actual construction outside the mutex
+        ::new(&*ret) LocalRepo(repo);
+    } else [[unlikely]]{
+        return get_repo(repo);
+    }
+
 
     return ret;
 }
