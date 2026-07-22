@@ -61,7 +61,7 @@ public:
     ) const;
 
     // TODO need structs for these so that we can make pages
-    ssize_t forks_count() const;
+    [[nodiscard]] ssize_t forks_count() const;
     ssize_t likes_count();
     ssize_t tickets_count();
 

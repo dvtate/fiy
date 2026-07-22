@@ -64,12 +64,25 @@ namespace fiy {
         Body(std::string&& body) = delete;
             // this structure works like a string_view.
 
+        /**
+         * Convert the body into a string
+         * @param body body to convert to a string
+         * @return string representation of the body
+         * @remark after this is called the body should not be used again
+         */
         [[nodiscard]] static std::string to_string(const fiy_body_t& body) {
             switch (body.type) {
             case FIY_BODY_NONE:
                 return "";
 
             case FIY_BODY_BUFFER:
+                if (body.buffer.data == nullptr) {
+#ifdef FIY_DEBUG
+                    return "FIY_BODY_BUFFER data is NULL";
+#else
+                    return "";
+#endif
+                }
                 return std::string(body.buffer.data, body.buffer.length);
 
             case FIY_BODY_READER: {
@@ -92,8 +105,10 @@ namespace fiy {
                     if (n > 0)
                         ret.append(buff, n);
                     else
-                        return ret;
+                        break;
                 }
+                close(body.file.fd); // prevent fd leak
+                return ret;
             }
 
             // invalid

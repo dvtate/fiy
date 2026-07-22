@@ -12,6 +12,22 @@
 
 using DB::operator ""_sql;
 
+static size_t get_repos_cache_size() {
+    auto env = std::getenv("FIY_GIT_REPO_CACHE_SIZE");
+    size_t cache_size = 0;
+    if (env != nullptr)
+        cache_size = atoi(env);
+    if (cache_size == 0)
+        cache_size = 30;
+    return cache_size;
+}
+
+size_t LocalRepo::m_lru_max_size = get_repos_cache_size();
+std::vector<std::shared_ptr<LocalRepo>> LocalRepo::m_cache_lru;
+boost::unordered_flat_map<std::string, std::weak_ptr<LocalRepo>> LocalRepo::m_cache;
+RWMutex LocalRepo::m_cache_mtx;
+std::mutex LocalRepo::m_cache_lru_mutex;
+
 LocalRepo::LocalRepo(const BasicRepo& repo):
     BasicRepo(repo), GitRepo(repo)
 {
@@ -209,22 +225,6 @@ bool LocalRepo::get_dto(const std::string& branch, DTORepo& dto) {
     dto.stats.tickets_count = this->tickets_count();
     return true;
 }
-
-static size_t get_repos_cache_size() {
-    auto env = std::getenv("FIY_GIT_REPO_CACHE_SIZE");
-    size_t cache_size = 0;
-    if (env != nullptr)
-        cache_size = atoi(env);
-    if (cache_size == 0)
-        cache_size = 30;
-    return cache_size;
-}
-
-size_t LocalRepo::m_lru_max_size = get_repos_cache_size();
-std::vector<std::shared_ptr<LocalRepo>> LocalRepo::m_cache_lru;
-boost::unordered_flat_map<std::string, std::weak_ptr<LocalRepo>> LocalRepo::m_cache;
-RWMutex LocalRepo::m_cache_mtx;
-std::mutex LocalRepo::m_cache_lru_mutex;
 
 /**
  * Track repo usage in LRU cache

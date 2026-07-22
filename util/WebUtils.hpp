@@ -19,19 +19,11 @@
 
 namespace WebUtils {
 
-    /**
-     * Equivalent to decodeUriComponent in JS
-     * @param begin
-     * @param end
-     * @return
-     */
-    std::string uri_decode(const char* begin, const char* end);
+    std::string uri_decode(const char* data, std::size_t len);
+    inline std::string uri_decode(const char* begin, const char* end) {
+        return uri_decode(begin, end - begin);
+    }
 
-    /**
-     * Equivalent to encodeUriComponent in JS
-     * @param src
-     * @return
-     */
     std::string uri_encode(const std::string& src);
 
     /**

@@ -90,33 +90,29 @@ namespace WebUtils {
 
     /**
      * Equivalent to decodeUriComponent in JS
-     * @param begin
-     * @param end
-     * @return
      */
-    std::string uri_decode(const char* begin, const char* end) {
+    std::string uri_decode(const char* data, const size_t len) {
         std::string result;
-        const size_t len = end - begin;
         result.reserve(len * 2);
         int hex = 0;
         for (size_t i = 0; i < len; ++i) {
-            switch (begin[i]) {
+            switch (data[i]) {
                 case '+':
                     result += ' ';
                     break;
                 case '%':
                     if ((i + 2) < len
-                        && std::isxdigit(begin[i + 1])
-                        && std::isxdigit(begin[i + 2])
+                        && std::isxdigit(data[i + 1])
+                        && std::isxdigit(data[i + 2])
                     ) {
-                        unsigned int x1 = begin[i + 1];
+                        unsigned int x1 = data[i + 1];
                         if (x1 >= '0' && x1 <= '9')
                             x1 -= '0';
                         else if (x1 >= 'a' && x1 <= 'f')
                             x1 = x1 - 'a' + 10;
                         else if (x1 >= 'A' && x1 <= 'F')
                             x1 = x1 - 'A' + 10;
-                        unsigned int x2 = begin[i + 2];
+                        unsigned int x2 = data[i + 2];
                         if (x2 >= '0' && x2 <= '9')
                             x2 -= '0';
                         else if (x2 >= 'a' && x2 <= 'f')
@@ -132,7 +128,7 @@ namespace WebUtils {
                     }
                     break;
                 default:
-                    result += begin[i];
+                    result += data[i];
                     break;
             }
         }

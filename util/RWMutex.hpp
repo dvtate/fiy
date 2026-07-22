@@ -4,7 +4,7 @@
 
 /**
  * Mutex that supports multiple simultaneous reads but only a single write
- * @deprecated use std::shared_mutex instead
+ * @deprecated use std::shared_mutex directly instead
  */
 struct RWMutex {
     std::shared_mutex m_mtx;
