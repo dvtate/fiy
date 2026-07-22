@@ -9,6 +9,7 @@
   "access": "public",
   "mod_settings": {
     "root": "www",
-    "index": ["index.html", "index.htm", "index.xhtml"]
+    "index": ["index.html", "index.htm", "index.xhtml"],
+    "list_directories": true
   }
 }
