@@ -78,33 +78,22 @@ constexpr inline std::string concat(const Args&... args) {
  * Includes a rudimentary template engine.
  */
 // TODO maybe non-templated base class that
-template <auto(*GetBaseDirFunctor)(void)>
+template <auto(*GetBaseDir)()>
 struct FileCache {
 
-    // TODO should use map/unordered_map instead
     using ReplacementMap = std::vector<std::pair<std::string, std::string>>;
 
-    static std::string load_file_as_string(const std::string& file_path) {
-        return ::load_file_as_string(file_path);
-    }
-
-    static const std::string& prefix() {
-        static auto ret = GetBaseDirFunctor();
-        return ret;
-    }
-
     static std::string path(const std::string& subpath) {
-        return prefix() + subpath;
+        return GetBaseDir() + subpath;
     }
     static std::string path(const char* subpath) {
-        return prefix() + subpath;
+        return GetBaseDir() + std::string(subpath);
     }
 
-    /// Get cached contents of file as a string
+    /// Read the contents of a file
     template<const char* FileSubPath>
-    static const std::string& file_contents() {
-        static const std::string contents = load_file_as_string(prefix() + FileSubPath);
-        return contents;
+    static std::string get_file_contents() {
+        return ::load_file_as_string(path(FileSubPath));
     }
 
     /// Can be used similar to file_contents but uses mmap
@@ -116,28 +105,28 @@ struct FileCache {
         return file;
     }
 
+    /// Get cached contents of file as a string
+    template<const char* FileSubPath>
+    static const std::string& file_contents() {
+        static const std::string contents = get_file_contents<FileSubPath>();
+        return contents;
+    }
+
     /// Get cached contents of file as a string with global replacements
-    template<const char* FileSubPath, class Replacements>
-    static const std::string& file_contents(
-        const Replacements& replacements
+    /// @deprecated
+    template<const char* FileSubPath>
+    [[deprecated]] static const std::string& file_contents(
+        const ReplacementMap& replacements
     ) {
         static const std::string contents = replace_all(
-            load_file_as_string(prefix() + FileSubPath),
+            load_file_as_string(GetBaseDir() + FileSubPath),
             replacements
         );
         return contents;
     }
 
-    static std::string replace_one(std::string haystack, const std::string_view needle, const std::string_view replacement) {
-        std::size_t i = haystack.find(needle);
-        if (i == std::string::npos)
-            return haystack;
-        haystack.replace(i, needle.size(), replacement);
-        return haystack;
-    }
-
     static std::string replace_all(std::string haystack, const std::string_view needle, const std::string_view replacement) {
-        std::size_t i = 0;
+        size_t i = 0;
         while ((i = haystack.find(needle, i)) != std::string::npos) {
             haystack.replace(i, needle.size(), replacement);
             i += replacement.size();
@@ -178,61 +167,6 @@ match_found:
         }
         return template_string;
     }
-// #if __cplusplus >= 202302L
-//     /**
-//      * Replace all {{tags}} in template_string with corresponding replacements from rules
-//      * @param template_string mustache template string
-//      * @param rules replacements to apply
-//      * @return new string with replacements
-//      * @remark tags not found in rules will not be removed!
-//      */
-//     [[nodiscard]] static std::string mustache(
-//         const std::string_view template_string,
-//         const std::flat_map<std::string_view, std::string_view>& rules
-//     ) {
-//         using Replacement = std::flat_map<std::string_view, std::string_view>::const_iterator;
-//
-//         // index of {{ , key + value
-//         std::vector<std::pair<size_t, Replacement>> replacements;
-//         replacements.reserve(rules.size()); // reasonable starting point
-//
-//         std::size_t len = template_string.size();
-//         std::size_t i = 0;
-//         while ((i = template_string.find("{{", i)) != std::string::npos) {
-//             const std::size_t start = i + 2;
-//             const std::size_t end = template_string.find("}}", start);
-//             const auto tag = template_string.substr(start, end - start);
-//             auto it = rules.find(tag);
-//             if (it != rules.end()) {
-//                 replacements.emplace_back(i, it);
-//                 len -= 4; // {{ }}
-//                 len -= tag.size();
-//                 len += it->second.size();
-// #ifdef FIY_DEBUG
-//             } else {
-//                 // No replacement, leave it
-//                 std::cerr <<"FileCache::mustache(): Unknown tag: {{" << tag <<"}}\n";
-// #endif
-//             }
-//
-//             // put i after the }}
-//             i = end + 2;
-//         }
-//
-//         std::string ret;
-//         ret.reserve(len);
-//         i = 0;
-//         for (const auto& p : replacements) {
-//             const std::size_t l = p.first - i;
-//             ret.append(template_string, i, l);
-//             ret.append(p.second->second);
-//             i += l;
-//             i += 2; // }}
-//         }
-//         ret.append(template_string, i, -1);
-//         return ret;
-//     }
-// #endif
 
     /**
      * Escape HTML characters in a string
@@ -266,7 +200,6 @@ match_found:
         }
         return ret;
     }
-
 };
 
 namespace detail {

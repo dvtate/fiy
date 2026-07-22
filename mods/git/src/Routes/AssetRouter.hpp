@@ -22,15 +22,10 @@ bool static_asset_router(
 ) {
     // Landing page (technically not static but whatever)
     if (path[0] == '/' && (path.size() == 1 || path[1] == '?')) {
-        static constexpr char file_path[] = "/landing.html";
-        const auto body = Pages::mustache(
-                Pages::file_contents<file_path>(),
-                Pages::ReplacementMap({
-                { "profile_url", req.user == nullptr
-                    ? std::string("//") + fiy::host().domain + "/portal"
-                    : std::string(fiy::host().base_uri) + '/' + req.user,
-                }
-            }));
+        const auto body = Pages::landing_page(
+            req.user == nullptr
+                ? std::string("//") + fiy::host().domain + "/portal"
+                : std::string(fiy::host().base_uri) + '/' + req.user);
         req.respond(cb, 200,
             "Content-Type: text/html; charset=utf-8\nCache-Control: max-age=604800",
             fiy::Body(body)

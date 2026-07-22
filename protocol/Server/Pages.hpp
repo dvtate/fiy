@@ -9,6 +9,7 @@
 #include "../FIY.hpp"
 
 #include "Session.hpp"
+#include "../../util/MinSSR.hpp"
 
 inline std::string fiy_portal_templates_dir() {
     return g_fiy->config.data_dir + "/pages/";
@@ -16,26 +17,29 @@ inline std::string fiy_portal_templates_dir() {
 
 struct Pages : public FileCache<fiy_portal_templates_dir> {
 
-    static ReplacementMap get_host_data() {
-        return {
-                { "{{domain}}",     g_fiy->config.hostname  },
-                { "{{protocol}}",   "https://"      },
-            };
+    static std::string pre_render_host_data(const std::string templ) {
+#define FIY_PROTOCOL_PAGES_GLOBAL_DATA(kv) \
+            kv("domain", g_fiy->config.hostname) \
+            kv("protocol", "https://")
+        return MIN_SSR_MUSTACHE_VARIABLE_TEMPLATE(templ, FIY_PROTOCOL_PAGES_GLOBAL_DATA);
+#undef FIY_PROTOCOL_PAGES_GLOBAL_DATA
     }
 
     /// Automatically replace host_data in the loaded template
     template<const char* FileSubPath>
-    static const std::string& file_contents() {
-        return FileCache<fiy_portal_templates_dir>::file_contents<FileSubPath>(get_host_data());
+    static std::string file_contents() {
+        return pre_render_host_data(
+            FileCache::get_file_contents<FileSubPath>());
     }
 
-    static Session::StringResponse signup_page(unsigned status = 200, const std::string err = "") {
+    static Session::StringResponse signup_page(unsigned status = 200, const std::string& err = "") {
         static const char path[] = "signup.html";
         Session::StringResponse res;
         res.result(status);
         res.set(boost::beast::http::field::content_type, "text/html");
-        res.body() = mustache(file_contents<path>(),
-            ReplacementMap{ { "fail_reason", err } } );
+#define FIY_PROTOCOL_PAGES_SIGNUP_PAGE_RULES(kv) kv( "fail_reason", err)
+        res.body() =  MIN_SSR_MUSTACHE(file_contents<path>(), FIY_PROTOCOL_PAGES_SIGNUP_PAGE_RULES);
+#undef FIY_PROTOCOL_PAGES_SIGNUP_PAGE_RULES
         return res;
     }
     static Session::StringResponse login_page(unsigned status = 200, const std::string err = "") {
@@ -43,8 +47,9 @@ struct Pages : public FileCache<fiy_portal_templates_dir> {
         Session::StringResponse res;
         res.result(status);
         res.set(boost::beast::http::field::content_type, "text/html");
-        res.body() = mustache(file_contents<path>(),
-            ReplacementMap{ { "fail_reason", err } } );
+#define FIY_PROTOCOL_PAGES_LOGIN_PAGE_RULES(kv) kv( "fail_reason", err)
+        res.body() =  MIN_SSR_MUSTACHE(file_contents<path>(), FIY_PROTOCOL_PAGES_LOGIN_PAGE_RULES);
+#undef FIY_PROTOCOL_PAGES_LOGIN_PAGE_RULES
         return res;
     }
 
@@ -53,19 +58,20 @@ struct Pages : public FileCache<fiy_portal_templates_dir> {
         Session::StringResponse res;
         res.result(200);
         res.set(boost::beast::http::field::content_type, "text/html");
-        res.body() = mustache(file_contents<path>(),
-            ReplacementMap{
-                { "user_data", user.json() },
-                { "installed_apps", g_fiy->mods.get_mods_json() }
-            });
+
+#define FIY_PROTOCOL_PAGES_PORTAL_APPS_RULES(kv) \
+            kv("user_data", user.json()) \
+            kv("installed_apps", g_fiy->mods.get_mods_json())
+
+        res.body() = MIN_SSR_MUSTACHE(file_contents<path>(), FIY_PROTOCOL_PAGES_PORTAL_APPS_RULES);
+#undef FIY_PROTOCOL_PAGES_PORTAL_APPS_RULES
         return res;
     }
 
     static std::string portal_settings(const LocalUser& user) {
         static const char path[] = "settings.html";
-        return mustache(file_contents<path>(),
-            ReplacementMap{
-                { "user_data", user.json() },
-            });
+#define FIY_PROTOCOL_PAGES_PORTAL_SETTINGS_RULES(kv) kv("user_data", user.json())
+        return MIN_SSR_MUSTACHE(file_contents<path>(), FIY_PROTOCOL_PAGES_PORTAL_SETTINGS_RULES);
+#undef FIY_PROTOCOL_PAGES_PORTAL_SETTINGS_RULES
     }
 };

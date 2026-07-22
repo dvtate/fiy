@@ -8,123 +8,69 @@
 #include <fstream>
 #include <string_view>
 
-#include "../../../modlib/fiymod.hpp"
+#include "../../../util/FileCache.hpp"
+#include "../../../util/MinSSR.hpp"
 
-#include "Contact.hpp"
-#include "DB.hpp"
+#include "../../../modlib/fiymod.hpp"
 
 // TODO replace this with FileCache?
 
-namespace Pages {
-    static std::string full_path(const std::string& subpath) {
-        return std::string(fiy::host().data_dir) + "/assets/" + subpath;
-    }
+static std::string get_frontend_dir() {
+    return std::string(fiy::host().data_dir) + "/assets/";
+}
 
-    /////
-    // Simple Templating engine
-    /////
-
+struct Pages : FileCache<get_frontend_dir> {
     /**
-     * Read the entire contents of given file path into a string
-     * @param file_path path to file
-     * @return contents of file
+     * Pre-render global data
      */
-    std::string load_file_as_string(const std::string& file_path) {
-        // Open the file
-        std::ifstream f{file_path};
-        if (!f.is_open()) {
-            std::string log_msg = "Error: Could not open file ";
-            log_msg += file_path;
-            fiy::log_error(log_msg);
-            return ""; // Return an empty string on failure
-        }
+    static std::string render_global_data(const std::string& templ) {
+#define FIY_MOD_CONTACTS_PAGES_GLOBAL_RULES(kv) \
+            kv("fiy_contacts_base_uri", fiy::host().base_uri) \
+            kv("fiy_contacts_domain", fiy::host().domain)
 
-        // Create a string big enough for the file
-        std::string ret;
-        f.seekg(0, std::ios::end);
-        ret.reserve(1 + (ssize_t) f.tellg());
-        f.seekg(0, std::ios::beg);
-
-        // Read entire file content into return string
-        ret.assign(std::istreambuf_iterator<char>(f),
-                   std::istreambuf_iterator<char>());
-        return ret;
+        return MIN_SSR_MUSTACHE_VARIABLE_TEMPLATE(templ, FIY_MOD_CONTACTS_PAGES_GLOBAL_RULES);
+#undef FIY_MOD_CONTACTS_PAGES_GLOBAL_RULES
     }
 
     /**
-     * Get cached contents of file as a string
+     * Get cached contents of file (with substitutions) as a string
      * @tparam FileSubPath static const char* data dir subpath
      * @return string contents of the file
      */
     template<const char* FileSubPath>
-    const std::string& file_contents() {
-        static const std::string contents = load_file_as_string(full_path(FileSubPath));
+    static const std::string& file_contents() {
+        static const std::string contents = render_global_data(get_file_contents<FileSubPath>());
         return contents;
     }
+
+    /**
+     * Body containing file contents w/ global subs
+     */
     template<const char* FileSubPath>
-    fiy::Body file_body() {
+    static fiy::Body file_body() {
         return fiy::Body(file_contents<FileSubPath>());
     }
 
-    /// Primitive templating engine
-    inline std::string replace_one(std::string haystack, const std::string_view needle, const std::string_view replacement) {
-        std::size_t i = haystack.find(needle);
-        if (i == std::string::npos)
-            return haystack;
-        haystack.replace(i, needle.size(), replacement);
-        return haystack;
+    /**
+     * Body containing raw file contents
+     */
+    template<const char* FileSubPath>
+    static fiy::Body mm_file_body() {
+        return fiy::Body(std::string_view(mm_file<FileSubPath>()));
     }
 
-    inline std::string replace_all(std::string haystack, const std::string_view needle, const std::string_view replacement) {
-        std::size_t i = 0;
-        while ((i = haystack.find(needle, i)) != std::string::npos) {
-            haystack.replace(i, needle.size(), replacement);
-            i += replacement.size();
-        }
-        return haystack;
+    static fiy::Body main_js() {
+        static const char path[] = "main.bundle.js";
+        return file_body<path>();
     }
 
-    inline std::string replace_all(
-        std::string template_string,
-        const std::vector<std::pair<std::string_view, std::string_view>>& replacements
-    ) {
-        for (const auto& [ from, to ] : replacements)
-            template_string = replace_all(std::move(template_string), from, to);
-        return template_string;
+    static fiy::Body index_html() {
+        static const char path[] = "index.html";
+        return file_body<path>();
     }
 
-    //////
-    // Cached Static Pages
-    //////
-
-    inline fiy::Body main_js() {
-        static const std::string contents = Pages::replace_all(
-            load_file_as_string(full_path("main.bundle.js")),
-            {
-                {   "{{fiy_contacts_base_uri}}",
-                    fiy::host().base_uri
-                }, {
-                    "{{fiy_contacts_domain}}",
-                    fiy::host().domain
-                }
-            }
-        );
-        return fiy::Body(contents);
-    }
-
-    inline fiy::Body index_html() {
-        static std::string contents = replace_all(
-            load_file_as_string(full_path("index.html")),
-            {
-                { "{{fiy_contacts_base_uri}}", fiy::host().base_uri },
-                { "{{fiy_contacts_domain}}", fiy::host().domain }
-            }
-        );
-        return fiy::Body(contents);
-    }
-
-    inline fiy::Body main_css() {
+    static fiy::Body main_css() {
         static const char path[] = "main.css";
-        return fiy::Body(file_contents<path>());
+        return mm_file_body<path>();
     }
-}
+};

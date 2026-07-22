@@ -14,30 +14,28 @@
 #include <utility>
 #include <array>
 #include <cassert>
+#include <type_traits>
 
 namespace MinSSR {
-    template<size_t N>
-    using Tags = std::array<std::string_view, N>;
-
+    /**
+     * Sorts tags array at compile-time
+     * @tparam R should be std::array<std::string_view, N>
+     * @param tags input, potentially unsorted array of tags
+     * @return sorted array of tags
+     */
     template<std::ranges::random_access_range R>
     consteval R sort_tags(R&& tags) {
         std::ranges::sort(tags);
         return tags;
     }
 
-    template<std::ranges::random_access_range R>
-    constexpr void assert_sorted(const R& tags) {
-#if __cplusplus >= 202302L
-        if consteval {
-            if (!std::is_sorted(tags.cbegin(), tags.cend()))
-                throw "tags not sorted";
-        } else
-#endif
-        {
-            assert(std::is_sorted(tags.cbegin(), tags.cend()));
-        }
-    }
-
+    /**
+     * Use binary search to find the index of a tag in the sorted tags array
+     * @tparam R type of tags object (should be std::array<std::string_view, N>)
+     * @param sorted_tags sorted array of tags
+     * @param tag tag to find in the array
+     * @return index of tag in the array or array.size() if not found
+     */
     template<std::ranges::random_access_range R>
     constexpr size_t index(
         const R& sorted_tags,
@@ -61,18 +59,7 @@ namespace MinSSR {
         return std::distance(sorted_tags.begin(), it);
     }
 
-    // Don't implicitly convert std::strings that could go out of scope
-    template<std::ranges::random_access_range R>
-    inline void set_index(R& tags, const size_t index, const std::string_view value) {
-        tags[index] = value;
-    }
-    template<std::ranges::random_access_range R>
-    inline void set_index(R& tags, const size_t index, const char* value) {
-        tags[index] = std::string_view(value);
-    }
-    template<std::ranges::random_access_range R>
-    inline void set_index(R& tags, const size_t index, std::string&& value) = delete;
-
+    // TODO constraints on R1 R2 sizes
     /**
      * Replace all {{tags}} in template_string with corresponding substitutions
      * @param template_string mustache template string
@@ -94,6 +81,7 @@ namespace MinSSR {
         std::vector<std::pair<size_t, ssize_t>> replacements;
         replacements.reserve(sorted_tags.size()); // reasonable starting point
 
+        // Calculate output length
         std::size_t len = template_string.size();
         std::size_t i = 0;
         while ((i = template_string.find("{{", i)) != std::string::npos) {
@@ -115,6 +103,7 @@ namespace MinSSR {
             i = end + 2;
         }
 
+        // Create output
         std::string ret;
         ret.reserve(len);
         i = 0;
@@ -137,12 +126,94 @@ namespace MinSSR {
     }
 
     /// When the template is constant we can remember where replacements need to occur
-    struct ParsedTemplate {
+    class ParsedTemplate {
         /// Template string with template params removed
         std::string stripped_template;
 
         /// Locations + substitution index to replace in the template string
+        /// when substitution index is negative it's an unknown tag and = -(orig length) - 1
+        // TODO splitting this into 2 vectors could give better cache efficiency
         std::vector<std::pair<size_t, ssize_t>> substitution_points;
+
+    public:
+        /**
+         * Parse a template using barebones mustache syntax
+         * @param template_string input template
+         * @param sorted_tags sorted array of tags used in the template
+         * @param leave_unknown will unknown tags be ignored (true) or replaced (false)?
+         */
+        template<std::ranges::random_access_range R>
+        constexpr ParsedTemplate(
+            const std::string_view template_string,
+            const R& sorted_tags,
+            const bool leave_unknown = true
+        ) {
+            // TODO improved algorithm: copy+edit template string
+
+            // Find all substitution points in template string
+            size_t prev = 0;
+            size_t i = 0;
+            size_t index_offset = 0;
+            while ((i = template_string.find("{{", prev)) != std::string::npos) {
+                index_offset += i - prev;
+
+                const size_t start = i + 2;
+                const size_t end = template_string.find("}}", start);
+                if (end == std::string_view::npos) [[unlikely]] {
+                    index_offset += template_string.size() - i;
+                    break;
+                }
+                const auto l = end - start;
+                const auto tag = template_string.substr(start, l);
+                const auto idx = index(sorted_tags, tag);
+
+                if (idx == sorted_tags.size()) {
+                    if (leave_unknown) {
+                        // Not a substitution, include tag
+                        index_offset += l + 4;
+                    } else {
+                        // Replace unknown
+                        this->substitution_points.emplace_back(index_offset, -1 - (ssize_t)l); // default handler
+                    }
+                } else {
+                    // Substitution
+                    this->substitution_points.emplace_back(index_offset, idx);
+                }
+
+                // Put i after the }}
+                prev = end + 2;
+            }
+
+            // Remove tags from template string to save memory
+            // TODO resize_and_overwrite
+            this->stripped_template.reserve(index_offset);
+            i = 0;              // index in original template string
+            index_offset = 0;   // index in stripped string
+            for (auto& p : this->substitution_points) {
+                // End of last -> start of current
+                const std::size_t l = p.first - index_offset;
+
+                // Copy non-param part of template
+                this->stripped_template.append(template_string, i, l);
+
+                // Don't copy param into stripped string
+                index_offset += l;
+
+                // Translated index
+                i += l; // non-param part
+                i += 4; // {{}}
+                i += p.second < 0
+                    ? -p.second - 1
+                    : sorted_tags[p.second].size();
+            }
+
+            // Include end
+            if (i < template_string.size())
+                this->stripped_template.append(template_string, i);
+
+            // Relinquish excess capacity
+            this->substitution_points.shrink_to_fit();
+        }
 
         /**
          * Populate the parsed template with the corresponding runtime values
@@ -177,87 +248,41 @@ namespace MinSSR {
             ret.append(stripped_template, prev);
             return ret;
         }
-
-        /**
-         * Parse a template
-         * @param template_string input template
-         * @param sorted_tags sorted array of tags used in the template
-         * @param leave_unknown will unknown tags be ignored (true) or replaced (false)?
-         * @return
-         */
-        template<std::ranges::random_access_range R>
-        static inline constexpr
-        ParsedTemplate parse_mustache(
-            const std::string_view template_string,
-            const R& sorted_tags,
-            const bool leave_unknown = true
-        ) {
-            // TODO improved algorithm: copy+edit template string
-
-            // Find all substitution points in template string
-            ParsedTemplate ret;
-            size_t prev = 0;
-            size_t i = 0;
-            size_t index_offset = 0;
-            while ((i = template_string.find("{{", prev)) != std::string::npos) {
-                index_offset += i - prev;
-
-                const size_t start = i + 2;
-                const size_t end = template_string.find("}}", start);
-                if (end == std::string_view::npos) [[unlikely]] {
-                    index_offset += template_string.size() - i;
-                    break;
-                }
-                const auto l = end - start;
-                const auto tag = template_string.substr(start, l);
-                const auto idx = index(sorted_tags, tag);
-
-                if (idx == sorted_tags.size()) {
-                    if (leave_unknown) {
-                        // Not a substitution, include tag
-                        index_offset += l + 4;
-                    } else {
-                        // Replace unknown
-                        ret.substitution_points.emplace_back(index_offset, -1 - (ssize_t)l); // default handler
-                    }
-                } else {
-                    // Substitution
-                    ret.substitution_points.emplace_back(index_offset, idx);
-                }
-
-                // Put i after the }}
-                prev = end + 2;
-            }
-
-            // TODO resize_and_overwrite
-            ret.stripped_template.reserve(index_offset);
-            i = 0;              // index in original template string
-            index_offset = 0;   // index in stripped string
-            for (auto& p : ret.substitution_points) {
-                // End of last -> start of current
-                const std::size_t l = p.first - index_offset;
-
-                // Copy non-param part of template
-                ret.stripped_template.append(template_string, i, l);
-
-                // Don't copy param into stripped string
-                index_offset += l;
-
-                // Translated index
-                i += l; // non-param part
-                i += 4; // {{}}
-                i += p.second < 0
-                    ? -p.second - 1
-                    : sorted_tags[p.second].size();
-            }
-
-            // Include end
-            if (i < template_string.size())
-                ret.stripped_template.append(template_string, i);
-
-            return ret;
-        }
     };
+
+    /**
+     * Escape HTML characters in a string
+     * @param non_html String to escape HTML characters in
+     * @return string with HTML characters escaped
+     */
+    inline std::string escape_html(const std::string& non_html) {
+        // There's probably a better way to do this
+        std::string ret;
+        ret.reserve(non_html.size());
+        for (const char c : non_html) {
+            switch (c) {
+                case '<':
+                    ret += "&lt;";
+                    break;
+                case '&':
+                    ret += "&amp;";
+                    break;
+                case '>':
+                    ret += "&gt;";
+                    break;
+                case '\'':
+                    ret += "&apos;";
+                    break;
+                case '\"':
+                    ret += "&quot;";
+                    break;
+                default:
+                    ret += c;
+            }
+        }
+        return ret;
+    }
+
 }
 
 /* usage:
@@ -273,48 +298,61 @@ namespace MinSSR {
  */
 
 #define FIY_MIN_SSR_TAG_CSV(k, v) k,
-#define FIY_MIN_SSR_SET_REPLACEMENT(k, v) MinSSR::set_index(replacements, MinSSR::index(tags, k), v);
-#define FIY_MIN_SSR_TAGS_LEN(k, v) + 1
+#define FIY_MIN_SSR_SET_REPLACEMENT(k, v) replacements[MinSSR::index(tags, k)] = v;
+#define FIY_MIN_SSR_TAGS_COUNT(k, v) + 1
+#define FIY_MIN_SSR_IS_TEMP_STRING(v) (std::is_same_v<std::remove_cvref_t<decltype((v))>, std::string> \
+    && !std::is_lvalue_reference_v<decltype((v))>)
+#define FIY_MIN_SSR_HAS_TEMP_STRING(k, v) || FIY_MIN_SSR_IS_TEMP_STRING(v)
 
-#define  MIN_SSR_TAGS(rules) (MinSSR::sort_tags(MinSSR::Tags< \
-    0 rules(FIY_MIN_SSR_TAGS_LEN)>({rules(FIY_MIN_SSR_TAG_CSV)})));\
+#define MIN_SSR_TAGS(rules) (MinSSR::sort_tags(std::array<std::string_view, \
+    0 rules(FIY_MIN_SSR_TAGS_COUNT)>({rules(FIY_MIN_SSR_TAG_CSV)})))
 
+#define MIN_SSR_REPLACEMENTS_TYPE(rules) std::conditional_t< \
+        false rules(FIY_MIN_SSR_HAS_TEMP_STRING), \
+        std::array<std::string, tags.size()>, \
+        std::array<std::string_view, tags.size()>>
+
+#define MIN_SSR_REPLACEMENTS_TYPE_WITH_DEFAULT(rules, unknown) std::conditional_t< \
+        FIY_MIN_SSR_IS_TEMP_STRING(unknown) rules(FIY_MIN_SSR_HAS_TEMP_STRING), \
+        std::array<std::string, tags.size() + 1>, \
+        std::array<std::string_view, tags.size() + 1>>
+
+/// Use this when the tags are constexpr and the template is constant
 #define MIN_SSR_MUSTACHE(template_string, rules) \
     ([&](){ \
-        static constexpr auto tags = (MinSSR::sort_tags(MinSSR::Tags< \
-            0 rules(FIY_MIN_SSR_TAGS_LEN)>({rules(FIY_MIN_SSR_TAG_CSV)})));\
-        static const auto tp = MinSSR::ParsedTemplate::parse_mustache(template_string, tags);\
-        MinSSR::Tags<tags.size()> replacements; \
+        static constexpr auto tags = MIN_SSR_TAGS(rules);\
+        static const auto tp = MinSSR::ParsedTemplate(template_string, tags);\
+        MIN_SSR_REPLACEMENTS_TYPE(rules) replacements; \
         rules(FIY_MIN_SSR_SET_REPLACEMENT) \
         return tp.process(replacements); \
     })()
 
+/// Use this when the tags are constexpr and the template is constant and you want to replace unknown tags with a value
 #define MIN_SSR_MUSTACHE_WITH_DEFAULT(template_string, rules, unknown_handler) \
     ([&](){ \
-        static constexpr auto tags = (MinSSR::sort_tags(MinSSR::Tags< \
-            0 rules(FIY_MIN_SSR_TAGS_LEN)>({rules(FIY_MIN_SSR_TAG_CSV)})));\
-        static const auto tp = MinSSR::ParsedTemplate::parse_mustache(template_string, tags, false);\
-        MinSSR::Tags<tags.size()+1> replacements; \
+        static constexpr auto tags = MIN_SSR_TAGS(rules);\
+        static const auto tp = MinSSR::ParsedTemplate(template_string, tags, false);\
+        MIN_SSR_REPLACEMENTS_TYPE_WITH_DEFAULT(rules, unknown_handler) replacements; \
         rules(FIY_MIN_SSR_SET_REPLACEMENT); \
         replacements[tags.size()] = unknown_handler; \
         return tp.process(replacements); \
     })()
 
+/// Use this when the the tags are constexpr but the template is not constant or it's a one-off rendering
 #define MIN_SSR_MUSTACHE_VARIABLE_TEMPLATE(template_string, rules) \
     ([&](){ \
-        static constexpr auto tags = (MinSSR::sort_tags(MinSSR::Tags< \
-            0 rules(FIY_MIN_SSR_TAGS_LEN)>({rules(FIY_MIN_SSR_TAG_CSV)})));\
-        MinSSR::Tags<tags.size()> replacements; \
+        static constexpr auto tags = MIN_SSR_TAGS(rules);\
+        MIN_SSR_REPLACEMENTS_TYPE(rules) replacements; \
         rules(FIY_MIN_SSR_SET_REPLACEMENT) \
         return MinSSR::mustache( template_string, tags, replacements); \
     })()
 
+/// Use this when the the tags are constexpr but the template is not constant and you want to replace unknown tags
 #define MIN_SSR_MUSTACHE_VARIABLE_TEMPLATE_WITH_DEFAULT(template_string, rules, unknown_handler) \
     ([&](){ \
-        static constexpr auto tags = (MinSSR::sort_tags(MinSSR::Tags< \
-            0 rules(FIY_MIN_SSR_TAGS_LEN)>({rules(FIY_MIN_SSR_TAG_CSV)})));\
-        MinSSR::Tags<tags.size()+1> replacements; \
+        static constexpr auto tags = MIN_SSR_TAGS(rules);\
+        MIN_SSR_REPLACEMENTS_TYPE_WITH_DEFAULT(rules, unknown_handler) replacements; \
         rules(FIY_MIN_SSR_SET_REPLACEMENT); \
         replacements[tags.size()] = unknown_handler; \
-        return MinSSR::mustache( template_string, tags, replacements, true); \
+        return MinSSR::mustache( template_string, tags, replacements); \
     })()

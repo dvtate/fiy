@@ -258,6 +258,8 @@ add_library(static_mod SHARED
     util/mime.hpp
     util/mime.cpp
     mods/static/mod.cpp
+    util/WebUtils.hpp
+    util/WebUtils.cpp
 )
 target_link_libraries(static_mod PRIVATE fiymod)
 target_compile_options(static_mod PRIVATE

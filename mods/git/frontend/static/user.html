@@ -17,9 +17,9 @@
 
 <nav>
     <a href="//{{fiy_domain}}/portal">Portal</a>
-    | <a href="{{mod_baseurl}}">Git-IY</a>
-    | <a href="{{mod_baseurl}}/{{request_user}}">Profile</a>
-    | <a href="{{mod_baseurl}}/repo/new">New Repo</a>
+    | <a href="{{fiy_baseuri}}">Git-IY</a>
+    | <a href="{{fiy_baseuri}}/{{request_user}}">Profile</a>
+    | <a href="{{fiy_baseuri}}/repo/new">New Repo</a>
     <hr/>
 </nav>
 
@@ -48,7 +48,7 @@
 </div>
     <script>
         const domain = "{{fiy_domain}}";
-        const baseUrl = "{{mod_baseurl}}";
+        const baseUrl = "{{fiy_baseuri}}";
         let user;
 
         const tabView = document.getElementById('tab-view');
