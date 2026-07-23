@@ -70,30 +70,95 @@ inline void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
         return;
     }
 
-    // Construct repo from form data
-    LocalRepo repo;
-    for (const auto& [k, v]: form) {
+    // Parse form data
+    std::string description;
+    BasicRepo repo;
+    auto visibility = fiy::Locality::INSTANCE;
+    for (auto& [k, v]: form) {
         if (k == "repo-owner") {
-            repo.owner = v;
+            while (v[0] == '@')
+                v = v.substr(1);
+            const auto at = v.rfind('@');
+            if (at == std::string::npos) {
+                repo.owner = v;
+                continue;
+            }
+            repo.owner = v.substr(0, at);
+            repo.instance = v.substr(at + 1);
+            if (repo.instance == fiy::host().domain)
+                repo.instance = "";
         } else if (k == "repo-name") {
             repo.name = v;
         } else if (k == "repo-description") {
-            repo.description = v;
+            description = v;
         } else if (k == "repo-visibility") {
-            repo.visibility = (fiy::Locality) atoi(v.c_str()); // zero is failsafe
+            visibility = (fiy::Locality) atoi(v.c_str()); // zero is failsafe
+            if (visibility == fiy::Locality::USER && v != "0")
+                fiy::log_info("Repo create: invalid visibility: " + v);
         } else {
             fiy::log_info("Repo create: " + req.user_str() + " gave invalid field: " + k);
         }
     }
 
-    // TODO allow users to create org repos
+    // Non-local!!! Needs to be created by peer
+    if (repo.instance != "") {
+        auto req2 = req;
+        req2.domain = repo.instance.c_str();
+        fiy::host().request_mod(fiy::host().app_id, &req, [cb, &req, repo](const fiy::Response* res) {
+            if (res == nullptr) {
+                const auto body = Pages::error_page(
+                    "Peer Request Failed",
+                    "Failed to create repo " + repo.path()
+                    + " due to an unknown communication error with peer " + repo.instance
+                    + ". You can safely try again. If " + repo.instance + " is not down and has not disabled federation"
+                    " You may want to reach out to your instance's administrator or the peer's administrator in order"
+                    " to figure out what's wrong.",
+                    {
+                        { fiy::host().base_uri + req.user_str(), "Profile" },
+                        { fiy::host().base_uri + std::string("/repo/new"), "Create Repo" },
+                    }
+                );
+                req.respond(cb, 500, "Content-Type: text/html", fiy::Body(body));
+                return;
+            }
+
+            if (res->status == 200) {
+                // Send the user to the newly created repo
+                const std::string body = concat(
+                    "<meta http-equiv=\"refresh\" content=\"0; url=",
+                    fiy::host().base_uri,
+                    '/',
+                    repo.path(),
+                    "\" />"
+                );
+                req.respond(cb, 200, "Content-Type: text/html; charset=utf-8", body);
+            } else {
+                // Probably should parse and reformat for our own error page...
+                req.respond(cb, *res);
+            }
+        });
+    }
+
+    // TODO org repos
     if (repo.owner != req.user) {
         req.respond(cb, 401);
         return;
     }
 
-    const char* err = repo.create();
+    const char* err = LocalRepo::create(repo, description, visibility);
     if (err != nullptr) {
+        const auto body = Pages::error_page(
+            "Failed to Create " + repo.path(),
+            "Repo creation failed with the following message: " + std::string(err)
+            + ". <br>" + (err[0] == '4'
+                ? "You may want to try again with different options or make sure you have the necessary permissions."
+                : "You may want to contact your instance administrator if errors persist."),
+            {
+                { fiy::host().base_uri + req.user_str(), "Profile" },
+                { fiy::host().base_uri + std::string("/repo/new"), "Create Repo" },
+            }
+        );
+
         std::string msg = concat(
             "<h1>That didn't work!</h1><br/><p>",
             err,
@@ -101,7 +166,7 @@ inline void repo_create_post(const fiy::Request& req, const fiy::Callback cb) {
         );
         req.respond(cb, err[0] == '4' ? 400 : 500,
             "Content-type: text/html; charset=utf-8",
-            fiy::Body(msg));
+            fiy::Body(body));
         return;
     }
 

@@ -42,10 +42,7 @@ For example, the organizations tables don't need to be connected to the repos ta
 - **GET** `/repo/create` (auth): create a new repo
 - **POST** `/repo/create` (auth):
 
-- `/api` (APIs for federated instances):  
-  - **GET** `/api/<user>`: basic user info
-  - **GET** `/api/<user>/repo/<repo>`: basic repo info
-  - ...
+- `/api` (APIs for federated instances):
 
 - **GET** /settings
 

@@ -10,15 +10,15 @@
 
 #include <nlohmann/json.hpp>
 
+#include "../DB.hpp"
 #include "../Repos/BasicRepo.hpp"
 #include "../Repos/RepoSearch.hpp"
-#include "../DB.hpp"
 #include "../Repos/LocalRepo.hpp"
 
 using DB::operator ""_sql;
 
 void send_to_peer(fiy::Callback cb, fiy::Request& req) {
-    fiy::host().request_mod(fiy::host().app_id, &req, [cb, req](const fiy::Response* res) {
+    fiy::host().request_mod(fiy::host().app_id, &req, [cb, &req](const fiy::Response* res) {
         if (res == nullptr)
             req.respond(cb, 500,
                 "Content-Type: application/json",
@@ -27,7 +27,6 @@ void send_to_peer(fiy::Callback cb, fiy::Request& req) {
             req.respond(cb, *res);
     });
 }
-
 
 bool ticket_api(
     std::string_view path,
@@ -71,7 +70,8 @@ bool repo_api(
             "Content-Type: application/json",
             body);
         return true;
-    } else if (path.starts_with("/search")) {
+    }
+    else if (path.starts_with("/search")) {
         path.remove_prefix(7);
         RepoSearch search;
 

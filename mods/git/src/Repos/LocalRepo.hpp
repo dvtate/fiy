@@ -26,9 +26,6 @@ struct RepoPageData;
 
 class LocalRepo : public BasicRepo, public GitRepo {
 public:
-    /// Used to create new repo
-    LocalRepo() = default;
-
     /// Short description for the repo
     std::string description{};
 
@@ -51,9 +48,6 @@ public:
     std::string to_json();
     bool from_json(const std::string& json);
 
-    /// Create a new repo
-    const char* create();
-
     bool can_access(
         const Access min_level,
         const char* user,
@@ -68,7 +62,11 @@ public:
     bool get_repo_page_data(const std::string& branch, RepoPageData& data);
     // bool get_repo_page_data(const std::string& branch, const std::string& path, RepoFileBrowserPageData& data);
     bool get_dto(const std::string& branch, DTORepo& dto);
+
 protected:
+    /// Used to create new repo
+    LocalRepo() = default;
+
     // Can only have GitRepo instance per repository
     explicit LocalRepo(const BasicRepo& repo);
 
@@ -82,7 +80,11 @@ protected:
 
     static void cache_lru_push(const std::shared_ptr<LocalRepo>& repo);
 
+    const char* create();
 public:
+    /// Create a new repo
+    static const char* create(const BasicRepo& basic_repo, std::string description, fiy::Locality visibility);
+
     static std::shared_ptr<LocalRepo> get_repo(const BasicRepo& repo);
     static std::vector<std::shared_ptr<LocalRepo>> get_repos(const std::vector<BasicRepo>& repos);
 };

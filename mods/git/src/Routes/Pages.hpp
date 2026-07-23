@@ -76,12 +76,15 @@ struct Pages : FileCache<get_frontend_dir> {
     // TODO make version of this which handles MMFile::Error and gives 404/500
     template<const char* FileSubPath>
     static fiy::Body mm_file_body() {
-        return fiy::Body(std::string_view(
-            mm_file<FileSubPath>()));
+        return fiy::Body(std::string_view(mm_file<FileSubPath>()));
     }
 
     static std::string repo_create_page(std::string_view user, const std::vector<std::string>& orgs);
     static std::string user_page(std::string_view user, const char* request_user = nullptr);
     static std::string repo_page(const RepoPageData& repo, const char* request_user = nullptr);
     static std::string landing_page(std::string_view profile_url);
+    static std::string error_page(
+        std::string_view title,
+        std::string_view description,
+        const std::vector<std::pair<std::string, std::string>>& links = {});
 };

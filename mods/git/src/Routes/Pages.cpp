@@ -98,9 +98,24 @@ std::string Pages::repo_page(const RepoPageData& repo, const char* request_user)
 }
 
 std::string Pages::landing_page(const std::string_view profile_url) {
-
 #define FIY_MOD_GIT_LANDING_PAGE_RULES(kv) kv("profile_url", profile_url)
-
     static constexpr char file_path[] = "/landing.html";
     return MIN_SSR_MUSTACHE(file_contents<file_path>(), FIY_MOD_GIT_LANDING_PAGE_RULES);
+}
+
+std::string Pages::error_page(
+    const std::string_view title,
+    const std::string_view description,
+    const std::vector<std::pair<std::string, std::string>>& links
+) {
+    std::string links_str;
+    for (const auto& [url, label] : links)
+        links_str += concat("| <a href=\"" + url + "\">", label, "</a> ");
+
+#define FIY_MOD_GIT_ERROR_PAGE_RULES(kv) \
+        kv("error_title", title) \
+        kv("error_description", description) \
+        kv("links", links_str)
+    static constexpr char file_path[] = "/error.html";
+    return MIN_SSR_MUSTACHE(file_contents<file_path>(), FIY_MOD_GIT_ERROR_PAGE_RULES);
 }

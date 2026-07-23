@@ -96,7 +96,18 @@ bool LocalRepo::can_access(
     return user_can_access_local(min_level, user, domain);
 }
 
+const char* LocalRepo::create(const BasicRepo& basic_repo, std::string description, const fiy::Locality visibility) {
+    LocalRepo repo;
+    repo.BasicRepo::operator=(basic_repo);
+    repo.description = std::move(description);
+    repo.visibility = visibility;
+    return repo.create();
+}
+
 const char* LocalRepo::create() {
+    if (! instance.empty())
+        return "4XX: Cannot create non-local repo";
+
     std::string repo_path = concat(
         fiy::host().data_dir, "/repos/", owner, '/', name);
 
