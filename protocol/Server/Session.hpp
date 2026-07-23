@@ -79,6 +79,13 @@ public:
     void respond(boost::beast::http::message_generator&& res);
     void close();
 
+    boost::asio::ip::port_type port() {
+        return m_stream.socket().remote_endpoint().port();
+    }
+    boost::asio::ip::address address() {
+        return m_stream.socket().remote_endpoint().address();
+    }
+
 protected:
     void do_read();
     void on_read(boost::beast::error_code ec, std::size_t bytes_transferred);

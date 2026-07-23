@@ -19,7 +19,7 @@ extern FIY* g_fiy;
  * Global protocol server app singleton
  */
 class FIY {
-    volatile std::time_t m_now{0};
+    std::time_t m_now{0};
 
     friend class HttpClient;
     friend class HttpsClient;
@@ -40,6 +40,8 @@ public:
 
     bool start(int argc, char* argv[]);
     bool start();
+
+    static void restart();
 
     std::time_t now() const {
         return m_now;

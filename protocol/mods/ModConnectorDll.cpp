@@ -146,7 +146,7 @@ public:
     explicit ModDllConnectorRequest(
         std::shared_ptr<Session> conn,
         const Session::User& user,
-        RequestHandler handle_request
+        const RequestHandler handle_request
     ):
         m_conn(std::move(conn)),
         on_request(handle_request) {
@@ -155,6 +155,7 @@ public:
         // Initialize fiy_request_t
         this->method = static_cast<uint8_t>(r.method());
 
+        // TODO maybe change API to ptr+len to avoid this copy
         this->m_str_path = r.target();
         this->path = this->m_str_path.c_str();
 

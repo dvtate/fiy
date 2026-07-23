@@ -12,6 +12,12 @@ These are just some ideas
 - View and edit mod and host configs
 - Run admin web interface
 
+## Protocol Server Changes
+- FIY endpoints get their own path prefix, ie: /peer/key -> /fiy/peer/key
+- Either move portal to /fiy/portal or make it its own app?
+- Make landing page use static server?
+- Subdomain mods redirect to path-based alternatives
+
 ## Micro-refactoring
 - Replace SQLiteCpp
   - The library is badly designed
@@ -21,7 +27,6 @@ These are just some ideas
 - Use `std::string_view` where it makes sense to reduce copies
 - Members designed to be public should not start with `m_`
 - Replace custom RWMutex with std::shared_mutex
-- Use MinSSR instead of bad renderers in FileCache
 
 ## Portal+Protocol Server Features
 - [minify](https://www.npmjs.com/package/minify) html+css+js?

@@ -94,7 +94,7 @@ public:
     }
 
     operator std::string_view() const {
-        return std::string_view(m_data, m_size);
+        return {m_data, m_size};
     }
 
     operator const char*() const {

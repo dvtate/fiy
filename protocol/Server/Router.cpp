@@ -54,7 +54,9 @@ static void request_mod(std::shared_ptr<Session> conn, Mod* m, const std::string
     }
 
     // Call mod
-    DEBUG_LOG("Calling App " <<m->id <<" : " << uri);
+#ifdef FIY_DEBUG
+    std::cout <<"Mod " <<m->id <<" : " << uri <<std::endl;
+#endif
     conn->req().target(uri);
     m->ipc->handle_request(std::move(conn));
 }
@@ -202,7 +204,7 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
 
     // Validate username
     for (const auto& c : username)
-        if (! (isalnum(c) || c == '_' || c == '.')) {
+        if (! (isalnum(c) || c == '_')) {
             conn->respond(conn->prep(resp_bad_username));
             return;
         }
@@ -211,9 +213,13 @@ static void signup_post(std::shared_ptr<Session>&& conn) {
         return;
     }
     static const std::unordered_set<std::string_view> reserved_usernames = {
-        "api", "portal", "mod", "app", "help", "home", "index", "new",
+        "api", "mod", "app", "help", "home", "index", "new", "about",
+        "error", "create", "delete", "post", "view", "search", "notifications"
     };
-    if (reserved_usernames.contains(username) || username.ends_with("settings")) {
+    if (username.size() == 1
+        || reserved_usernames.contains(username)
+        || username.ends_with("settings")
+    ) {
         conn->respond(conn->prep(resp_username_reserved));
         return;
     }
@@ -534,10 +540,17 @@ void route_request(std::shared_ptr<Session> conn) {
     auto path = conn->req().target();
 
     // Logging
-    DEBUG_LOG("Req: "
-        <<http::to_string(conn->req().method())
+#ifdef FIY_DEBUG
+    std::cout <<"Request: "
+        <<conn->address().to_string()
+        <<":"
+        <<conn->port()
         <<" -- "
-        <<path);
+        <<http::to_string(conn->req().method())
+        <<" "
+        <<path
+        <<std::endl;
+#endif
 
     switch (conn->req().method()) {
         case http::verb::get:

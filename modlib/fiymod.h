@@ -45,7 +45,13 @@ struct fiy_request_t {
     /**
      * Enum value corresponding to the HTTP verb sent
      */
-    uint8_t method;   // http method (from boost::beast::http::verb)
+    uint8_t method : 8;   // http method (from boost::beast::http::verb)
+
+    /**
+     * How big is the body
+     * @note can't rely on null-terminators bc body could be binary format
+     */
+    size_t body_len : 8 * (sizeof(size_t) - 1);
 
     /**
      * Request path
@@ -63,20 +69,17 @@ struct fiy_request_t {
      * - Content-Type ?
      * - Content-Encoding ?
      * - Accept ?
-     * - Accept-Encoding
-     * - Cookie ?
+     * - Accept-Encoding ?
+     * - Cookie ? (without session token)
      */
-
-    /**
-     * How big is the body
-     * @note can't rely on null-terminators bc body could be binary format
-     */
-    size_t body_len;
 
     /**
      * Request body
      */
     const char* body;       // null = get request
+
+    // TODO change API: callback+context members
+    // fiy_respond(fiy_request_t* , fiy_response_t*)
 };
 
 /**

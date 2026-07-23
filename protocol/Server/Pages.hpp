@@ -32,23 +32,25 @@ struct Pages : public FileCache<fiy_portal_templates_dir> {
             FileCache::get_file_contents<FileSubPath>());
     }
 
-    static Session::StringResponse signup_page(unsigned status = 200, const std::string& err = "") {
+    static Session::StringResponse signup_page(const unsigned status = 200, const std::string& err = "") {
         static const char path[] = "signup.html";
         Session::StringResponse res;
         res.result(status);
         res.set(boost::beast::http::field::content_type, "text/html");
 #define FIY_PROTOCOL_PAGES_SIGNUP_PAGE_RULES(kv) kv( "fail_reason", err)
-        res.body() =  MIN_SSR_MUSTACHE(file_contents<path>(), FIY_PROTOCOL_PAGES_SIGNUP_PAGE_RULES);
+        // All version of the page are pre-rendered
+        res.body() =  MIN_SSR_MUSTACHE_VARIABLE_TEMPLATE(file_contents<path>(), FIY_PROTOCOL_PAGES_SIGNUP_PAGE_RULES);
 #undef FIY_PROTOCOL_PAGES_SIGNUP_PAGE_RULES
         return res;
     }
-    static Session::StringResponse login_page(unsigned status = 200, const std::string err = "") {
+    static Session::StringResponse login_page(const unsigned status = 200, const std::string& err = "") {
         static const char path[] = "login.html";
         Session::StringResponse res;
         res.result(status);
         res.set(boost::beast::http::field::content_type, "text/html");
 #define FIY_PROTOCOL_PAGES_LOGIN_PAGE_RULES(kv) kv( "fail_reason", err)
-        res.body() =  MIN_SSR_MUSTACHE(file_contents<path>(), FIY_PROTOCOL_PAGES_LOGIN_PAGE_RULES);
+        // All version of the page are pre-rendered
+        res.body() =  MIN_SSR_MUSTACHE_VARIABLE_TEMPLATE(file_contents<path>(), FIY_PROTOCOL_PAGES_LOGIN_PAGE_RULES);
 #undef FIY_PROTOCOL_PAGES_LOGIN_PAGE_RULES
         return res;
     }

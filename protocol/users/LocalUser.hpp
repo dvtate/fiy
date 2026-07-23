@@ -66,6 +66,10 @@ public:
 
     // TODO this system is too simple, loose session token and you're fucked
     // TODO this should be moved to its own class+file
+    // idea:
+    //  - 2 tokens one new, one old
+    //  - periodically use set-cookie to give user new token
+    //  - expire old one after 10 mins
     class AuthToken {
     public:
         static constexpr time_t SESSION_LIFETIME = 60 * 60 * 24 * 14; // 2 weeks

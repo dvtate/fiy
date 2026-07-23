@@ -2,6 +2,8 @@
 
 #include <thread>
 
+#include <unistd.h>
+
 #include "Server/Server.hpp"
 
 #include "FIY.hpp"
@@ -42,6 +44,7 @@ bool FIY::start() {
 
     // Track current time
     std::thread now_tracker{[this]() {
+        // TODO this seems inefficient
         while (true) {
             m_now = std::time(nullptr);
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -70,6 +73,21 @@ bool FIY::start() {
     m_ioc->run();
 
     return true;
+}
+
+/**
+ * Restart the protocol server
+ */
+void FIY::restart() {
+    char buff[PATH_MAX];
+    if (realpath("/proc/self/exe", buff) != buff) {
+        perror("realpath");
+        LOG_ERR("Failed to get /proc/self/exe.");
+        strcpy(buff, "/proc/self/exe");
+    }
+    if ( execv( buff, nullptr) == -1 )
+        perror("execv");
+    LOG_ERR("Failed to restart");
 }
 
 const std::string& FIY::base_uri() const {

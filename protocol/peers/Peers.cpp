@@ -260,9 +260,9 @@ struct ScopedRequest {
             .domain=m_domain.empty() ? nullptr : m_domain.c_str() ,
             .user=m_user.empty() ? nullptr : m_user.c_str(),
             .method=m_method,
+            .body_len=m_body.size(),
             .path=m_path.empty() ? nullptr : m_path.c_str(),
             .headers=m_headers.empty() ? nullptr : m_headers.c_str(),
-            .body_len=m_body.size(),
             .body=m_body.empty() ? nullptr : m_body.data(),
         };
     }
